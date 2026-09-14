@@ -4,11 +4,28 @@ A toolbox of diagnostic and testing tools for administrators of **Dynamics 365 C
 
 ## Getting the toolbox into your environment
 
-The toolbox is packaged as a single **unmanaged Dataverse solution** that bundles every tool below. Import the solution zip into your target environment via Power Platform's Solutions area (or the `pac` CLI) to get all tools at once.
+The toolbox is packaged as a single **unmanaged Dataverse solution** that bundles every tool's web resources plus the "Promethean CCaaS Toolbox" model-driven app that surfaces them in a Site Map. There are two ways to get it running:
 
-> 📦 Solution zip: *to be added here.*
+### Option A — Import the packaged solution (fastest, no build tooling required)
 
-Alternatively, you can build and deploy each tool yourself from this repo — see [Deployment](#deployment) below.
+> 📦 Solution zip: [`power_platform_solution/ccaasvisualroutingtester_1_1.zip`](power_platform_solution/ccaasvisualroutingtester_1_1.zip)
+
+Via the Power Platform maker portal:
+1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
+2. **Solutions** → **Import solution** → browse to the zip above → **Next** → confirm the publisher → **Import**.
+3. Once import finishes, open the **Promethean CCaaS Toolbox** app to confirm the tools' subareas load.
+
+Via the `pac` CLI:
+```powershell
+pac auth create --url https://your-org.crm.dynamics.com
+pac solution import --path power_platform_solution/ccaasvisualroutingtester_1_1.zip --publish-changes
+```
+
+After import, the solution's unique name in that environment is `ccaasvisualroutingtester` (the name baked into the zip's `solution.xml`) — if you plan to push code changes into that environment later with `deploy.ps1` (Option B), that's the value that belongs in `solutionUniqueName` for the matching environment entry in `deploy.config.json`; see [deploy.config.json reference](#deployconfigjson-reference) below.
+
+### Option B — Build and deploy each tool yourself from this repo
+
+See [Deployment](#deployment) below.
 
 ## Tools
 
@@ -37,6 +54,7 @@ All tools:
 tools/
   visual-routing-tester/       # Tool 1 — src, tests, webresource, css, docs
   context-variable-monitor/    # Tool 2 — src, tests, webresource, css, docs
+power_platform_solution/       # Packaged unmanaged solution zip (see Option A above)
 webpack.config.js              # One build entry per tool
 deploy.config.json             # Per-environment / per-tool deploy configuration
 scripts/deploy.ps1             # Deploy script (see below)
@@ -62,6 +80,55 @@ Deployment targets and per-tool web resource mappings are defined in [`deploy.co
 pwsh ./scripts/deploy.ps1 -Tool <toolkey>
 ```
 
-The script builds the project, stages non-webpack files, stamps a fresh cache-busting version automatically, looks up each web resource by name in the target environment (never hardcoding a GUID), updates its content, publishes, and verifies the result by reading the live content back. Requires the Azure CLI (`az`) to be logged in with access to the target environment. Add `-CreateIfMissing` the first time a new tool's web resources don't exist yet in the target environment.
+The script builds the project, stages non-webpack files, stamps a fresh cache-busting version automatically, looks up each web resource by name in the target environment (never hardcoding a GUID), updates its content, publishes, and verifies the result by reading the live content back. Requires the Azure CLI (`az`) to be logged in with access to the target environment. Add `-CreateIfMissing` the first time a new tool's web resources don't exist yet in the target environment (this also adds each newly-created web resource to the solution named by `solutionUniqueName`).
 
-Adding a new tool to the toolbox means: a new `tools/<toolname>/` folder following the existing layout, a new webpack entry, a new `tools.<toolname>` block in `deploy.config.json`, and its own `README.md` + `IMPLEMENTATION_STATUS.md` alongside the others.
+```powershell
+# First deploy of a tool into an environment where its web resources don't exist yet:
+pwsh ./scripts/deploy.ps1 -Tool routingtester -CreateIfMissing
+
+# Routine redeploy after that, against a non-default environment:
+pwsh ./scripts/deploy.ps1 -Tool routingtester -Environment test
+```
+
+### deploy.config.json reference
+
+```json
+{
+  "defaultEnvironment": "dev",
+  "environments": {
+    "dev": {
+      "url": "https://academyexperiment.crm.dynamics.com",
+      "solutionUniqueName": "ccaasvisualroutingtester"
+    }
+  },
+  "tools": {
+    "routingtester": {
+      "displayName": "Visual Routing Tester",
+      "stage": [
+        { "from": "tools/visual-routing-tester/webresource/routingtester.html", "to": "dist/webresource/routingtester/index.html" }
+      ],
+      "webResources": [
+        { "name": "ccas_/tools/routingtester/index.html", "path": "dist/webresource/routingtester/index.html", "type": 1, "displayName": "Visual Routing Tester - index.html", "cacheBust": true }
+      ]
+    }
+  }
+}
+```
+
+| Field | Meaning | When you need to change it |
+| --- | --- | --- |
+| `defaultEnvironment` | Key into `environments` used when `-Environment` isn't passed to `deploy.ps1`. | Rarely — only if the "usual" target org changes. |
+| `environments.<key>` | One entry per Dataverse environment you deploy to. | Add a new key (e.g. `test`, `prod`) before deploying to a new org for the first time. |
+| `environments.<key>.url` | The environment's base API URL, e.g. `https://your-org.crm.dynamics.com` (no trailing slash). Used both to request an access token and as the base for every Web API call. | Set once per environment, when you add it. |
+| `environments.<key>.solutionUniqueName` | Unique name (not display name) of the Dataverse solution the web resources belong to. | Set to the solution you imported in [Option A](#option-a--import-the-packaged-solution-fastest-no-build-tooling-required) (or an existing solution) for that environment — needed whenever `-CreateIfMissing` has to add a newly-created web resource to a solution. |
+| `tools.<toolkey>` | One block per tool; the key is what you pass to `-Tool`. | Add a new block when adding a new tool to the toolbox (see below). |
+| `tools.<toolkey>.displayName` | Human-readable name, used only in deploy log output. | Cosmetic only. |
+| `tools.<toolkey>.stage` | List of `{ "from", "to" }` file copies run before upload, for non-webpack files (html/css) that need to land next to the webpack bundle output. Both paths are repo-relative. | Update if a tool's source html/css file moves, or when adding a new tool. |
+| `tools.<toolkey>.webResources` | The actual Dataverse web resources to create/update — one entry per `index.html` / `.css` / `.js`. | Update whenever a tool gains/loses a web resource, or when adding a new tool. |
+| `webResources[].name` | The Dataverse web resource's unique name (e.g. `ccas_/tools/routingtester/index.html`). This is how the script looks the resource up live — **never** a GUID. Must use the same publisher prefix / path scheme as the resources already in the target solution. | Must match exactly what exists (or should exist) in the target environment. |
+| `webResources[].path` | Repo-relative path to the local built file whose content gets uploaded. | Must match the `to` of the corresponding `stage` entry (for html/css) or the webpack output path (for the bundle `.js`). |
+| `webResources[].type` | Dataverse web resource type code: `1` = HTML, `2` = CSS, `3` = JS/script. | Set once per resource, based on its file type. |
+| `webResources[].displayName` | Display name used only when creating the resource for the first time (`-CreateIfMissing`). | Cosmetic, but only takes effect on creation. |
+| `webResources[].cacheBust` | `true` to have the script stamp a fresh `?v=<timestamp>` query string into the `<script>`/`<link>` references inside this file on every deploy. | Set on the `index.html` entry (which references the css/js), not on the css/js entries themselves. |
+
+Adding a new tool to the toolbox means: a new `tools/<toolname>/` folder following the existing layout, a new webpack entry, a new `tools.<toolname>` block in `deploy.config.json` (following the `ccas_/tools/<toolname>/...` naming convention already used by the other tools), and its own `README.md` + `IMPLEMENTATION_STATUS.md` alongside the others.
