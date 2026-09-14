@@ -8,7 +8,7 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/ccaasvisualroutingtester_1_1.zip`](power_platform_solution/ccaasvisualroutingtester_1_1.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1.zip)
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -18,10 +18,10 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/ccaasvisualroutingtester_1_1.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1.zip --publish-changes
 ```
 
-After import, the solution's unique name in that environment is `ccaasvisualroutingtester` (the name baked into the zip's `solution.xml`) — if you plan to push code changes into that environment later with `deploy.ps1` (Option B), that's the value that belongs in `solutionUniqueName` for the matching environment entry in `deploy.config.json`; see [deploy.config.json reference](#deployconfigjson-reference) below.
+After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`) — if you plan to push code changes into that environment later with `deploy.ps1` (Option B), that's the value that already belongs in `solutionUniqueName` for the matching environment entry in `deploy.config.json`; see [deploy.config.json reference](#deployconfigjson-reference) below.
 
 ### Option B — Build and deploy each tool yourself from this repo
 
@@ -98,7 +98,7 @@ pwsh ./scripts/deploy.ps1 -Tool routingtester -Environment test
   "environments": {
     "dev": {
       "url": "https://academyexperiment.crm.dynamics.com",
-      "solutionUniqueName": "ccaasvisualroutingtester"
+      "solutionUniqueName": "PrometheanCCaaSToolbox"
     }
   },
   "tools": {
@@ -108,7 +108,7 @@ pwsh ./scripts/deploy.ps1 -Tool routingtester -Environment test
         { "from": "tools/visual-routing-tester/webresource/routingtester.html", "to": "dist/webresource/routingtester/index.html" }
       ],
       "webResources": [
-        { "name": "ccas_/tools/routingtester/index.html", "path": "dist/webresource/routingtester/index.html", "type": 1, "displayName": "Visual Routing Tester - index.html", "cacheBust": true }
+        { "name": "pct_/tools/routingtester/index.html", "path": "dist/webresource/routingtester/index.html", "type": 1, "displayName": "Visual Routing Tester - index.html", "cacheBust": true }
       ]
     }
   }
@@ -125,10 +125,10 @@ pwsh ./scripts/deploy.ps1 -Tool routingtester -Environment test
 | `tools.<toolkey>.displayName` | Human-readable name, used only in deploy log output. | Cosmetic only. |
 | `tools.<toolkey>.stage` | List of `{ "from", "to" }` file copies run before upload, for non-webpack files (html/css) that need to land next to the webpack bundle output. Both paths are repo-relative. | Update if a tool's source html/css file moves, or when adding a new tool. |
 | `tools.<toolkey>.webResources` | The actual Dataverse web resources to create/update — one entry per `index.html` / `.css` / `.js`. | Update whenever a tool gains/loses a web resource, or when adding a new tool. |
-| `webResources[].name` | The Dataverse web resource's unique name (e.g. `ccas_/tools/routingtester/index.html`). This is how the script looks the resource up live — **never** a GUID. Must use the same publisher prefix / path scheme as the resources already in the target solution. | Must match exactly what exists (or should exist) in the target environment. |
+| `webResources[].name` | The Dataverse web resource's unique name (e.g. `pct_/tools/routingtester/index.html`). This is how the script looks the resource up live — **never** a GUID. Must use the same publisher prefix / path scheme as the resources already in the target solution. | Must match exactly what exists (or should exist) in the target environment. |
 | `webResources[].path` | Repo-relative path to the local built file whose content gets uploaded. | Must match the `to` of the corresponding `stage` entry (for html/css) or the webpack output path (for the bundle `.js`). |
 | `webResources[].type` | Dataverse web resource type code: `1` = HTML, `2` = CSS, `3` = JS/script. | Set once per resource, based on its file type. |
 | `webResources[].displayName` | Display name used only when creating the resource for the first time (`-CreateIfMissing`). | Cosmetic, but only takes effect on creation. |
 | `webResources[].cacheBust` | `true` to have the script stamp a fresh `?v=<timestamp>` query string into the `<script>`/`<link>` references inside this file on every deploy. | Set on the `index.html` entry (which references the css/js), not on the css/js entries themselves. |
 
-Adding a new tool to the toolbox means: a new `tools/<toolname>/` folder following the existing layout, a new webpack entry, a new `tools.<toolname>` block in `deploy.config.json` (following the `ccas_/tools/<toolname>/...` naming convention already used by the other tools), and its own `README.md` + `IMPLEMENTATION_STATUS.md` alongside the others.
+Adding a new tool to the toolbox means: a new `tools/<toolname>/` folder following the existing layout, a new webpack entry, a new `tools.<toolname>` block in `deploy.config.json` (following the `pct_/tools/<toolname>/...` naming convention already used by the other tools), and its own `README.md` + `IMPLEMENTATION_STATUS.md` alongside the others.

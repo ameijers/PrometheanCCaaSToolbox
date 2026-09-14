@@ -3,7 +3,7 @@
   "environments": {
     "dev": {
       "url": "https://academyexperiment.crm.dynamics.com",
-      "solutionUniqueName": "ccaasvisualroutingtester"
+      "solutionUniqueName": "PrometheanCCaaSToolbox"
     }
   },
   "tools": {
@@ -14,9 +14,9 @@
         { "from": "tools/visual-routing-tester/css/visualRoutingTester.css", "to": "dist/webresource/routingtester/style.css" }
       ],
       "webResources": [
-        { "name": "ccas_/tools/routingtester/index.html", "path": "dist/webresource/routingtester/index.html", "type": 1, "displayName": "Visual Routing Tester - index.html", "cacheBust": true },
-        { "name": "ccas_/tools/routingtester/style.css", "path": "dist/webresource/routingtester/style.css", "type": 2, "displayName": "Visual Routing Tester - style.css" },
-        { "name": "ccas_/tools/routingtester/bundle.js", "path": "dist/webresource/routingtester/bundle.js", "type": 3, "displayName": "Visual Routing Tester - bundle.js" }
+        { "name": "pct_/tools/routingtester/index.html", "path": "dist/webresource/routingtester/index.html", "type": 1, "displayName": "Visual Routing Tester - index.html", "cacheBust": true },
+        { "name": "pct_/tools/routingtester/style.css", "path": "dist/webresource/routingtester/style.css", "type": 2, "displayName": "Visual Routing Tester - style.css" },
+        { "name": "pct_/tools/routingtester/bundle.js", "path": "dist/webresource/routingtester/bundle.js", "type": 3, "displayName": "Visual Routing Tester - bundle.js" }
       ]
     },
     "contextvariablemonitor": {
@@ -26,9 +26,9 @@
         { "from": "tools/context-variable-monitor/css/contextVariableMonitor.css", "to": "dist/webresource/contextvariablemonitor/style.css" }
       ],
       "webResources": [
-        { "name": "ccas_/tools/contextvariablemonitor/index.html", "path": "dist/webresource/contextvariablemonitor/index.html", "type": 1, "displayName": "Context Variable Monitor - index.html", "cacheBust": true },
-        { "name": "ccas_/tools/contextvariablemonitor/style.css", "path": "dist/webresource/contextvariablemonitor/style.css", "type": 2, "displayName": "Context Variable Monitor - style.css" },
-        { "name": "ccas_/tools/contextvariablemonitor/bundle.js", "path": "dist/webresource/contextvariablemonitor/bundle.js", "type": 3, "displayName": "Context Variable Monitor - bundle.js" }
+        { "name": "pct_/tools/contextvariablemonitor/index.html", "path": "dist/webresource/contextvariablemonitor/index.html", "type": 1, "displayName": "Context Variable Monitor - index.html", "cacheBust": true },
+        { "name": "pct_/tools/contextvariablemonitor/style.css", "path": "dist/webresource/contextvariablemonitor/style.css", "type": 2, "displayName": "Context Variable Monitor - style.css" },
+        { "name": "pct_/tools/contextvariablemonitor/bundle.js", "path": "dist/webresource/contextvariablemonitor/bundle.js", "type": 3, "displayName": "Context Variable Monitor - bundle.js" }
       ]
     }
   }
