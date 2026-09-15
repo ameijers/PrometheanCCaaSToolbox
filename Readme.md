@@ -4,11 +4,13 @@ A toolbox of diagnostic and testing tools for administrators of **Dynamics 365 C
 
 ## Getting the toolbox into your environment
 
-The toolbox is packaged as a single **unmanaged Dataverse solution** that bundles every tool's web resources plus the "Promethean CCaaS Toolbox" model-driven app that surfaces them in a Site Map. There are two ways to get it running:
+The toolbox is packaged as a single **managed Dataverse solution** that bundles every tool's web resources plus the "Promethean CCaaS Toolbox" model-driven app that surfaces them in a Site Map. There are two ways to get it running:
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1_managed.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1_managed.zip)
+
+Managed is the recommended package for target/customer environments — components are locked against accidental edits and the solution uninstalls cleanly. If you need to customize the solution's own components in that environment, import an unmanaged build instead (see [Option B](#option-b--build-and-deploy-each-tool-yourself-from-this-repo)).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -18,10 +20,10 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1_managed.zip --publish-changes
 ```
 
-After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`) — if you plan to push code changes into that environment later with `deploy.ps1` (Option B), that's the value that already belongs in `solutionUniqueName` for the matching environment entry in `deploy.config.json`; see [deploy.config.json reference](#deployconfigjson-reference) below.
+After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`) — if you plan to push code changes into that environment later with `deploy.ps1` (Option B), note that `deploy.ps1` updates web resources in place and expects an **unmanaged** solution in the target environment; a managed import's components are locked, so `deploy.ps1` targets should use an unmanaged build of this solution rather than the packaged managed zip. See [deploy.config.json reference](#deployconfigjson-reference) below.
 
 ### Option B — Build and deploy each tool yourself from this repo
 
@@ -54,7 +56,7 @@ All tools:
 tools/
   visual-routing-tester/       # Tool 1 — src, tests, webresource, css, docs
   context-variable-monitor/    # Tool 2 — src, tests, webresource, css, docs
-power_platform_solution/       # Packaged unmanaged solution zip (see Option A above)
+power_platform_solution/       # Packaged managed solution zip (see Option A above)
 webpack.config.js              # One build entry per tool
 deploy.config.json             # Per-environment / per-tool deploy configuration
 scripts/deploy.ps1             # Deploy script (see below)
