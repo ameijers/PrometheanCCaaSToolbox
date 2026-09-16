@@ -1,5 +1,7 @@
 # Promethean CCaaS Toolbox
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A toolbox of diagnostic and testing tools for administrators of **Dynamics 365 Contact Center** (unified routing). Each tool is a self-contained, read-only utility that runs inside your Dataverse environment — no external hosting, no extra sign-in, no writes to your live configuration or call data.
 
 ## Getting the toolbox into your environment
@@ -146,3 +148,7 @@ pwsh ./scripts/deploy.ps1 -Tool routingtester -Environment test
 | `webResources[].cacheBust` | `true` to have the script stamp a fresh `?v=<timestamp>` query string into the `<script>`/`<link>` references inside this file on every deploy. | Set on the `index.html` entry (which references the css/js), not on the css/js entries themselves. |
 
 Adding a new tool to the toolbox means: a new `tools/<toolname>/` folder following the existing layout, a new webpack entry, a new `tools.<toolname>` block in `deploy.config.json` (following the `pct_/tools/<toolname>/...` naming convention already used by the other tools), and its own `README.md` + `IMPLEMENTATION_STATUS.md` alongside the others.
+
+## License
+
+[MIT](LICENSE) © Alexander Meijers. Free to use, modify, and redistribute — the copyright notice and license text must stay in every copy.
