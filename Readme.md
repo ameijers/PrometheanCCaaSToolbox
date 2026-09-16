@@ -4,30 +4,35 @@ A toolbox of diagnostic and testing tools for administrators of **Dynamics 365 C
 
 ## Getting the toolbox into your environment
 
-The toolbox is packaged as a single **managed Dataverse solution** that bundles every tool's web resources plus the "Promethean CCaaS Toolbox" model-driven app that surfaces them in a Site Map. There are two ways to get it running:
+The toolbox is packaged as a single **unmanaged Dataverse solution** that bundles every tool's web resources plus the "Promethean CCaaS Toolbox" model-driven app that surfaces them in a Site Map. Unmanaged is deliberate here, not a default: it keeps every component editable after import (so you can re-share the app with your own security roles — see [Required setup after import](#required-setup-after-import) — and so `deploy.ps1` can update it later), and it matches what `deploy.ps1` (Option B) requires as a target. There are two ways to get it running:
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1_managed.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1_managed.zip)
-
-Managed is the recommended package for target/customer environments — components are locked against accidental edits and the solution uninstalls cleanly. If you need to customize the solution's own components in that environment, import an unmanaged build instead (see [Option B](#option-b--build-and-deploy-each-tool-yourself-from-this-repo)).
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_2.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_2.zip)
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
 2. **Solutions** → **Import solution** → browse to the zip above → **Next** → confirm the publisher → **Import**.
-3. Once import finishes, open the **Promethean CCaaS Toolbox** app to confirm the tools' subareas load.
+3. Once import finishes, complete the [required setup below](#required-setup-after-import) before the app will be usable.
 
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_1_managed.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_2.zip --publish-changes
 ```
 
-After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`) — if you plan to push code changes into that environment later with `deploy.ps1` (Option B), note that `deploy.ps1` updates web resources in place and expects an **unmanaged** solution in the target environment; a managed import's components are locked, so `deploy.ps1` targets should use an unmanaged build of this solution rather than the packaged managed zip. See [deploy.config.json reference](#deployconfigjson-reference) below.
+After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
 
 ### Option B — Build and deploy each tool yourself from this repo
 
 See [Deployment](#deployment) below.
+
+### Required setup after import
+
+Importing the solution (either option) does **not** make the toolbox usable on its own — two things are baked into the source environment it was built in and don't carry over:
+
+1. **Share the app with security roles.** The "Promethean CCaaS Toolbox" model-driven app is shared with specific security roles from the environment it was exported from; those role IDs won't exist in your environment, so by default **no one will see the app in the app picker**. In the maker portal, go to **Apps**, select **Promethean CCaaS Toolbox**, choose **Share**, and add whichever security roles/users in your environment should have access. This step is required in every new target environment, regardless of import method.
+2. **Confirm Dynamics 365 Contact Center (unified routing) is provisioned, and that users have read access to it.** Both tools read live routing/call data (`msdyn_workstream`, `msdyn_ocliveworkitem`, `msdyn_ocliveworkitemcontextitemelastic`, and related tables) via `Xrm.WebApi` at runtime — this isn't checked at solution-import time, so import will succeed even in an environment without Contact Center, but the tools will show empty data or errors instead of a real routing map. The toolbox doesn't ship its own security role; users need read privileges on those tables through whatever routing/queue-admin role your environment already uses.
 
 ## Tools
 
@@ -63,7 +68,7 @@ All tools:
 tools/
   visual-routing-tester/       # Tool 1 — src, tests, webresource, css, docs
   context-variable-monitor/    # Tool 2 — src, tests, webresource, css, docs
-power_platform_solution/       # Packaged managed solution zip (see Option A above)
+power_platform_solution/       # Packaged unmanaged solution zip (see Option A above)
 webpack.config.js              # One build entry per tool
 deploy.config.json             # Per-environment / per-tool deploy configuration
 scripts/deploy.ps1             # Deploy script (see below)
