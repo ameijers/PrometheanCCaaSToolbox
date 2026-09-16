@@ -1,6 +1,8 @@
 # Context Variable Monitor
 
-Part of the [Promethean CCaaS Toolbox](../../Readme.md).
+Part of the [Promethean CCaaS Toolbox](../../Readme.md). For step-by-step usage instructions and screenshots, see the [manual](manual.md).
+
+![Overview of Context Variable Monitor showing the top bar, workstream sidebar, and both value tables](images/01-overview.png)
 
 ## What it does
 

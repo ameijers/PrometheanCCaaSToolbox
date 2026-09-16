@@ -1,6 +1,8 @@
 # Visual Routing Tester
 
-Part of the [Promethean CCaaS Toolbox](../../Readme.md).
+Part of the [Promethean CCaaS Toolbox](../../Readme.md). For step-by-step usage instructions and screenshots, see the [manual](manual.md).
+
+![Overview of Visual Routing Tester showing the top bar, workstream sidebar, and routing diagram](images/01-overview.png)
 
 ## What it does
 

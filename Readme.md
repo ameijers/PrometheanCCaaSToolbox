@@ -36,7 +36,14 @@ See [Deployment](#deployment) below.
 | [Visual Routing Tester](tools/visual-routing-tester/README.md) | Visualizes a workstream's full routing configuration (classification, queues, overflow) as an interactive diagram, and lets you simulate a call against it to see exactly which rules fire and where it ends up. |
 | [Context Variable Monitor](tools/context-variable-monitor/README.md) | Watches the actual context-variable values a real call captures, live, as it moves through the IVR and unified routing — for debugging against real traffic rather than simulated configuration. |
 
-Each tool has its own README with details on what it does, how it works, and how to build/run/deploy it individually.
+<table>
+<tr>
+<td width="50%"><a href="tools/visual-routing-tester/README.md"><img src="tools/visual-routing-tester/images/01-overview.png" alt="Visual Routing Tester overview" /></a></td>
+<td width="50%"><a href="tools/context-variable-monitor/README.md"><img src="tools/context-variable-monitor/images/01-overview.png" alt="Context Variable Monitor overview" /></a></td>
+</tr>
+</table>
+
+Each tool has its own README with details on what it does, how it works, and how to build/run/deploy it individually, plus a step-by-step manual with screenshots: [Visual Routing Tester manual](tools/visual-routing-tester/manual.md), [Context Variable Monitor manual](tools/context-variable-monitor/manual.md).
 
 ## Architecture
 
