@@ -37,7 +37,7 @@ function healthy(overrides: Partial<AgentRecord>): AgentRecord {
     securityRoles: known(["Customer Service Agent"]),
     channels: known(["Voice", "Chat"]),
     queueMemberships: known([membership(SUPPORT_QUEUE)]),
-    capacityProfile: known({ id: "cp-standard", name: "Standard", totalCapacity: 100 }),
+    agentCapacity: known(100),
     workItemUnitCost: known(100),
     skills: known([{ characteristicId: "skill-nl", name: "Dutch", proficiencyLabel: "Expert", proficiencyRank: 4 }]),
     queueSkillRequirements: known([requirement(SUPPORT_QUEUE, [DUTCH_INTERMEDIATE])]),
@@ -68,8 +68,8 @@ export const DEMO_AGENTS: AgentRecord[] = [
     workItemUnitCost: known(null),
     queueSkillRequirements: known([requirement(LEGACY_QUEUE, null)])
   }), // queue membership only in an unused queue
-  healthy({ id: "a-annie", name: "Annie Easley", domainName: "annie.easley@contoso.com", capacityProfile: known(null) }), // no capacity profile
-  healthy({ id: "a-mary", name: "Mary Jackson", domainName: "mary.jackson@contoso.com", capacityProfile: known({ id: "cp-light", name: "Light Duty", totalCapacity: 50 }), workItemUnitCost: known(100) }), // capacity too low
+  healthy({ id: "a-annie", name: "Annie Easley", domainName: "annie.easley@contoso.com", agentCapacity: known(null) }), // no capacity configured
+  healthy({ id: "a-mary", name: "Mary Jackson", domainName: "mary.jackson@contoso.com", agentCapacity: known(50), workItemUnitCost: known(100) }), // capacity too low
   healthy({ id: "a-dorothy", name: "Dorothy Vaughan", domainName: "dorothy.vaughan@contoso.com", skills: known([]) }), // missing required skill
 
   // --- Additional realistic variety ----------------------------------------------------------
@@ -93,7 +93,7 @@ export const DEMO_AGENTS: AgentRecord[] = [
     queueMemberships: unknownField("Could not read the routing configuration needed to determine which queues are reachable (demo)."),
     queueSkillRequirements: unknownField("Could not read routing configuration to determine required skills (demo).")
   }), // queue membership + workstream reachability + skills all unknown together (realistic: one root cause)
-  healthy({ id: "a-feifei", name: "Fei-Fei Li", domainName: "feifei.li@contoso.com", capacityProfile: unknownField("Could not read capacity profile assignment (demo).") }), // capacity profile unknown
+  healthy({ id: "a-feifei", name: "Fei-Fei Li", domainName: "feifei.li@contoso.com", agentCapacity: unknownField("Could not read systemuser.msdyn_Capacity (demo).") }), // capacity unknown
   healthy({ id: "a-shafi", name: "Shafi Goldwasser", domainName: "shafi.goldwasser@contoso.com", routingExclusion: known(true) }), // explicitly excluded from assignment
   healthy({
     id: "a-cynthia", name: "Cynthia Breazeal", domainName: "cynthia.breazeal@contoso.com",
@@ -105,7 +105,7 @@ export const DEMO_AGENTS: AgentRecord[] = [
   healthy({
     id: "a-timnit", name: "Timnit Gebru", domainName: "timnit.gebru@contoso.com",
     channels: unknownField("This environment's per-agent channel configuration could not be confirmed from a documented Dataverse schema; verify manually in the Customer Service admin center under Users → Channels."),
-    workItemUnitCost: unknownField("This tool could not confirm this environment's work-item unit-cost configuration from a documented schema; verify manually whether this agent's capacity covers the relevant workstream's per-conversation cost."),
+    workItemUnitCost: unknownField("Could not read the routing configuration needed to determine work-item unit cost: no permission to read \"msdyn_routingconfigurationstep\" (demo)."),
     presence: unknownField("Could not read this agent's current presence (demo)."),
     routingExclusion: unknownField("Not verifiable via read-only client-side access in this environment.")
   }), // the realistic "everything else is fine, but the low-confidence fields are unknown" common case

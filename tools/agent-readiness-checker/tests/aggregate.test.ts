@@ -10,7 +10,7 @@ function baseAgent(overrides: Partial<AgentRecord> = {}): AgentRecord {
     securityRoles: known(["Customer Service Agent"]),
     channels: known(["Voice"]),
     queueMemberships: known([{ queueId: "q1", queueName: "Support Queue", queueActive: true, reachableByActiveVoiceWorkstream: true, reachingWorkstreamNames: ["Inbound Voice"] }]),
-    capacityProfile: known({ id: "cp1", name: "Standard", totalCapacity: 100 }),
+    agentCapacity: known(100),
     workItemUnitCost: known(100),
     skills: known([]),
     queueSkillRequirements: known([{ queueId: "q1", queueName: "Support Queue", required: [] }]),

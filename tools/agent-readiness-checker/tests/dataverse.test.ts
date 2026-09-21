@@ -34,7 +34,7 @@ function baseHandlers(overrides: Partial<Record<string, Handler>> = {}): Partial
     role: () => ({ entities: [{ roleid: ROLE_ID, name: "Customer Service Agent" }] }),
     systemuserroles: () => ({ entities: [{ systemuserid: USER_A, roleid: ROLE_ID }] }),
     systemuser: (query: string) => {
-      if (query.includes("msdyn_capacityprofileid")) return { entities: [{ systemuserid: USER_A, msdyn_capacityprofileid: null }] };
+      if (query.includes("msdyn_Capacity")) return { entities: [{ systemuserid: USER_A, msdyn_Capacity: 100 }] };
       if (query.includes("msdyn_presenceid")) return { entities: [{ systemuserid: USER_A, msdyn_presenceid: { msdyn_name: "Available" } }] };
       return { entities: [{ systemuserid: USER_A, fullname: "Ada Lovelace", domainname: "ada@contoso.com", isdisabled: false, accessmode: 0 }] };
     },
@@ -86,7 +86,7 @@ describe("loadAgentRoster", () => {
         return { entities: [{ queueid: QUEUE_ID, systemuserid: USER_B }] };
       },
       systemuser: (query: string) => {
-        if (query.includes("msdyn_capacityprofileid") || query.includes("msdyn_presenceid")) return { entities: [] };
+        if (query.includes("msdyn_Capacity") || query.includes("msdyn_presenceid")) return { entities: [] };
         return { entities: [{ systemuserid: USER_A, fullname: "Ada Lovelace", isdisabled: false, accessmode: 0 }, { systemuserid: USER_B, fullname: "Bob Babbage", isdisabled: false, accessmode: 0 }] };
       }
     }));
@@ -121,15 +121,36 @@ describe("loadAgentRoster", () => {
     expect(agent.routingExclusion.known).toBe(false);
   });
 
-  test("reports a capacity profile when the expand succeeds", async () => {
+  test("reports the agent's capacity from systemuser.msdyn_Capacity", async () => {
     installXrm(baseHandlers({
       systemuser: (query: string) => {
-        if (query.includes("msdyn_capacityprofileid")) return { entities: [{ systemuserid: USER_A, msdyn_capacityprofileid: { msdyn_name: "Standard", msdyn_totalcapacity: 100 } }] };
+        if (query.includes("msdyn_Capacity")) return { entities: [{ systemuserid: USER_A, msdyn_Capacity: 150 }] };
         if (query.includes("msdyn_presenceid")) return { entities: [{ systemuserid: USER_A, msdyn_presenceid: null }] };
         return { entities: [{ systemuserid: USER_A, fullname: "Ada Lovelace", isdisabled: false, accessmode: 0 }] };
       }
     }));
     const [agent] = await loadAgentRoster();
-    expect(agent.capacityProfile).toEqual({ known: true, value: { id: "Standard", name: "Standard", totalCapacity: 100 } });
+    expect(agent.agentCapacity).toEqual({ known: true, value: 150 });
+  });
+
+  test("derives work-item unit cost from the reaching workstream's msdyn_CapacityRequired", async () => {
+    const WORKSTREAM_ID = "55555555-5555-5555-5555-555555555555";
+    const CONFIG_ID = "66666666-6666-6666-6666-666666666666";
+    // No routing-configuration-step targets this queue directly, but it IS the workstream's
+    // fallback queue (msdyn_defaultqueue) — that's how reachability is established here.
+    installXrm(baseHandlers({
+      msdyn_liveworkstream: (query: string) => {
+        if (query.includes("$expand=msdyn_defaultqueue")) return { entities: [{ msdyn_liveworkstreamid: WORKSTREAM_ID, msdyn_defaultqueue: { queueid: QUEUE_ID } }] };
+        return { entities: [{ msdyn_liveworkstreamid: WORKSTREAM_ID, msdyn_name: "Inbound Voice", statecode: 0, msdyn_direction: 0, msdyn_enablevoicev2: true, msdyn_CapacityRequired: 100 }] };
+      },
+      msdyn_routingconfiguration: () => ({ entities: [{ msdyn_routingconfigurationid: CONFIG_ID, msdyn_isactiveconfiguration: true }] }),
+      msdyn_routingconfigurationstep: () => ({ entities: [] })
+    }));
+    const [agent] = await loadAgentRoster();
+    expect(agent.workItemUnitCost).toEqual({ known: true, value: 100 });
+    expect(agent.queueMemberships).toEqual({
+      known: true,
+      value: [{ queueId: QUEUE_ID, queueName: "Support Queue", queueActive: true, reachableByActiveVoiceWorkstream: true, reachingWorkstreamNames: ["Inbound Voice"] }]
+    });
   });
 });

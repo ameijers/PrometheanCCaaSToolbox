@@ -4,7 +4,7 @@
 // couple this tool's web resource bundle to Visual Routing Tester's, and never modifies that tool.
 import { parseDecisionXml } from "../../visual-routing-tester/src/ruleXml";
 import {
-  AccessMode, AgentRecord, AgentSkillInfo, CapacityProfileInfo, Field, PresenceInfo,
+  AccessMode, AgentRecord, AgentSkillInfo, Field, PresenceInfo,
   QueueMembershipInfo, QueueSkillRequirement, RequiredSkillInfo, known, unknownField
 } from "./model";
 
@@ -99,9 +99,19 @@ function inferAllowsAssignment(presenceName: string): boolean | undefined {
   return undefined;
 }
 
+interface ReachingWorkstream {
+  name: string;
+  // msdyn_liveworkstream.msdyn_CapacityRequired — confirmed live against academyexperiment as a
+  // required whole-number field, so this is normally always present; undefined only if it came back
+  // missing/non-numeric anyway, in which case this workstream just doesn't contribute a unit cost
+  // rather than being treated as unreachable (reachability and capacity-data-availability are
+  // independent — a missing capacity value must never look like "this queue isn't routed to").
+  capacityRequired: number | undefined;
+}
+
 interface VoiceRoutingReachability {
-  // queueId -> names of active inbound-voice workstreams that route to it (directly or as fallback).
-  reachableQueues: Map<string, string[]>;
+  // queueId -> active inbound-voice workstreams that route to it (directly or as fallback).
+  reachableQueues: Map<string, ReachingWorkstream[]>;
   // queueId -> best-effort required skills for that queue, parsed from a reaching workstream's
   // skill-identification routing step. Absent from the map (vs. an empty array) means "no reaching
   // workstream had a parseable skill step" — the caller treats that as `required: null` (undetermined).
@@ -162,10 +172,10 @@ function extractRequiredSkills(decisionXml: string | undefined): RequiredSkillIn
 }
 
 async function loadVoiceRoutingReachability(): Promise<VoiceRoutingReachability> {
-  const reachableQueues = new Map<string, string[]>();
+  const reachableQueues = new Map<string, ReachingWorkstream[]>();
   const requiredSkillsByQueue = new Map<string, RequiredSkillInfo[]>();
 
-  const workstreamRows = await readAll("msdyn_liveworkstream", "?$select=msdyn_liveworkstreamid,msdyn_name,statecode,msdyn_direction,msdyn_enablevoicev2");
+  const workstreamRows = await readAll("msdyn_liveworkstream", "?$select=msdyn_liveworkstreamid,msdyn_name,statecode,msdyn_direction,msdyn_enablevoicev2,msdyn_CapacityRequired");
   const voiceRows = workstreamRows.filter((row) => row.statecode === 0 && row.msdyn_enablevoicev2 === true && (row.msdyn_direction === 0 || row.msdyn_direction === undefined));
   if (!voiceRows.length) return { reachableQueues, requiredSkillsByQueue };
 
@@ -198,7 +208,9 @@ async function loadVoiceRoutingReachability(): Promise<VoiceRoutingReachability>
       }
     }
 
-    targetQueueIds.forEach((queueId) => reachableQueues.set(queueId, [...(reachableQueues.get(queueId) ?? []), workstream.msdyn_name ?? workstream.msdyn_liveworkstreamid]));
+    const rawCapacity = Number(workstream.msdyn_CapacityRequired);
+    const entry: ReachingWorkstream = { name: workstream.msdyn_name ?? workstream.msdyn_liveworkstreamid, capacityRequired: Number.isFinite(rawCapacity) ? rawCapacity : undefined };
+    targetQueueIds.forEach((queueId) => reachableQueues.set(queueId, [...(reachableQueues.get(queueId) ?? []), entry]));
   }
 
   return { reachableQueues, requiredSkillsByQueue };
@@ -259,6 +271,7 @@ export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => v
   const queueRows = queueIds.length ? await readByIdBatches("queue", "queueid", queueIds, "$select=queueid,name,statecode") : [];
   const queueById = new Map(queueRows.map((q) => [q.queueid, q]));
   const membershipsByUserId = new Map<string, QueueMembershipInfo[]>();
+  const unitCostsByUserId = new Map<string, number[]>();
   queueMembershipRows.forEach((row) => {
     const queue = queueById.get(row.queueid);
     if (!row.systemuserid || !queue) return;
@@ -268,13 +281,15 @@ export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => v
       queueName: queue.name ?? row.queueid,
       queueActive: queue.statecode === 0,
       reachableByActiveVoiceWorkstream: !!reachInfo,
-      reachingWorkstreamNames: reachInfo ?? []
+      reachingWorkstreamNames: (reachInfo ?? []).map((w) => w.name)
     };
     membershipsByUserId.set(row.systemuserid, [...(membershipsByUserId.get(row.systemuserid) ?? []), info]);
+    const costs = (reachInfo ?? []).map((w) => w.capacityRequired).filter((c): c is number => c !== undefined);
+    if (costs.length) unitCostsByUserId.set(row.systemuserid, [...(unitCostsByUserId.get(row.systemuserid) ?? []), ...costs]);
   });
 
-  report("Reading capacity profiles…");
-  const capacityByUserId = await loadCapacityProfiles(candidateIds);
+  report("Reading agent capacity…");
+  const capacityByUserId = await loadAgentCapacity(candidateIds);
 
   report("Reading skills…");
   const skillsByUserId = await loadSkills(candidateIds);
@@ -293,7 +308,7 @@ export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => v
         required: reachability.requiredSkillsByQueue.has(m.queueId) ? (reachability.requiredSkillsByQueue.get(m.queueId) ?? []) : null
       })));
 
-    const reachableUnitCosts: number[] = []; // see workItemUnitCost comment below — always empty in live mode today.
+    const reachableUnitCosts = unitCostsByUserId.get(id) ?? [];
 
     return {
       id,
@@ -310,12 +325,10 @@ export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => v
       queueMemberships: reachability instanceof Error
         ? unknownField(`Could not read the routing configuration needed to determine which queues are reachable: ${reachability.message}`)
         : known(memberships),
-      capacityProfile: capacityByUserId.get(id) ?? unknownField("Could not read capacity profile assignment."),
-      // This tool could not confirm a stable, documented source for a workstream's work-item unit
-      // cost (the "Set Work Item Unit Capacity" configuration) — always unknown in live mode; the
-      // comparison logic itself is fully implemented and tested (see checks.test.ts) against
-      // synthetic values, and demo mode exercises it end-to-end with hand-authored sample data.
-      workItemUnitCost: reachableUnitCosts.length ? known(Math.min(...reachableUnitCosts)) : unknownField("This tool could not confirm this environment's work-item unit-cost configuration from a documented schema; verify manually whether this agent's capacity covers the relevant workstream's per-conversation cost."),
+      agentCapacity: capacityByUserId.get(id) ?? unknownField("Could not read systemuser.msdyn_Capacity."),
+      workItemUnitCost: reachability instanceof Error
+        ? unknownField(`Could not read the routing configuration needed to determine work-item unit cost: ${reachability.message}`)
+        : known(reachableUnitCosts.length ? Math.min(...reachableUnitCosts) : null),
       skills: skillsByUserId.get(id) ?? unknownField("Could not read this agent's skills."),
       queueSkillRequirements,
       presence: presenceByUserId.get(id) ?? unknownField("Could not read this agent's current presence."),
@@ -327,19 +340,19 @@ export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => v
   });
 }
 
-async function loadCapacityProfiles(userIds: string[]): Promise<Map<string, Field<CapacityProfileInfo | null>>> {
-  const result = new Map<string, Field<CapacityProfileInfo | null>>();
+// Confirmed live against academyexperiment: there is no separate "capacity profile" entity in this
+// product — systemuser.msdyn_Capacity is a plain whole number directly on the user record. A plain
+// $select suffices (unlike the lookup-expand cases elsewhere in this tool): this is a value field,
+// not a lookup, so there's no plain-_value-alias-omitted risk to work around.
+async function loadAgentCapacity(userIds: string[]): Promise<Map<string, Field<number | null>>> {
+  const result = new Map<string, Field<number | null>>();
   try {
-    // The $expand-not-plain-$select lesson from Visual Routing Tester's msdyn_defaultqueue finding
-    // applies here too: a lookup's plain _value alias can come back silently omitted where $expand
-    // reliably returns it, so this uses $expand for the capacity profile lookup.
-    const rows = await readByIdBatches("systemuser", "systemuserid", userIds, "$select=systemuserid&$expand=msdyn_capacityprofileid($select=msdyn_name,msdyn_totalcapacity)");
+    const rows = await readByIdBatches("systemuser", "systemuserid", userIds, "$select=systemuserid,msdyn_Capacity");
     rows.forEach((row) => {
-      const profile = row.msdyn_capacityprofileid;
-      result.set(row.systemuserid, known(profile ? { id: profile.msdyn_agentcapacityprofileid ?? profile.msdyn_name, name: profile.msdyn_name ?? "Capacity profile", totalCapacity: Number(profile.msdyn_totalcapacity ?? 0) } : null));
+      result.set(row.systemuserid, known(typeof row.msdyn_Capacity === "number" ? row.msdyn_Capacity : null));
     });
   } catch (error) {
-    const reason = `Could not read capacity profile assignment: ${errorMessage(error)}`;
+    const reason = `Could not read systemuser.msdyn_Capacity: ${errorMessage(error)}`;
     userIds.forEach((id) => result.set(id, unknownField(reason)));
   }
   return result;

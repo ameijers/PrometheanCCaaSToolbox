@@ -32,12 +32,6 @@ export interface QueueMembershipInfo {
   reachingWorkstreamNames: string[];
 }
 
-export interface CapacityProfileInfo {
-  id: string;
-  name: string;
-  totalCapacity: number;
-}
-
 export interface AgentSkillInfo {
   characteristicId: string;
   name: string;
@@ -76,8 +70,14 @@ export interface AgentRecord {
   securityRoles: Field<string[]>;
   channels: Field<string[]>; // enabled channels, e.g. ["Voice", "Chat"] — see README, low confidence
   queueMemberships: Field<QueueMembershipInfo[]>;
-  capacityProfile: Field<CapacityProfileInfo | null>; // null = confirmed no profile assigned
-  workItemUnitCost: Field<number | null>; // smallest unit cost among this agent's reachable voice workstreams; null = none reachable to compare against
+  // systemuser.msdyn_Capacity — a plain whole number directly on the user record. Confirmed live
+  // against academyexperiment: there is no separate reusable "capacity profile" entity in this
+  // product, despite the name administrators commonly use for this concept. null = no value set.
+  agentCapacity: Field<number | null>;
+  // msdyn_liveworkstream.msdyn_CapacityRequired (confirmed live, a required whole-number field) —
+  // the smallest such value among this agent's reachable voice workstreams. null = none reachable
+  // to compare against.
+  workItemUnitCost: Field<number | null>;
   skills: Field<AgentSkillInfo[]>;
   queueSkillRequirements: Field<QueueSkillRequirement[]>;
   presence: Field<PresenceInfo | null>; // null = no presence record found for this user
@@ -113,7 +113,7 @@ export const CATEGORY_LABELS: Record<CheckCategory, string> = {
   channelEnablement: "Channel enablement",
   queueMembership: "Queue membership",
   workstreamReachability: "Workstream reachability",
-  capacityProfile: "Capacity profile",
+  capacityProfile: "Capacity",
   skills: "Skills",
   presence: "Presence",
   unifiedRoutingState: "Unified routing state"

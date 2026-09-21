@@ -35,7 +35,7 @@ Click any column header in the agent table (**Agent**, **Status**, **Failed**, *
 Click any row in the agent list to open that agent's full checklist in the right-hand panel:
 
 - The agent's **overall status** pill and domain name at the top.
-- One card per check, grouped in a fixed diagnosis order (account → security roles → channel enablement → queue membership → workstream reachability → capacity profile → skills → presence → unified routing state), each showing:
+- One card per check, grouped in a fixed diagnosis order (account → security roles → channel enablement → queue membership → workstream reachability → capacity → skills → presence → unified routing state), each showing:
   - A **status badge** (Pass / Warning / Fail / Not verifiable).
   - The **evidence** actually found (e.g. the agent's real queue list, their actual skills and proficiency).
   - Why the check **matters**.
@@ -59,5 +59,5 @@ Both views export client-side (no server involved):
 ## Notes
 
 - This tool is **strictly read-only**: it never creates, updates, or deletes any Dataverse record, agent, queue, or configuration.
-- Its schema confidence varies by field — see the [README](README.md#schema-assumptions--please-read-before-trusting-live-results) before treating every result as equally certain. A "Fail" on a high-confidence check (account, security roles, queue membership, workstream reachability) is solid; a "Not verifiable" on a low-confidence one (capacity profile, skills, presence, channels) means exactly that — verify it manually.
+- Its schema confidence varies by field — see the [README](README.md#schema-assumptions--please-read-before-trusting-live-results) before treating every result as equally certain. A "Fail" on a high-confidence check (account, security roles, queue membership, workstream reachability, capacity) is solid; a "Not verifiable" on a low-confidence one (skills, presence, channels) means exactly that — verify it manually.
 - To understand *why* a workstream routes the way it does (rather than whether one specific agent can be reached), use [Visual Routing Tester](../visual-routing-tester/manual.md). To watch what a real call actually captured, use [Context Variable Monitor](../context-variable-monitor/manual.md).

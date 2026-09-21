@@ -93,27 +93,30 @@ export function checkWorkstreamReachability(agent: AgentRecord): CheckResult {
 }
 
 export function checkCapacityProfile(agent: AgentRecord): CheckResult {
-  const title = "Capacity profile allows this agent to be assigned work";
-  const explanation = "An agent needs a capacity profile with enough total capacity to cover at least one work item's unit cost. If their capacity is lower than a workstream's unit cost, unified routing can never assign that work to them — not a matter of luck or timing, it's structurally impossible.";
-  if (!agent.capacityProfile.known) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "unknown", title, evidence: agent.capacityProfile.reason, explanation, suggestedFix: "Grant this tool read access to the capacity profile table, or check the agent's capacity profile manually in the Customer Service admin center." };
+  const title = "Capacity is sufficient for this agent to be assigned work";
+  const explanation = "An agent needs enough capacity to cover at least one work item's unit cost. If their capacity is lower than a workstream's unit cost — including a capacity of exactly 0 — unified routing can never assign that work to them, regardless of everything else being configured correctly.";
+  if (!agent.agentCapacity.known) {
+    return { id: "capacityProfile", category: "capacityProfile", status: "unknown", title, evidence: agent.agentCapacity.reason, explanation, suggestedFix: "Grant this tool read access to systemuser.msdyn_Capacity, or check the agent's capacity manually in the Customer Service admin center." };
   }
-  if (agent.capacityProfile.value === null) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: "No capacity profile is assigned to this agent.", explanation, suggestedFix: "Assign a capacity profile to this agent in the Customer Service admin center under Users." };
+  if (agent.agentCapacity.value === null) {
+    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: "No capacity value is configured for this agent.", explanation, suggestedFix: "Set a capacity value for this agent in the Customer Service admin center under Users." };
   }
-  const profile = agent.capacityProfile.value;
-  const profileEvidence = `Capacity profile "${profile.name}" — total capacity ${profile.totalCapacity}.`;
+  const capacity = agent.agentCapacity.value;
+  if (capacity === 0) {
+    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: "This agent's capacity is 0.", explanation, suggestedFix: "Increase this agent's capacity above 0 in the Customer Service admin center under Users." };
+  }
+  const capacityEvidence = `Capacity: ${capacity}.`;
   if (!agent.workItemUnitCost.known) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "unknown", title, evidence: `${profileEvidence} ${agent.workItemUnitCost.reason}`, explanation, suggestedFix: "Verify manually that this agent's total capacity is at least as large as the relevant workstream's work-item unit cost." };
+    return { id: "capacityProfile", category: "capacityProfile", status: "unknown", title, evidence: `${capacityEvidence} ${agent.workItemUnitCost.reason}`, explanation, suggestedFix: "Verify manually that this agent's capacity is at least as large as the relevant workstream's msdyn_CapacityRequired value." };
   }
   if (agent.workItemUnitCost.value === null) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "warn", title, evidence: `${profileEvidence} No reachable voice workstream was found to compare against — see Workstream reachability.`, explanation };
+    return { id: "capacityProfile", category: "capacityProfile", status: "warn", title, evidence: `${capacityEvidence} No reachable voice workstream was found to compare against — see Workstream reachability.`, explanation };
   }
   const unitCost = agent.workItemUnitCost.value;
-  if (profile.totalCapacity < unitCost) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: `${profileEvidence} The smallest reachable work item costs ${unitCost} capacity units — more than this agent's total capacity.`, explanation, suggestedFix: `Increase this agent's capacity profile total capacity to at least ${unitCost}, or assign a different capacity profile.` };
+  if (capacity < unitCost) {
+    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: `${capacityEvidence} The smallest reachable work item costs ${unitCost} capacity units — more than this agent's capacity.`, explanation, suggestedFix: `Increase this agent's capacity to at least ${unitCost}.` };
   }
-  return { id: "capacityProfile", category: "capacityProfile", status: "pass", title, evidence: `${profileEvidence} Sufficient for the smallest reachable work item (${unitCost} capacity units).`, explanation };
+  return { id: "capacityProfile", category: "capacityProfile", status: "pass", title, evidence: `${capacityEvidence} Sufficient for the smallest reachable work item (${unitCost} capacity units).`, explanation };
 }
 
 function proficiencyMet(required: RequiredSkillInfo, actual: AgentSkillInfo | undefined): boolean {

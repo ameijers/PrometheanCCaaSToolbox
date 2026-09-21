@@ -13,7 +13,7 @@ function baseAgent(overrides: Partial<AgentRecord> = {}): AgentRecord {
     securityRoles: known(["Customer Service Agent"]),
     channels: known(["Voice", "Chat"]),
     queueMemberships: known([{ queueId: "q1", queueName: "Support Queue", queueActive: true, reachableByActiveVoiceWorkstream: true, reachingWorkstreamNames: ["Inbound Voice"] }]),
-    capacityProfile: known({ id: "cp1", name: "Standard", totalCapacity: 100 }),
+    agentCapacity: known(100),
     workItemUnitCost: known(100),
     skills: known([{ characteristicId: "c1", name: "Dutch", proficiencyLabel: "Expert", proficiencyRank: 4 }]),
     queueSkillRequirements: known([{ queueId: "q1", queueName: "Support Queue", required: [{ name: "Dutch", minProficiencyLabel: "Intermediate", minProficiencyRank: 2 }] }]),
@@ -133,23 +133,28 @@ describe("checkCapacityProfile", () => {
   test("pass: capacity covers the smallest reachable work item", () => {
     expect(checkCapacityProfile(baseAgent()).status).toBe("pass");
   });
-  test("fail: no capacity profile assigned", () => {
-    const result = checkCapacityProfile(baseAgent({ capacityProfile: known(null) }));
+  test("fail: no capacity value configured", () => {
+    const result = checkCapacityProfile(baseAgent({ agentCapacity: known(null) }));
     expect(result.status).toBe("fail");
+  });
+  test("fail: capacity is exactly 0", () => {
+    const result = checkCapacityProfile(baseAgent({ agentCapacity: known(0) }));
+    expect(result.status).toBe("fail");
+    expect(result.evidence).toMatch(/capacity is 0/i);
   });
   test("fail: capacity lower than one work item's unit cost", () => {
-    const result = checkCapacityProfile(baseAgent({ capacityProfile: known({ id: "cp1", name: "Light", totalCapacity: 50 }), workItemUnitCost: known(100) }));
+    const result = checkCapacityProfile(baseAgent({ agentCapacity: known(50), workItemUnitCost: known(100) }));
     expect(result.status).toBe("fail");
-    expect(result.evidence).toMatch(/more than this agent's total capacity/);
+    expect(result.evidence).toMatch(/more than this agent's capacity/);
   });
-  test("warn: profile assigned but no reachable workstream to compare against", () => {
+  test("warn: capacity known but no reachable workstream to compare against", () => {
     const result = checkCapacityProfile(baseAgent({ workItemUnitCost: known(null) }));
     expect(result.status).toBe("warn");
   });
-  test("unknown: capacity profile not readable", () => {
-    expect(checkCapacityProfile(baseAgent({ capacityProfile: unknownField("table not found") })).status).toBe("unknown");
+  test("unknown: capacity not readable", () => {
+    expect(checkCapacityProfile(baseAgent({ agentCapacity: unknownField("table not found") })).status).toBe("unknown");
   });
-  test("unknown: profile known but unit cost not readable", () => {
+  test("unknown: capacity known but unit cost not readable", () => {
     expect(checkCapacityProfile(baseAgent({ workItemUnitCost: unknownField("could not parse routing config") })).status).toBe("unknown");
   });
 });
