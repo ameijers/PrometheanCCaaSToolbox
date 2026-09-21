@@ -34,7 +34,7 @@ See [Deployment](#deployment) below.
 Importing the solution (either option) does **not** make the toolbox usable on its own — two things are baked into the source environment it was built in and don't carry over:
 
 1. **Share the app with security roles.** The "Promethean CCaaS Toolbox" model-driven app is shared with specific security roles from the environment it was exported from; those role IDs won't exist in your environment, so by default **no one will see the app in the app picker**. In the maker portal, go to **Apps**, select **Promethean CCaaS Toolbox**, choose **Share**, and add whichever security roles/users in your environment should have access. This step is required in every new target environment, regardless of import method.
-2. **Confirm Dynamics 365 Contact Center (unified routing) is provisioned, and that users have read access to it.** Both tools read live routing/call data (`msdyn_workstream`, `msdyn_ocliveworkitem`, `msdyn_ocliveworkitemcontextitemelastic`, and related tables) via `Xrm.WebApi` at runtime — this isn't checked at solution-import time, so import will succeed even in an environment without Contact Center, but the tools will show empty data or errors instead of a real routing map. The toolbox doesn't ship its own security role; users need read privileges on those tables through whatever routing/queue-admin role your environment already uses.
+2. **Confirm Dynamics 365 Contact Center (unified routing) is provisioned, and that users have read access to it.** All three tools read live routing/call/agent data (`msdyn_liveworkstream`, `msdyn_ocliveworkitem`, `msdyn_ocliveworkitemcontextitemelastic`, `queuemembership`, and related tables — see each tool's own README for its full table list) via `Xrm.WebApi` at runtime — this isn't checked at solution-import time, so import will succeed even in an environment without Contact Center, but the tools will show empty/unverifiable data instead of real results. The toolbox doesn't ship its own security role; users need read privileges on those tables through whatever routing/queue-admin role your environment already uses.
 
 ## Tools
 
@@ -42,6 +42,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 | --- | --- |
 | [Visual Routing Tester](tools/visual-routing-tester/README.md) | Visualizes a workstream's full routing configuration (classification, queues, overflow) as an interactive diagram, and lets you simulate a call against it to see exactly which rules fire and where it ends up. |
 | [Context Variable Monitor](tools/context-variable-monitor/README.md) | Watches the actual context-variable values a real call captures, live, as it moves through the IVR and unified routing — for debugging against real traffic rather than simulated configuration. |
+| [Agent Readiness Checker](tools/agent-readiness-checker/README.md) | Answers "why isn't this agent receiving calls?" — checks one agent or the whole roster against every prerequisite for receiving voice work (account, roles, channel, queue membership, workstream reachability, capacity, skills, presence) with plain-language evidence and suggested fixes. |
 
 <table>
 <tr>
@@ -50,7 +51,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 </tr>
 </table>
 
-Each tool has its own README with details on what it does, how it works, and how to build/run/deploy it individually, plus a step-by-step manual with screenshots: [Visual Routing Tester manual](tools/visual-routing-tester/manual.md), [Context Variable Monitor manual](tools/context-variable-monitor/manual.md).
+Each tool has its own README with details on what it does, how it works, and how to build/run/deploy it individually, plus a step-by-step manual with screenshots: [Visual Routing Tester manual](tools/visual-routing-tester/manual.md), [Context Variable Monitor manual](tools/context-variable-monitor/manual.md), [Agent Readiness Checker manual](tools/agent-readiness-checker/manual.md) (screenshots pending for this newest tool).
 
 ## Architecture
 
@@ -70,6 +71,7 @@ All tools:
 tools/
   visual-routing-tester/       # Tool 1 — src, tests, webresource, css, docs
   context-variable-monitor/    # Tool 2 — src, tests, webresource, css, docs
+  agent-readiness-checker/     # Tool 3 — src, tests, webresource, css, docs
 power_platform_solution/       # Packaged unmanaged solution zip (see Option A above)
 webpack.config.js              # One build entry per tool
 deploy.config.json             # Per-environment / per-tool deploy configuration
