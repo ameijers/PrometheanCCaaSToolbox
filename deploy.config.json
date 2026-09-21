@@ -30,6 +30,18 @@
         { "name": "pct_/tools/contextvariablemonitor/style.css", "path": "dist/webresource/contextvariablemonitor/style.css", "type": 2, "displayName": "Context Variable Monitor - style.css" },
         { "name": "pct_/tools/contextvariablemonitor/bundle.js", "path": "dist/webresource/contextvariablemonitor/bundle.js", "type": 3, "displayName": "Context Variable Monitor - bundle.js" }
       ]
+    },
+    "agentreadiness": {
+      "displayName": "Agent Readiness Checker",
+      "stage": [
+        { "from": "tools/agent-readiness-checker/webresource/agentreadiness.html", "to": "dist/webresource/agentreadiness/index.html" },
+        { "from": "tools/agent-readiness-checker/css/agentReadinessChecker.css", "to": "dist/webresource/agentreadiness/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/agentreadiness/index.html", "path": "dist/webresource/agentreadiness/index.html", "type": 1, "displayName": "Agent Readiness Checker - index.html", "cacheBust": true },
+        { "name": "pct_/tools/agentreadiness/style.css", "path": "dist/webresource/agentreadiness/style.css", "type": 2, "displayName": "Agent Readiness Checker - style.css" },
+        { "name": "pct_/tools/agentreadiness/bundle.js", "path": "dist/webresource/agentreadiness/bundle.js", "type": 3, "displayName": "Agent Readiness Checker - bundle.js" }
+      ]
     }
   }
 }

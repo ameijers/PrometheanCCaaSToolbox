@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "webpack --config webpack.config.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "demo:agentreadiness": "npm run build && node -e \"fs=require('fs');fs.copyFileSync('tools/agent-readiness-checker/webresource/agentreadiness.html','dist/webresource/agentreadiness/index.html');fs.copyFileSync('tools/agent-readiness-checker/css/agentReadinessChecker.css','dist/webresource/agentreadiness/style.css')\" && npx serve dist/webresource/agentreadiness -l 5434"
   },
   "dependencies": {
     "react": "^18.3.1",
