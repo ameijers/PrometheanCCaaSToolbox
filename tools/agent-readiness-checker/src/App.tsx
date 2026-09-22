@@ -42,17 +42,26 @@ function distinctRoleNames(roles: RoleInfo[]): string[] {
   return [...new Set(roles.map((r) => r.name))];
 }
 
-// Picks one likely-relevant role name per group as a starting point for the person to review, using
-// a loose case-insensitive substring match (see config.ts's ROLE_GROUP_SUGGESTION_KEYWORDS for why
-// this is deliberately looser than an exact-name guess) — the alphabetically-first match, since
-// `roles` is already alphabetized (see dataverse.ts's loadAllRoles). Applied immediately so
-// "Connect" only takes one click, but always shown afterward via the notice so the person knows to
-// double-check it via "Configure roles…" rather than assuming it's guaranteed correct.
+// Picks one likely-relevant role name per group as a starting point for the person to review. Tries
+// DEFAULT_ROLE_GROUPS's named candidates first, in order (e.g. "Omnichannel Agent" before the more
+// generic "Customer Service Agent") — an exact, case-insensitive name match is a stronger signal than
+// a substring, so it takes priority over the alphabetically-first result the loose keyword match would
+// otherwise pick (which skews toward whichever unrelated role happens to sort first, e.g. a "Customer
+// Service ..." role alphabetically preceding the actually-relevant "Omnichannel ..." one). Only when
+// none of a group's named candidates exist live does it fall back to config.ts's
+// ROLE_GROUP_SUGGESTION_KEYWORDS substring match, which is what actually survives a renamed/cloned
+// role (e.g. "D365CC-Omnichannel-Supervisor" still contains "supervisor" — see IMPLEMENTATION_STATUS.md
+// "Round 9"). Applied immediately so "Connect" only takes one click, but always shown afterward via the
+// notice so the person knows to double-check it via "Configure roles…" rather than assuming it's
+// guaranteed correct.
 function suggestSelection(roles: RoleInfo[]): RoleSelection {
   const selection: RoleSelection = {};
   DEFAULT_ROLE_GROUPS.forEach((group) => {
+    const named = group.roleNames
+      .map((candidate) => roles.find((r) => r.name.toLowerCase() === candidate.toLowerCase()))
+      .find((match): match is RoleInfo => !!match);
     const keyword = ROLE_GROUP_SUGGESTION_KEYWORDS[group.key];
-    const match = keyword ? roles.find((r) => r.name.toLowerCase().includes(keyword)) : undefined;
+    const match = named ?? (keyword ? roles.find((r) => r.name.toLowerCase().includes(keyword)) : undefined);
     if (match) selection[group.key] = match.name;
   });
   return selection;

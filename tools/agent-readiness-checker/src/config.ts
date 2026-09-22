@@ -12,9 +12,13 @@ export interface RoleGroup {
 // names are not a reliable thing to guess: live testing found an environment where the Omnichannel
 // Supervisor role had been renamed to "D365CC-Omnichannel-Supervisor", which a fixed name list could
 // never have matched — see IMPLEMENTATION_STATUS.md "Round 9".
+// Omnichannel-prefixed names are listed first in each group: this tool is specifically about
+// contact-center/unified-routing readiness, and the Omnichannel role is the one that actually grants
+// that functionality — a generic "Customer Service X" role governs case/entity access, not routing.
+// suggestSelection (App.tsx) tries these names in order before falling back to a loose keyword match.
 export const DEFAULT_ROLE_GROUPS: RoleGroup[] = [
-  { key: "agent", label: "Agent", roleNames: ["Customer Service Agent", "Customer Service Representative", "Omnichannel Agent", "Contact Center Agent"] },
-  { key: "supervisor", label: "Supervisor", roleNames: ["Customer Service Manager", "Omnichannel Supervisor", "Contact Center Supervisor", "Customer Service Team Lead"] },
+  { key: "agent", label: "Agent", roleNames: ["Omnichannel Agent", "Customer Service Agent", "Customer Service Representative", "Contact Center Agent"] },
+  { key: "supervisor", label: "Supervisor", roleNames: ["Omnichannel Supervisor", "Customer Service Manager", "Contact Center Supervisor", "Customer Service Team Lead"] },
   { key: "admin", label: "Omnichannel Admin", roleNames: ["Omnichannel Administrator", "Contact Center Administrator"] }
 ];
 
