@@ -106,6 +106,29 @@ function distinctSorted(values: string[]): string[] {
   return [...new Set(values)].sort((a, b) => a.localeCompare(b));
 }
 
+function emailDomain(domainName: string | undefined): string | undefined {
+  return domainName?.split("@")[1]?.toLowerCase();
+}
+
+// The most common email domain among the roster — used only to group the "Agent" name sort (same-
+// domain first, alphabetically, then everyone else, alphabetically), not as a filter. A majority-
+// domain heuristic, not a live "who am I" lookup: this tool used to load the connected user's own
+// domain for a domain-based filter (Round 8), but that was removed because it was unreliable for
+// filtering (a real agent can sit on a foreign domain; a noise account can share the home domain). For
+// sorting, the risk is much lower — worst case a few agents land in the "wrong" half of an otherwise
+// alphabetical list — so the simpler, self-contained heuristic (no extra Dataverse call) is worth it.
+function majorityDomain(agents: { domainName?: string }[]): string | undefined {
+  const counts = new Map<string, number>();
+  agents.forEach((a) => {
+    const domain = emailDomain(a.domainName);
+    if (domain) counts.set(domain, (counts.get(domain) ?? 0) + 1);
+  });
+  let best: string | undefined;
+  let bestCount = 0;
+  counts.forEach((count, domain) => { if (count > bestCount) { best = domain; bestCount = count; } });
+  return best;
+}
+
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return "?";
@@ -160,11 +183,12 @@ export function App(): React.ReactElement {
   // of live vs. demo mode, so DEFAULT_ROLE_GROUPS is a safe source for them here even though the
   // underlying role NAMES (activeRoleGroups, above) can differ once connected.
   const [roleGroupFilter, setRoleGroupFilter] = useState<Set<string>>(() => new Set(DEFAULT_ROLE_GROUPS.map((g) => g.key)));
-  const [sortKey, setSortKey] = useState<SortKey>("status");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [page, setPage] = useState(0);
 
   const results = useMemo(() => evaluateAgents(agents), [agents]);
+  const homeDomain = useMemo(() => majorityDomain(agents), [agents]);
 
   const queueNames = useMemo(() => distinctSorted(agents.flatMap((a) => (a.queueMemberships.known ? a.queueMemberships.value.map((m) => m.queueName) : []))), [agents]);
   const workstreamNames = useMemo(() => distinctSorted(agents.flatMap((a) => (a.queueMemberships.known ? a.queueMemberships.value.flatMap((m) => m.reachingWorkstreamNames) : []))), [agents]);
@@ -196,14 +220,20 @@ export function App(): React.ReactElement {
     const copy = [...filtered];
     copy.sort((a, b) => {
       let cmp = 0;
-      if (sortKey === "name") cmp = a.agentName.localeCompare(b.agentName);
+      if (sortKey === "name") {
+        // Same-domain-as-the-roster's-majority agents first (alphabetically), everyone from a
+        // different domain after (also alphabetically) — see majorityDomain's comment above.
+        const aOther = homeDomain && emailDomain(a.domainName) && emailDomain(a.domainName) !== homeDomain ? 1 : 0;
+        const bOther = homeDomain && emailDomain(b.domainName) && emailDomain(b.domainName) !== homeDomain ? 1 : 0;
+        cmp = aOther !== bOther ? aOther - bOther : a.agentName.localeCompare(b.agentName);
+      }
       else if (sortKey === "status") cmp = OVERALL_ORDER.indexOf(a.overallStatus) - OVERALL_ORDER.indexOf(b.overallStatus);
       else if (sortKey === "failed") cmp = a.failedCount - b.failedCount;
       else if (sortKey === "topIssue") cmp = (a.topIssue ?? "").localeCompare(b.topIssue ?? "");
       return sortAsc ? cmp : -cmp;
     });
     return copy;
-  }, [filtered, sortKey, sortAsc]);
+  }, [filtered, sortKey, sortAsc, homeDomain]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
