@@ -4,6 +4,14 @@ export interface RoleGroup {
   roleNames: string[];
 }
 
+// How many days ago an agent's last known workspace login is still treated as "recent enough" for
+// checkPresence (checks.ts) to pass them even though they're not logged in right now. Most agents are
+// logged out most of the time — off-shift, weekends, between calls in some configurations — so "not
+// currently logged in" alone isn't a structural misconfiguration worth flagging; only a genuinely
+// stale or nonexistent login is (per direct operator feedback — see IMPLEMENTATION_STATUS.md "Round
+// 15"). Tune this if a different cadence is more meaningful for a given environment/shift pattern.
+export const PRESENCE_STALE_THRESHOLD_DAYS = 14;
+
 // Default/fallback role names, used in two places only: (1) demo mode, which has no live `role`
 // table to pick from, so its hand-authored agents' role names (see demoData.ts) are matched against
 // these; (2) as a starting suggestion the first time the live role picker runs (see App.tsx) — never

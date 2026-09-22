@@ -287,6 +287,21 @@ describe("checkPresence", () => {
   test("unknown: presence not readable", () => {
     expect(checkPresence(baseAgent({ presence: unknownField("no privilege") })).status).toBe("unknown");
   });
+
+  // Being logged out right now isn't itself a misconfiguration — most agents are logged out most of
+  // the time (off-shift, weekends). Only a genuinely stale (or absent) last login is worth flagging —
+  // direct operator feedback on a false-positive warning for a recently-active agent.
+  const NOW = new Date("2026-09-22T12:00:00Z");
+  test("pass: not currently logged in, but was active within the staleness threshold", () => {
+    const result = checkPresence(baseAgent({ presence: known({ name: "Offline", isLoggedIn: false, allowsAssignment: true, capturedOn: "2026-09-21T18:31:44Z" }) }), NOW);
+    expect(result.status).toBe("pass");
+    expect(result.evidence).toMatch(/not currently logged in/i);
+  });
+  test("warn: not currently logged in and hasn't been active in a long time", () => {
+    const result = checkPresence(baseAgent({ presence: known({ name: "Offline", isLoggedIn: false, allowsAssignment: true, capturedOn: "2026-06-01T00:00:00Z" }) }), NOW);
+    expect(result.status).toBe("warn");
+    expect(result.evidence).toMatch(/hasn't been active/i);
+  });
 });
 
 describe("checkUnifiedRoutingState", () => {

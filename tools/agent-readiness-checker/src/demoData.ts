@@ -114,7 +114,10 @@ export const DEMO_AGENTS: AgentRecord[] = [
     accessMode: known("nonInteractive"),
     securityRoles: known([]),
     channels: known(["Chat"]),
-    presence: known({ name: "Offline", isLoggedIn: false, allowsAssignment: false, capturedOn: "2026-09-21T07:15:00Z" })
+    // Deliberately well past PRESENCE_STALE_THRESHOLD_DAYS (config.ts) so this fixture keeps
+    // demonstrating a presence warning regardless of when the demo is actually viewed — a recent
+    // capturedOn now passes (see checks.ts's checkPresence), which isn't the story this agent is for.
+    presence: known({ name: "Offline", isLoggedIn: false, allowsAssignment: false, capturedOn: "2026-08-01T07:15:00Z" })
   }), // messy multi-failure agent
   healthy({
     id: "a-timnit", name: "Timnit Gebru", domainName: "timnit.gebru@contoso.com",
@@ -133,6 +136,14 @@ export const DEMO_AGENTS: AgentRecord[] = [
     workItemUnitCost: known(null),
     queueSkillRequirements: known([requirement(RETIRED_QUEUE, null)])
   }), // queue membership only in a disabled queue
+  healthy({
+    id: "a-chien", name: "Chien-Shiung Wu", domainName: "chien.wu@contoso.com",
+    // Computed relative to actual now (not a fixed string like this file's other dates) so this
+    // fixture reliably stays within PRESENCE_STALE_THRESHOLD_DAYS (config.ts) no matter when the demo
+    // is viewed — the point of this agent is specifically to demonstrate that being logged out right
+    // now, on its own, is not a warning as long as they were recently active.
+    presence: known({ name: "Offline", isLoggedIn: false, allowsAssignment: false, capturedOn: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() })
+  }), // presence pass: logged out right now, but recently active — not treated as a blocker
   // Holds no Agent/Supervisor/Omnichannel Admin role — against a live environment this tool's
   // candidate-set query (see dataverse.ts) would never even load an account like this, but demo mode
   // includes one anyway so the UI's role-group filter checkboxes have something to demonstrate

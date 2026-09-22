@@ -3,9 +3,9 @@ import { CHECK_ORDER } from "../src/model";
 import { DEMO_AGENTS } from "../src/demoData";
 
 describe("DEMO_AGENTS", () => {
-  test("has a realistic roster size (15-25 agents)", () => {
+  test("has a realistic roster size (15-30 agents)", () => {
     expect(DEMO_AGENTS.length).toBeGreaterThanOrEqual(15);
-    expect(DEMO_AGENTS.length).toBeLessThanOrEqual(25);
+    expect(DEMO_AGENTS.length).toBeLessThanOrEqual(30);
   });
 
   test("every agent has a unique id", () => {

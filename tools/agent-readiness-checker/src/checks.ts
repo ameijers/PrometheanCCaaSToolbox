@@ -1,4 +1,4 @@
-import { getActiveAgentRoleNames, hasRequiredRole } from "./config";
+import { getActiveAgentRoleNames, hasRequiredRole, PRESENCE_STALE_THRESHOLD_DAYS } from "./config";
 import { ACCESS_MODE_LABELS, AgentRecord, CapacityProfileAssignment, CheckResult, RequiredSkillInfo, AgentSkillInfo } from "./model";
 
 // Every check function is pure (no I/O) and takes only the normalized AgentRecord, so each is
@@ -193,7 +193,17 @@ export function checkSkills(agent: AgentRecord): CheckResult {
   return { id: "skills", category: "skills", status: "pass", title, evidence: `Agent skills: ${skillsEvidence}. All required skills for this agent's reachable queues are met.`, evidenceItems: skillItems.length ? skillItems : undefined, explanation };
 }
 
-export function checkPresence(agent: AgentRecord): CheckResult {
+// Days between `capturedOn` (an ISO timestamp) and `now`, or undefined if capturedOn is missing/
+// unparseable — the caller falls back to the conservative (warn) branch in that case, same as before
+// this staleness distinction existed.
+function daysSince(capturedOn: string | undefined, now: Date): number | undefined {
+  if (!capturedOn) return undefined;
+  const then = new Date(capturedOn).getTime();
+  if (Number.isNaN(then)) return undefined;
+  return (now.getTime() - then) / (1000 * 60 * 60 * 24);
+}
+
+export function checkPresence(agent: AgentRecord, now: Date = new Date()): CheckResult {
   const title = "Current presence allows assignment";
   const explanation = "Presence is a point-in-time snapshot, not a structural blocker — an agent correctly set up in every other way still won't be assigned work while their presence is Offline/Away or similar, or while their workspace client isn't logged in at all. Re-check this if the agent says they're currently at their desk and available.";
   if (!agent.presence.known) {
@@ -205,7 +215,17 @@ export function checkPresence(agent: AgentRecord): CheckResult {
   const presence = agent.presence.value;
   const capturedNote = presence.capturedOn ? ` (as of ${presence.capturedOn})` : "";
   if (presence.isLoggedIn === false) {
-    return { id: "presence", category: "presence", status: "warn", title, evidence: `Not currently logged in to the workspace client. Last known presence: ${presence.name}${capturedNote}.`, explanation, suggestedFix: "Have the agent sign in to Customer Service workspace / Omnichannel — being logged out overrides whatever their last presence status says." };
+    // Most agents are logged out most of the time — off-shift, weekends, between calls in some
+    // configurations — so being logged out right now isn't itself a misconfiguration. Only flag it
+    // once their last known activity is stale enough to suggest something's actually wrong (or there's
+    // no activity to go on at all, via the capturedOn-missing fallback below). See config.ts's
+    // PRESENCE_STALE_THRESHOLD_DAYS.
+    const staleDays = daysSince(presence.capturedOn, now);
+    if (staleDays !== undefined && staleDays <= PRESENCE_STALE_THRESHOLD_DAYS) {
+      return { id: "presence", category: "presence", status: "pass", title, evidence: `Not currently logged in, but was active as recently as ${presence.capturedOn} — within the last ${PRESENCE_STALE_THRESHOLD_DAYS} days, so not treated as a blocker. Last known presence: ${presence.name}.`, explanation };
+    }
+    const staleness = staleDays !== undefined ? `, and hasn't been active in over ${PRESENCE_STALE_THRESHOLD_DAYS} days` : "";
+    return { id: "presence", category: "presence", status: "warn", title, evidence: `Not currently logged in to the workspace client${staleness}. Last known presence: ${presence.name}${capturedNote}.`, explanation, suggestedFix: "Have the agent sign in to Customer Service workspace / Omnichannel — being logged out overrides whatever their last presence status says." };
   }
   const loginNote = presence.isLoggedIn === undefined ? " (login status could not be confirmed)" : "";
   if (presence.allowsAssignment === true) return { id: "presence", category: "presence", status: "pass", title, evidence: `Currently logged in. Presence: ${presence.name}${capturedNote}${loginNote}.`, explanation };
