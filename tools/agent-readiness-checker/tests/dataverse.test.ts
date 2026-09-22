@@ -1,4 +1,4 @@
-import { loadAgentRoster } from "../src/dataverse";
+import { loadAgentRoster, loadAllRoles } from "../src/dataverse";
 
 // Minimal mock of the subset of Xrm.WebApi.retrieveMultipleRecords this tool actually calls,
 // dispatched by entity logical name. Each test wires up only the entities it cares about; anything
@@ -446,4 +446,24 @@ describe("loadAgentRoster", () => {
     expect(agent.skills).toEqual({ known: true, value: [{ characteristicId: "Dutch", name: "Dutch", proficiencyLabel: "Advanced", proficiencyRank: 3 }] });
   });
 
+});
+
+describe("loadAllRoles", () => {
+  // Confirmed live in academyexperiment: Dataverse marks retired system roles "(Deprecated) X" and,
+  // in at least one case, "X(Deprecated)" — neither should ever be offered as a pick in the live role
+  // picker (see App.tsx), so loadAllRoles excludes both shapes case-insensitively.
+  test("excludes roles Dataverse marks (Deprecated), in either name position", async () => {
+    installXrm({
+      role: () => ({
+        entities: [
+          { roleid: "1", name: "Omnichannel agent" },
+          { roleid: "2", name: "(Deprecated) Metadata Store Reader" },
+          { roleid: "3", name: "Survey Services Administrator(Deprecated)" },
+          { roleid: "4", name: "System Administrator" }
+        ]
+      })
+    });
+    const roles = await loadAllRoles();
+    expect(roles.map((r) => r.name)).toEqual(["Omnichannel agent", "System Administrator"]);
+  });
 });

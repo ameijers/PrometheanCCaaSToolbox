@@ -271,6 +271,11 @@ export async function loadAllRoles(): Promise<{ roleId: string; name: string }[]
   const rows = await readAll("role", "?$select=roleid,name&$orderby=name asc");
   return rows
     .filter((r) => r.roleid && r.name)
+    // Excludes roles Dataverse itself marks retired (confirmed live in academyexperiment as both
+    // "(Deprecated) X" and, at least once, "X(Deprecated)") — these are legacy system roles no
+    // environment should still be assigning, and left in they only add noise to the picker's
+    // dropdowns (900+ roles live, most unrelated to this tool) without ever being a valid pick.
+    .filter((r) => !/\(deprecated\)/i.test(r.name as string))
     .map((r) => ({ roleId: r.roleid as string, name: r.name as string }))
     // Sorted again client-side rather than trusting $orderby alone — cheap, and guarantees the
     // picker's dropdowns are alphabetical regardless of server behavior.

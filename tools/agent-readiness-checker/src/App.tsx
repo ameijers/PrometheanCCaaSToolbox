@@ -259,7 +259,28 @@ export function App(): React.ReactElement {
   // One click connects and loads the roster — using a remembered selection if one still matches a
   // real role in this environment, otherwise the best keyword-based suggestion applied right away
   // (never a forced review step first; the notice above just nudges toward "Configure roles…" so an
-  // imperfect guess is easy to notice and fix, not silently trusted).
+  // imperfect guess is easy to notice and fix, not silently trusted). Reconciled per GROUP, not as one
+  // all-or-nothing choice between "the whole saved object" and "the whole suggestion": a saved
+  // selection from an earlier, less-informed session (or one where only one group was ever picked)
+  // could otherwise permanently shadow a better default for every other group, since any single still-
+  // valid saved name used to be enough to make the entire saved object win over a fresh suggestion.
+  function reconcileSelection(saved: RoleSelection | undefined, roles: RoleInfo[]): { selection: RoleSelection; anySuggested: boolean } {
+    const suggested = suggestSelection(roles);
+    const selection: RoleSelection = {};
+    let anySuggested = false;
+    DEFAULT_ROLE_GROUPS.forEach((group) => {
+      const savedName = saved?.[group.key];
+      const savedStillValid = !!savedName && roles.some((r) => r.name === savedName);
+      if (savedStillValid) {
+        selection[group.key] = savedName!;
+      } else if (suggested[group.key]) {
+        selection[group.key] = suggested[group.key];
+        anySuggested = true;
+      }
+    });
+    return { selection, anySuggested };
+  }
+
   async function connect() {
     setLoading(true);
     setProgressMessage("Connecting to the current Dataverse session…");
@@ -268,10 +289,8 @@ export function App(): React.ReactElement {
       const roles = await loadAllRoles();
       setAllRoles(roles);
       setConnected(true);
-      const saved = loadSavedSelection();
-      const savedStillValid = !!saved && Object.values(saved).some((name) => roles.some((r) => r.name === name));
-      const selection = saved && savedStillValid ? saved : suggestSelection(roles);
-      await applySelectionAndLoad(roles, selection, !(saved && savedStillValid));
+      const { selection, anySuggested } = reconcileSelection(loadSavedSelection(), roles);
+      await applySelectionAndLoad(roles, selection, anySuggested);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to read this Dataverse environment.");
       setLoading(false);
