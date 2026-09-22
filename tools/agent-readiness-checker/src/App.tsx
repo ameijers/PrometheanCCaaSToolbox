@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { evaluateAgents, summarize } from "./aggregate";
 import { DEFAULT_ROLE_GROUPS, ROLE_GROUP_SUGGESTION_KEYWORDS, RoleGroup, RoleSelection, matchesRoleGroup, setActiveAgentRoleNames } from "./config";
 import { DEMO_AGENTS } from "./demoData";
-import { loadAgentRoster, loadAllRoles } from "./dataverse";
+import { loadAgentRoster, loadAllRoles, loadCurrentUserDomain } from "./dataverse";
 import { bulkToCsv, bulkToMarkdown, detailToCsv, detailToMarkdown, downloadTextFile } from "./export";
 import { AgentReadiness, AgentRecord, CATEGORY_LABELS, CHECK_ORDER, CheckStatus, OVERALL_STATUS_LABELS, OverallStatus } from "./model";
 
@@ -110,13 +110,13 @@ function emailDomain(domainName: string | undefined): string | undefined {
   return domainName?.split("@")[1]?.toLowerCase();
 }
 
-// The most common email domain among the roster — used only to group the "Agent" name sort (same-
-// domain first, alphabetically, then everyone else, alphabetically), not as a filter. A majority-
-// domain heuristic, not a live "who am I" lookup: this tool used to load the connected user's own
-// domain for a domain-based filter (Round 8), but that was removed because it was unreliable for
-// filtering (a real agent can sit on a foreign domain; a noise account can share the home domain). For
-// sorting, the risk is much lower — worst case a few agents land in the "wrong" half of an otherwise
-// alphabetical list — so the simpler, self-contained heuristic (no extra Dataverse call) is worth it.
+// Fallback "home domain" for the Agent-list name-sort grouping (see homeDomain below), used only when
+// the live connected-user lookup (dataverse.ts's loadCurrentUserDomain) isn't available — demo mode,
+// or any failure of that lookup. The most-common-domain-among-the-roster heuristic was this tool's
+// first attempt at this feature (Round 16) and is noticeably less reliable live: a roster mixing real
+// agents with application/service accounts (Copilot IVR bots, routing apps, etc., which often share
+// one Dataverse-generated synthetic domain) can have those non-interactive accounts outnumber real
+// human agents and skew a pure-frequency guess toward the wrong "home".
 function majorityDomain(agents: { domainName?: string }[]): string | undefined {
   const counts = new Map<string, number>();
   agents.forEach((a) => {
@@ -156,6 +156,11 @@ export function App(): React.ReactElement {
   const [message, setMessage] = useState("Demo data is shown until a Dataverse connection is available.");
   const [agents, setAgents] = useState<AgentRecord[]>(DEMO_AGENTS);
   const [lastLoaded, setLastLoaded] = useState<string>(timestamp());
+  // The connected user's own email domain — the preferred reference point for grouping the Agent-list
+  // name sort (see App.tsx's homeDomain below and dataverse.ts's loadCurrentUserDomain). undefined in
+  // demo mode (no live session to ask) and on any live lookup failure — either way the sort falls back
+  // to majorityDomain() rather than breaking.
+  const [connectedUserDomain, setConnectedUserDomain] = useState<string | undefined>(undefined);
 
   // Every real security role in the connected environment (id + name), the person's current
   // Agent/Supervisor/Admin picks among them (by role id — see config.ts's RoleSelection), and the
@@ -188,7 +193,7 @@ export function App(): React.ReactElement {
   const [page, setPage] = useState(0);
 
   const results = useMemo(() => evaluateAgents(agents), [agents]);
-  const homeDomain = useMemo(() => majorityDomain(agents), [agents]);
+  const homeDomain = useMemo(() => connectedUserDomain ?? majorityDomain(agents), [connectedUserDomain, agents]);
 
   const queueNames = useMemo(() => distinctSorted(agents.flatMap((a) => (a.queueMemberships.known ? a.queueMemberships.value.map((m) => m.queueName) : []))), [agents]);
   const workstreamNames = useMemo(() => distinctSorted(agents.flatMap((a) => (a.queueMemberships.known ? a.queueMemberships.value.flatMap((m) => m.reachingWorkstreamNames) : []))), [agents]);
@@ -316,8 +321,12 @@ export function App(): React.ReactElement {
     setProgressMessage("Connecting to the current Dataverse session…");
     setMessage("");
     try {
-      const roles = await loadAllRoles();
+      // Independent reads — run in parallel. The user-domain lookup is best-effort (see
+      // loadCurrentUserDomain's comment): its own failure is swallowed there, never here, so it can
+      // never block a connection that would otherwise succeed.
+      const [roles, userDomain] = await Promise.all([loadAllRoles(), loadCurrentUserDomain()]);
       setAllRoles(roles);
+      setConnectedUserDomain(userDomain);
       setConnected(true);
       const { selection, anySuggested } = reconcileSelection(loadSavedSelection(), roles);
       await applySelectionAndLoad(roles, selection, anySuggested);

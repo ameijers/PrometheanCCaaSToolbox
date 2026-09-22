@@ -267,6 +267,29 @@ async function loadVoiceRoutingReachability(): Promise<VoiceRoutingReachability>
 // DEFAULT_ROLE_GROUPS for why) — the caller resolves whichever roles the person picked into ids via
 // loadAllRoles() first, and passes those ids in here directly.
 
+// The connected user's own email domain — used only by App.tsx as the reference point for grouping
+// the Agent-list name sort (same domain first, alphabetically; everyone else after), never as a
+// filter. A live "who am I" lookup was deliberately removed for filtering purposes in Round 8 (a real
+// agent could sit on a foreign domain and get wrongly hidden), but that risk doesn't apply to a sort —
+// worst case a wrong guess just misplaces a few rows. This is a much more stable "home" signal than
+// guessing from the loaded roster's most common domain (Round 16's first attempt): a roster mixing
+// real agents with application/service accounts (Copilot IVR bots, routing apps, etc. — see
+// IMPLEMENTATION_STATUS.md "Round 16") can have those non-interactive accounts, which often share one
+// Dataverse-generated synthetic domain, outnumber real human agents and skew a pure-frequency guess.
+// Best-effort only: returns undefined on any failure (no Xrm, no WebApi, user record unreadable) —
+// the caller falls back to the frequency heuristic rather than breaking the sort.
+export async function loadCurrentUserDomain(): Promise<string | undefined> {
+  const xrm = resolveXrm();
+  const userId = xrm?.Utility?.getGlobalContext?.()?.userSettings?.userId;
+  if (!userId) return undefined;
+  try {
+    const user = await xrm.WebApi.retrieveRecord("systemuser", cleanGuid(userId), "?$select=domainname");
+    return typeof user?.domainname === "string" ? user.domainname.split("@")[1]?.toLowerCase() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function loadAllRoles(): Promise<{ roleId: string; name: string }[]> {
   const rows = await readAll("role", "?$select=roleid,name&$orderby=name asc");
   return rows

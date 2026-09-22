@@ -1,4 +1,4 @@
-import { loadAgentRoster, loadAllRoles } from "../src/dataverse";
+import { loadAgentRoster, loadAllRoles, loadCurrentUserDomain } from "../src/dataverse";
 
 // Minimal mock of the subset of Xrm.WebApi.retrieveMultipleRecords this tool actually calls,
 // dispatched by entity logical name. Each test wires up only the entities it cares about; anything
@@ -465,5 +465,38 @@ describe("loadAllRoles", () => {
     });
     const roles = await loadAllRoles();
     expect(roles.map((r) => r.name)).toEqual(["Omnichannel agent", "System Administrator"]);
+  });
+});
+
+describe("loadCurrentUserDomain", () => {
+  // App.tsx's preferred "home domain" for the Agent-list sort — a live lookup of the connected
+  // user's own domain via Xrm.Utility.getGlobalContext(), not Xrm.WebApi.retrieveMultipleRecords, so
+  // it needs its own mock shape rather than installXrm's retrieveMultipleRecords-only handlers.
+  afterEach(() => { delete (global as any).Xrm; });
+
+  test("returns the connected user's email domain, lowercased", async () => {
+    (global as any).Xrm = {
+      Utility: { getGlobalContext: () => ({ userSettings: { userId: `{${USER_A}}` } }) },
+      WebApi: {
+        retrieveRecord: async (logicalName: string, id: string) => {
+          expect(logicalName).toBe("systemuser");
+          expect(id).toBe(USER_A);
+          return { domainname: "Alexander.Meijers@Contoso.com" };
+        }
+      }
+    };
+    expect(await loadCurrentUserDomain()).toBe("contoso.com");
+  });
+
+  test("returns undefined (not a thrown error) when there's no Xrm session at all", async () => {
+    expect(await loadCurrentUserDomain()).toBeUndefined();
+  });
+
+  test("returns undefined when the user record can't be read", async () => {
+    (global as any).Xrm = {
+      Utility: { getGlobalContext: () => ({ userSettings: { userId: USER_A } }) },
+      WebApi: { retrieveRecord: async () => { throw new Error("no permission"); } }
+    };
+    expect(await loadCurrentUserDomain()).toBeUndefined();
   });
 });
