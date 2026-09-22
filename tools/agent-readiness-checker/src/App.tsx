@@ -523,10 +523,12 @@ export function App(): React.ReactElement {
           <div className="agent-info-list">
             {checksByCategory.map((check) => <div className={`agent-info-row ${check.status}`} key={check.category}>
               <span className={`agent-info-status ${check.status}`} aria-hidden="true">{STATUS_ICON[check.status]}</span>
-              <span className="agent-info-body">
+              <div className="agent-info-body">
                 <span className="agent-info-label">{CATEGORY_LABELS[check.category]}</span>
-                <span className="agent-info-value">{check.evidence}</span>
-              </span>
+                {check.evidenceItems?.length
+                  ? <ul className="agent-info-value-list">{check.evidenceItems.map((item) => <li key={item}>{item}</li>)}</ul>
+                  : <p className="agent-info-value">{check.evidence}</p>}
+              </div>
             </div>)}
           </div>
         </> : <div className="scenario-empty"><span>◇</span><p>No agent selected</p><small>Click a row in the agent list to see their information here, and their full readiness checklist below.</small></div>}

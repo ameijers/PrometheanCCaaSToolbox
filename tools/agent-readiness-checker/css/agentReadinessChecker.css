@@ -112,7 +112,10 @@ button.stat-tile.active.notVerifiable { border-color: #5b6b83; background: #e6ea
 .agent-info-status.unknown { color: #5b6b83; background: #e6eaf2; }
 .agent-info-body { min-width: 0; }
 .agent-info-label { display: block; font: 600 10px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .05em; color: #6e898a; margin-bottom: 5px; }
-.agent-info-value { display: block; font-size: 12.5px; color: #24565b; line-height: 1.55; overflow-wrap: break-word; }
+.agent-info-value { margin: 0; font-size: 12.5px; color: #24565b; line-height: 1.55; overflow-wrap: break-word; }
+.agent-info-value-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.agent-info-value-list li { padding-left: 13px; position: relative; font-size: 12.5px; color: #24565b; line-height: 1.5; overflow-wrap: break-word; }
+.agent-info-value-list li::before { content: "•"; position: absolute; left: 1px; color: #9ab3af; }
 
 .outcome-panel { margin-top: 24px; padding-top: 20px; border-top: 1px solid #dce8e5; }
 .detail-export { display: flex; gap: 7px; flex-shrink: 0; }
