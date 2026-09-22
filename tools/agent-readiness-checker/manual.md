@@ -49,10 +49,10 @@ Click any column header in the agent table (**Agent**, **Status**, **Failed**, *
 
 Click any row in the agent list to open two things:
 
-**On the right, a compact "Agent information" panel** — the agent's overall status pill, domain name, and one line per check category showing just the raw evidence found (e.g. their real queue list, their actual skills and proficiency) — a quick-reference summary, not the full explanation.
+**On the right, a compact "Agent information" panel** — the agent's identity (name, domain, overall status pill), then a "Needs attention" list with just the failing/warning/not-verifiable checks and their suggested fix, one line each. An agent with nothing wrong shows "No action needed — every check passes" instead. This is a quick triage view, not a second copy of the full checklist below — for the complete evidence and explanation behind any check, see the Outcome section.
 
 > **[Screenshot 5 — Agent information panel]**
-> Screenshot of the right-hand "Agent information" panel for a selected agent, showing the status pill and several evidence rows (e.g. Security roles, Queue membership, Capacity).
+> Screenshot of the right-hand "Agent information" panel for a selected agent, showing the status pill and the "Needs attention" list with a couple of failing/warning checks and their suggested fixes.
 
 **Below the agent table, a full-width "Outcome" section** with one card per check, grouped in a fixed diagnosis order (account → security roles → channel enablement → queue membership → workstream reachability → capacity → skills → presence → unified routing state). Each card shows:
 - A **status badge** (Pass / Warning / Fail / Not verifiable).

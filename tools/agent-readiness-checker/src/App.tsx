@@ -364,6 +364,12 @@ export function App(): React.ReactElement {
     return CHECK_ORDER.map((category) => selected.checks.find((c) => c.category === category)).filter((c): c is NonNullable<typeof c> => !!c);
   }, [selected]);
 
+  // The inspector's "Needs attention" list — every non-pass check (fail/warn/unknown all carry a
+  // suggestedFix; see model.ts's CheckResult comment), so this is a short, purely actionable subset of
+  // checksByCategory rather than a second copy of its full evidence (which the checklist below already
+  // shows in full) — see IMPLEMENTATION_STATUS.md "Round 18" for why the panel changed shape.
+  const attentionChecks = useMemo(() => checksByCategory.filter((c) => c.status !== "pass"), [checksByCategory]);
+
   // Deduplicated for the picker's dropdowns — allRoles itself can contain the same role name several
   // times (once per business unit; see distinctRoleNames's comment above).
   const roleNameOptions = useMemo(() => distinctRoleNames(allRoles), [allRoles]);
@@ -559,17 +565,17 @@ export function App(): React.ReactElement {
             {selected.warnCount > 0 && <span className="mini-count warn">{selected.warnCount} warning</span>}
             {selected.unknownCount > 0 && <span className="mini-count unknown">{selected.unknownCount} unverifiable</span>}
           </div>
-          <div className="agent-info-list">
-            {checksByCategory.map((check) => <div className={`agent-info-row ${check.status}`} key={check.category}>
+          <p className="eyebrow inspector-section-heading">Needs attention</p>
+          {attentionChecks.length ? <div className="agent-info-list">
+            {attentionChecks.map((check) => <div className={`agent-info-row ${check.status}`} key={check.category}>
               <span className={`agent-info-status ${check.status}`} aria-hidden="true">{STATUS_ICON[check.status]}</span>
               <div className="agent-info-body">
                 <span className="agent-info-label">{CATEGORY_LABELS[check.category]}</span>
-                {check.evidenceItems?.length
-                  ? <ul className="agent-info-value-list">{check.evidenceItems.map((item) => <li key={item}>{item}</li>)}</ul>
-                  : <p className="agent-info-value">{check.evidence}</p>}
+                <span className="agent-info-title">{check.title}</span>
+                {check.suggestedFix && <p className="agent-info-fix"><strong>Suggested fix:</strong> {check.suggestedFix}</p>}
               </div>
             </div>)}
-          </div>
+          </div> : <p className="agent-info-clear"><span aria-hidden="true">✓</span> No action needed — every check passes.</p>}
         </> : <div className="scenario-empty"><span>◇</span><p>No agent selected</p><small>Click a row in the agent list to see their information here, and their full readiness checklist below.</small></div>}
       </aside>
     </section>
