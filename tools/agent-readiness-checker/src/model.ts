@@ -45,10 +45,15 @@ export interface RequiredSkillInfo {
   minProficiencyRank?: number;
 }
 
-// Required skills for one queue the agent belongs to, as best-effort-parsed from that queue's
-// reaching workstream(s) skill-identification routing step. `required: null` means this tool could
-// not determine the requirement (unparseable/absent step, or no reaching workstream) — evaluated as
-// "unknown" by the skills check for that queue, never assumed to mean "no requirement".
+// Required skills for one queue the agent belongs to. `required: []` is used both for "confirmed no
+// skill requirement" (the queue's reaching workstream(s) have no Skill identification routing step
+// at all — confirmed live against academyexperiment, see IMPLEMENTATION_STATUS.md "Round 7": a step
+// type that's simply absent from a workstream's active routing configuration means unified routing
+// never attempts to skill-match work for it) and for "a skill-identification step exists but named no
+// skills" (a real, if less common, admin configuration). `required: null` means a skill-identification
+// step exists but this tool's best-effort ruleset parser couldn't extract a structured requirement
+// from it — evaluated as "unknown" by the skills check for that queue, never assumed to mean "no
+// requirement".
 export interface QueueSkillRequirement {
   queueId: string;
   queueName: string;
@@ -57,8 +62,26 @@ export interface QueueSkillRequirement {
 
 export interface PresenceInfo {
   name: string;
+  // msdyn_agentstatus.msdyn_isagentloggedin — confirmed live: whether the agent's workspace client
+  // is currently connected, independent of what their last-known presence label says. undefined if
+  // this tool couldn't read it.
+  isLoggedIn: boolean | undefined;
   allowsAssignment: boolean | undefined; // undefined = status found, but whether it allows assignment couldn't be determined
   capturedOn?: string; // ISO — presence is a point-in-time snapshot, not historical
+}
+
+// One capacity-profile assignment on the agent's bookableresource (via the
+// msdyn_bookableresourcecapacityprofile join table — confirmed live against academyexperiment).
+// Profiles are per-channel (e.g. "Default voice inbound" / "Default voice outbound" were both
+// observed on the same real agent), which is why an agent can have several of these, not just one
+// flat number — systemuser.msdyn_capacity, this tool's first two guesses, doesn't reflect this at
+// all and was confirmed to sit outside this relationship entirely.
+export interface CapacityProfileAssignment {
+  profileName: string;
+  // The join row's own msdyn_maxunits if set, else the profile's own msdyn_defaultmaxunits, else
+  // null if neither carries a value — never silently defaulted to 0, since an unset value and a
+  // deliberately-zero one mean different things.
+  effectiveUnits: number | null;
 }
 
 export interface AgentRecord {
@@ -70,18 +93,37 @@ export interface AgentRecord {
   securityRoles: Field<string[]>;
   channels: Field<string[]>; // enabled channels, e.g. ["Voice", "Chat"] — see README, low confidence
   queueMemberships: Field<QueueMembershipInfo[]>;
-  // systemuser.msdyn_Capacity — a plain whole number directly on the user record. Confirmed live
-  // against academyexperiment: there is no separate reusable "capacity profile" entity in this
-  // product, despite the name administrators commonly use for this concept. null = no value set.
-  agentCapacity: Field<number | null>;
-  // msdyn_liveworkstream.msdyn_CapacityRequired (confirmed live, a required whole-number field) —
-  // the smallest such value among this agent's reachable voice workstreams. null = none reachable
-  // to compare against.
+  // This agent's capacity-profile assignments (see CapacityProfileAssignment) — an empty array
+  // means confirmed no profile assigned at all, not "couldn't read".
+  agentCapacity: Field<CapacityProfileAssignment[]>;
+  // msdyn_liveworkstream.msdyn_capacityrequired — but ONLY from reachable workstreams using the
+  // "Unit based" capacity format (msdyn_capacityformat), confirmed live to be one of two real
+  // values on this field: "Unit based" (numeric comparison applies) or "Profile based" (it doesn't
+  // — see hasProfileBasedReachableWorkstream). null = no reachable *unit-based* workstream to
+  // compare against, which is a different situation from "nothing reachable at all" — see below.
   workItemUnitCost: Field<number | null>;
+  // True if at least one reachable voice workstream uses the "Profile based" capacity format,
+  // confirmed live against academyexperiment (a real environment where ALL inbound voice
+  // workstreams used this format — a real agent's own capacity check was reporting a false
+  // failure, comparing their capacity against an unrelated "Unit based" threshold that doesn't
+  // apply under this format). Under "Profile based", a non-zero capacity-profile assignment is
+  // sufficient on its own; no numeric comparison against workItemUnitCost is meaningful.
+  hasProfileBasedReachableWorkstream: Field<boolean>;
   skills: Field<AgentSkillInfo[]>;
   queueSkillRequirements: Field<QueueSkillRequirement[]>;
   presence: Field<PresenceInfo | null>; // null = no presence record found for this user
-  routingExclusion: Field<boolean>; // true = confirmed excluded/opted out of assignment
+  // msdyn_agentstatus.msdyn_isblockedbysomeprofile — confirmed live against academyexperiment (see
+  // IMPLEMENTATION_STATUS.md "Round 7"): true means unified routing currently won't assign this agent
+  // ANY new work because they've hit the ceiling of every capacity profile assigned to them, even
+  // though everything else about their setup is correct. This is a live, point-in-time condition (like
+  // presence) that clears on its own as their active work drops — distinct from capacityProfile above,
+  // which checks whether a big-enough profile is assigned at all, not their current utilization against
+  // it. No separate "explicitly excluded/opted out" admin toggle was ever found to exist in this
+  // product (searched broadly across systemuser/bookableresource for anything matching
+  // exclu/optout/workdistribution/routing-related names — nothing besides GDPR opt-out turned up) —
+  // this field is the closest defensible, live signal for "currently not receiving new work" that this
+  // tool could verify.
+  capacityBlocked: Field<boolean>;
 }
 
 export type CheckStatus = "pass" | "warn" | "fail" | "unknown";
@@ -102,7 +144,11 @@ export interface CheckResult {
   category: CheckCategory;
   status: CheckStatus;
   title: string;
-  evidence: string;
+  evidence: string; // full sentence — always populated, used verbatim in CSV/Markdown export
+  // Optional structured breakdown of `evidence` for checks whose evidence is naturally a list
+  // (roles, channels, queues, skills) — the UI renders this as a bullet list instead of the prose
+  // sentence when present; undefined for checks where a single short sentence reads better as-is.
+  evidenceItems?: string[];
   explanation: string;
   suggestedFix?: string;
 }

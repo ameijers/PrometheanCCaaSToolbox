@@ -32,13 +32,22 @@ describe("DEMO_AGENTS", () => {
     });
   });
 
-  test("every check category reaches fail at least once, except account/unifiedRoutingState which are covered but rarer", () => {
+  test("every check category reaches fail at least once, except presence/unifiedRoutingState which never fail by design", () => {
     const results = evaluateAgents(DEMO_AGENTS);
-    const categoriesThatShouldFail = CHECK_ORDER.filter((c) => c !== "presence"); // presence is designed to never fail (informational-only)
+    // presence and unifiedRoutingState are both live, point-in-time, self-clearing conditions
+    // (informational-only) rather than structural misconfigurations, so neither ever fails.
+    const categoriesThatShouldFail = CHECK_ORDER.filter((c) => c !== "presence" && c !== "unifiedRoutingState");
     categoriesThatShouldFail.forEach((category) => {
       const failed = results.some((r) => r.checks.find((c) => c.category === category)?.status === "fail");
       expect(failed).toBe(true);
     });
+  });
+
+  test("unifiedRoutingState reaches warn but never fail (informational-only, live capacity-block state)", () => {
+    const results = evaluateAgents(DEMO_AGENTS);
+    const statuses = new Set(results.map((r) => r.checks.find((c) => c.category === "unifiedRoutingState")?.status));
+    expect(statuses.has("warn")).toBe(true);
+    expect(statuses.has("fail")).toBe(false);
   });
 
   test("every check category reaches unknown at least once", () => {

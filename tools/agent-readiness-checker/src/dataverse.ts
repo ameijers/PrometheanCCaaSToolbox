@@ -4,7 +4,7 @@
 // couple this tool's web resource bundle to Visual Routing Tester's, and never modifies that tool.
 import { parseDecisionXml } from "../../visual-routing-tester/src/ruleXml";
 import {
-  AccessMode, AgentRecord, AgentSkillInfo, Field, PresenceInfo,
+  AccessMode, AgentRecord, AgentSkillInfo, CapacityProfileAssignment, Field, PresenceInfo,
   QueueMembershipInfo, QueueSkillRequirement, RequiredSkillInfo, known, unknownField
 } from "./model";
 
@@ -99,23 +99,41 @@ function inferAllowsAssignment(presenceName: string): boolean | undefined {
   return undefined;
 }
 
+// msdyn_liveworkstream.msdyn_capacityformat — confirmed live (via the option set's own metadata
+// against academyexperiment) to have exactly two real values. Under "Unit based", capacityRequired
+// is a literal number of capacity units directly comparable to the agent's own capacity. Under
+// "Profile based" it is NOT meaningfully comparable that way — a real environment had every inbound
+// voice workstream set to "Profile based" with capacityRequired=30, which produced a false "capacity
+// too low" failure for an agent whose actual (correct, sufficient) capacity was 1.
+const CAPACITY_FORMAT_UNIT_BASED = 192350000;
+const CAPACITY_FORMAT_PROFILE_BASED = 192360000;
+
 interface ReachingWorkstream {
   name: string;
-  // msdyn_liveworkstream.msdyn_CapacityRequired — confirmed live against academyexperiment as a
-  // required whole-number field, so this is normally always present; undefined only if it came back
-  // missing/non-numeric anyway, in which case this workstream just doesn't contribute a unit cost
-  // rather than being treated as unreachable (reachability and capacity-data-availability are
-  // independent — a missing capacity value must never look like "this queue isn't routed to").
+  // Only set when this workstream's capacity format is confirmed "Unit based" — see above. Under
+  // "Profile based" (or an unrecognized format value), this stays undefined so it never
+  // contributes a misleading unit-cost comparison; reachability and capacity-data-availability are
+  // independent — a missing capacity value must never look like "this queue isn't routed to".
   capacityRequired: number | undefined;
+  profileBasedCapacity: boolean;
 }
 
 interface VoiceRoutingReachability {
   // queueId -> active inbound-voice workstreams that route to it (directly or as fallback).
   reachableQueues: Map<string, ReachingWorkstream[]>;
   // queueId -> best-effort required skills for that queue, parsed from a reaching workstream's
-  // skill-identification routing step. Absent from the map (vs. an empty array) means "no reaching
-  // workstream had a parseable skill step" — the caller treats that as `required: null` (undetermined).
+  // skill-identification routing step. Only meaningful for queueIds also present in
+  // queueIdsWithSkillRouting below — the caller treats an absent entry there as `required: null`
+  // (a step exists but this tool's parser found nothing usable in it — genuinely undetermined).
   requiredSkillsByQueue: Map<string, RequiredSkillInfo[]>;
+  // queueId -> true if at least one reaching workstream's active routing configuration has a Skill
+  // identification step at all (msdyn_type 192350001 — confirmed against academyexperiment's real
+  // step-type option set, see IMPLEMENTATION_STATUS.md "Round 7"). A queue absent from this set is
+  // reached only by workstream(s) with NO such step — a confirmed structural fact, not a guess, since
+  // it's read from the same routing-configuration steps already fetched for queue targeting — meaning
+  // unified routing never attempts to skill-match work for it, so `required: []` there is a known
+  // answer, not "couldn't determine".
+  queueIdsWithSkillRouting: Set<string>;
 }
 
 // Routing-configuration-step type codes, confirmed against a live Contact Center environment (see
@@ -174,10 +192,11 @@ function extractRequiredSkills(decisionXml: string | undefined): RequiredSkillIn
 async function loadVoiceRoutingReachability(): Promise<VoiceRoutingReachability> {
   const reachableQueues = new Map<string, ReachingWorkstream[]>();
   const requiredSkillsByQueue = new Map<string, RequiredSkillInfo[]>();
+  const queueIdsWithSkillRouting = new Set<string>();
 
-  const workstreamRows = await readAll("msdyn_liveworkstream", "?$select=msdyn_liveworkstreamid,msdyn_name,statecode,msdyn_direction,msdyn_enablevoicev2,msdyn_CapacityRequired");
+  const workstreamRows = await readAll("msdyn_liveworkstream", "?$select=msdyn_liveworkstreamid,msdyn_name,statecode,msdyn_direction,msdyn_enablevoicev2,msdyn_capacityrequired,msdyn_capacityformat");
   const voiceRows = workstreamRows.filter((row) => row.statecode === 0 && row.msdyn_enablevoicev2 === true && (row.msdyn_direction === 0 || row.msdyn_direction === undefined));
-  if (!voiceRows.length) return { reachableQueues, requiredSkillsByQueue };
+  if (!voiceRows.length) return { reachableQueues, requiredSkillsByQueue, queueIdsWithSkillRouting };
 
   const expandedFallback = await readAll("msdyn_liveworkstream", `?$select=msdyn_liveworkstreamid&$expand=msdyn_defaultqueue($select=queueid)&$filter=${voiceRows.map((r) => `msdyn_liveworkstreamid eq ${r.msdyn_liveworkstreamid}`).join(" or ")}`);
   const fallbackQueueByWorkstreamId = new Map<string, string>(expandedFallback.filter((r) => r.msdyn_defaultqueue?.queueid).map((r) => [r.msdyn_liveworkstreamid, r.msdyn_defaultqueue.queueid]));
@@ -188,9 +207,17 @@ async function loadVoiceRoutingReachability(): Promise<VoiceRoutingReachability>
     const targetQueueIds = new Set<string>();
     const fallback = fallbackQueueByWorkstreamId.get(workstream.msdyn_liveworkstreamid);
     if (fallback) targetQueueIds.add(fallback);
+    let workstreamHasSkillStep = false;
 
     if (activeConfig) {
       const steps = await readAll("msdyn_routingconfigurationstep", `?$select=msdyn_type,_msdyn_rulesetid_value&$filter=_msdyn_routingconfigurationid_value eq ${activeConfig.msdyn_routingconfigurationid}`);
+      // Presence of the step type itself (not whether it has a parseable ruleset) is what determines
+      // whether unified routing skill-matches for this workstream at all — confirmed against the real
+      // step-type option set (192350000 Enrichment, 192350001 Skill identification, 192350002 Queue
+      // identification, 192350003 Agent Group identification). None of a real environment's three
+      // inbound voice workstreams had a Skill identification step, which is what originally made this
+      // check permanently "Not verifiable" — that absence is itself the (confirmed) answer, not a gap.
+      workstreamHasSkillStep = steps.some((s) => s.msdyn_type === STEP_TYPE_SKILL_IDENTIFICATION);
       const rulesetIds = steps.filter((s) => s._msdyn_rulesetid_value).map((s) => s._msdyn_rulesetid_value);
       if (rulesetIds.length) {
         const rulesets = await readAll("msdyn_decisionruleset", `?$select=msdyn_decisionrulesetid,msdyn_rulesetdefinition&$filter=${[...new Set(rulesetIds)].map((id) => `msdyn_decisionrulesetid eq ${id}`).join(" or ")}`);
@@ -208,59 +235,123 @@ async function loadVoiceRoutingReachability(): Promise<VoiceRoutingReachability>
       }
     }
 
-    const rawCapacity = Number(workstream.msdyn_CapacityRequired);
-    const entry: ReachingWorkstream = { name: workstream.msdyn_name ?? workstream.msdyn_liveworkstreamid, capacityRequired: Number.isFinite(rawCapacity) ? rawCapacity : undefined };
-    targetQueueIds.forEach((queueId) => reachableQueues.set(queueId, [...(reachableQueues.get(queueId) ?? []), entry]));
+    const isProfileBased = workstream.msdyn_capacityformat === CAPACITY_FORMAT_PROFILE_BASED;
+    const isUnitBased = workstream.msdyn_capacityformat === CAPACITY_FORMAT_UNIT_BASED;
+    const rawCapacity = Number(workstream.msdyn_capacityrequired);
+    const entry: ReachingWorkstream = {
+      name: workstream.msdyn_name ?? workstream.msdyn_liveworkstreamid,
+      capacityRequired: isUnitBased && Number.isFinite(rawCapacity) ? rawCapacity : undefined,
+      profileBasedCapacity: isProfileBased
+    };
+    targetQueueIds.forEach((queueId) => {
+      reachableQueues.set(queueId, [...(reachableQueues.get(queueId) ?? []), entry]);
+      if (workstreamHasSkillStep) queueIdsWithSkillRouting.add(queueId);
+    });
   }
 
-  return { reachableQueues, requiredSkillsByQueue };
+  return { reachableQueues, requiredSkillsByQueue, queueIdsWithSkillRouting };
 }
 
 // --- Candidate agent set --------------------------------------------------------------------
-// "Agent" for this tool means: any user who is a member of at least one queue, OR holds one of the
-// configured agent security roles — the union, not just queue members, so a user who holds an agent
-// role but was never added to a queue (a common real misconfiguration) is still surfaced rather than
-// silently excluded from the roster.
+// "Agent" for this tool means: any user holding at least one of the role groups selected in the
+// UI's live role picker (Agent / Supervisor / Omnichannel Admin — see App.tsx and config.ts's
+// RoleSelection). Queue membership alone is deliberately NOT a trigger for inclusion — this tool
+// originally also included any queue member, on the theory that a queue member without a role was a
+// misconfiguration worth surfacing, but live testing showed the opposite problem dominates in
+// practice: queues can contain users who were never meant to be agents at all (e.g.
+// incidental/legacy queue membership), producing a roster full of "failing" checks for people who
+// were never going to receive calls in the first place. Role membership is the more defensible
+// signal of who this tool's checks are actually relevant to.
+//
+// Role names themselves are never guessed against live data (see config.ts's comment on
+// DEFAULT_ROLE_GROUPS for why) — the caller resolves whichever roles the person picked into ids via
+// loadAllRoles() first, and passes those ids in here directly.
 
-async function loadCandidateUserIds(): Promise<{ ids: string[]; queueMembershipRows: any[]; roleRows: any[] }> {
+export async function loadAllRoles(): Promise<{ roleId: string; name: string }[]> {
+  const rows = await readAll("role", "?$select=roleid,name&$orderby=name asc");
+  return rows
+    .filter((r) => r.roleid && r.name)
+    .map((r) => ({ roleId: r.roleid as string, name: r.name as string }))
+    // Sorted again client-side rather than trusting $orderby alone — cheap, and guarantees the
+    // picker's dropdowns are alphabetical regardless of server behavior.
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+async function loadCandidateUserIds(relevantRoleIds: string[]): Promise<{ ids: string[]; queueMembershipRows: any[] }> {
   const queueMembershipRows = await readAll("queuemembership", "?$select=queueid,systemuserid");
-  const roleNameRows = await readAll("role", "?$select=roleid,name");
-  const roleIdByName = new Map(roleNameRows.map((r) => [String(r.name).toLowerCase(), r.roleid]));
-  const { REQUIRED_SECURITY_ROLE_NAMES } = await import("./config");
-  const relevantRoleIds = REQUIRED_SECURITY_ROLE_NAMES.map((name) => roleIdByName.get(name.toLowerCase())).filter(Boolean) as string[];
+  if (!relevantRoleIds.length) return { ids: [], queueMembershipRows };
 
-  const roleRows = relevantRoleIds.length
-    ? await readAll("systemuserroles", `?$select=systemuserid,roleid&$filter=${relevantRoleIds.map((id) => `roleid eq ${id}`).join(" or ")}`)
+  const roleFilter = relevantRoleIds.map((id) => `roleid eq ${id}`).join(" or ");
+  const directRoleRows = await readAll("systemuserroles", `?$select=systemuserid,roleid&$filter=${roleFilter}`);
+
+  // Dataverse also grants a role to every member of a Dataverse Team the role is assigned to, not
+  // just users with a direct role assignment — confirmed live against academyexperiment (see
+  // IMPLEMENTATION_STATUS.md "Round 9"): a real team ("Sales-Supervisor") held a renamed Supervisor
+  // role directly, with no user in this environment holding that same role individually. Without
+  // this, a user who only gets agent access via team membership would never appear on the roster.
+  // The team-role intersect entity's logical name ("teamroles") is what belongs here, NOT its
+  // EntitySetName ("teamrolescollection") — that distinction only matters for raw REST calls (which
+  // is how this was first verified live, against academyexperiment's metadata, and where "teamroles"
+  // 404s). `Xrm.WebApi.retrieveMultipleRecords` takes the entity's logical name and resolves the
+  // correct endpoint internally, the same as every other entity this tool queries — passing the
+  // EntitySetName here instead broke it live with "The entity 'teamrolescollection' cannot be
+  // found." (see IMPLEMENTATION_STATUS.md "Round 11" for the full account of this mix-up).
+  const relevantTeamRoleRows = await readAll("teamroles", `?$select=teamid,roleid&$filter=${roleFilter}`);
+  const relevantTeamIds = [...new Set(relevantTeamRoleRows.map((r) => r.teamid).filter(Boolean))];
+  const teamMemberRows = relevantTeamIds.length
+    ? await readAll("teammembership", `?$select=systemuserid,teamid&$filter=${relevantTeamIds.map((id) => `teamid eq ${id}`).join(" or ")}`)
     : [];
 
   const ids = new Set<string>();
-  queueMembershipRows.forEach((r) => { if (r.systemuserid) ids.add(r.systemuserid); });
-  roleRows.forEach((r) => { if (r.systemuserid) ids.add(r.systemuserid); });
-  return { ids: [...ids], queueMembershipRows, roleRows };
+  directRoleRows.forEach((r) => { if (r.systemuserid) ids.add(r.systemuserid); });
+  teamMemberRows.forEach((r) => { if (r.systemuserid) ids.add(r.systemuserid); });
+  return { ids: [...ids], queueMembershipRows };
 }
 
 export interface LoadProgress { message: string; }
 
-export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => void): Promise<AgentRecord[]> {
+export interface AgentRosterResult {
+  agents: AgentRecord[];
+}
+
+export async function loadAgentRoster(relevantRoleIds: string[], onProgress?: (progress: LoadProgress) => void): Promise<AgentRosterResult> {
   const report = (message: string) => onProgress?.({ message });
 
-  report("Finding agents (queue members + agent-role holders)…");
-  const { ids: candidateIds, queueMembershipRows } = await loadCandidateUserIds();
-  if (!candidateIds.length) return [];
+  report("Finding agents (selected role holders, direct or via team)…");
+  const { ids: candidateIds, queueMembershipRows } = await loadCandidateUserIds(relevantRoleIds);
+  if (!candidateIds.length) return { agents: [] };
 
   report(`Loading ${candidateIds.length} agent account(s)…`);
   const userRows = await readByIdBatches("systemuser", "systemuserid", candidateIds, "$select=systemuserid,fullname,domainname,isdisabled,accessmode");
 
-  report("Reading security roles…");
-  const allRoleAssignments = await readByIdBatches("systemuserroles", "systemuserid", candidateIds, "$select=systemuserid,roleid");
-  const roleIds = [...new Set(allRoleAssignments.map((r) => r.roleid))];
-  const roleRows = roleIds.length ? await readByIdBatches("role", "roleid", roleIds, "$select=roleid,name") : [];
+  // A candidate's full effective role list is their own direct assignments UNION every role granted
+  // by a Dataverse Team they belong to (see loadCandidateUserIds' comment on "teamroles") — both are
+  // equally real from Dataverse's own point of view, so they're merged into one de-duplicated list
+  // rather than tracked separately; the "Security roles" check (and the UI's role-group filter)
+  // shouldn't need to know or care which mechanism actually granted a given role.
+  report("Reading security roles (direct and via team membership)…");
+  const directRoleAssignments = await readByIdBatches("systemuserroles", "systemuserid", candidateIds, "$select=systemuserid,roleid");
+  const candidateTeamMemberships = await readByIdBatches("teammembership", "systemuserid", candidateIds, "$select=systemuserid,teamid");
+  const teamIds = [...new Set(candidateTeamMemberships.map((r) => r.teamid).filter(Boolean))];
+  const teamRoleRows = teamIds.length ? await readByIdBatches("teamroles", "teamid", teamIds, "$select=teamid,roleid") : [];
+  const roleIdsByTeamId = new Map<string, string[]>();
+  teamRoleRows.forEach((r) => { if (r.teamid && r.roleid) roleIdsByTeamId.set(r.teamid, [...(roleIdsByTeamId.get(r.teamid) ?? []), r.roleid]); });
+
+  const roleIdsByUserId = new Map<string, Set<string>>();
+  const addRole = (userId: string, roleId: string) => roleIdsByUserId.set(userId, (roleIdsByUserId.get(userId) ?? new Set<string>()).add(roleId));
+  directRoleAssignments.forEach((r) => { if (r.systemuserid && r.roleid) addRole(r.systemuserid, r.roleid); });
+  candidateTeamMemberships.forEach((r) => {
+    if (!r.systemuserid) return;
+    (roleIdsByTeamId.get(r.teamid) ?? []).forEach((roleId) => addRole(r.systemuserid, roleId));
+  });
+
+  const allInvolvedRoleIds = [...new Set([...directRoleAssignments.map((r) => r.roleid), ...teamRoleRows.map((r) => r.roleid)].filter(Boolean))];
+  const roleRows = allInvolvedRoleIds.length ? await readByIdBatches("role", "roleid", allInvolvedRoleIds, "$select=roleid,name") : [];
   const roleNameById = new Map(roleRows.map((r) => [r.roleid, r.name as string]));
   const roleNamesByUserId = new Map<string, string[]>();
-  allRoleAssignments.forEach((r) => {
-    const name = roleNameById.get(r.roleid);
-    if (!name) return;
-    roleNamesByUserId.set(r.systemuserid, [...(roleNamesByUserId.get(r.systemuserid) ?? []), name]);
+  roleIdsByUserId.forEach((roleIdSet, userId) => {
+    const names = [...roleIdSet].map((id) => roleNameById.get(id)).filter((n): n is string => !!n);
+    roleNamesByUserId.set(userId, [...new Set(names)]);
   });
 
   report("Reading queue memberships and routing configuration…");
@@ -272,6 +363,7 @@ export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => v
   const queueById = new Map(queueRows.map((q) => [q.queueid, q]));
   const membershipsByUserId = new Map<string, QueueMembershipInfo[]>();
   const unitCostsByUserId = new Map<string, number[]>();
+  const profileBasedReachByUserId = new Set<string>();
   queueMembershipRows.forEach((row) => {
     const queue = queueById.get(row.queueid);
     if (!row.systemuserid || !queue) return;
@@ -286,6 +378,7 @@ export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => v
     membershipsByUserId.set(row.systemuserid, [...(membershipsByUserId.get(row.systemuserid) ?? []), info]);
     const costs = (reachInfo ?? []).map((w) => w.capacityRequired).filter((c): c is number => c !== undefined);
     if (costs.length) unitCostsByUserId.set(row.systemuserid, [...(unitCostsByUserId.get(row.systemuserid) ?? []), ...costs]);
+    if ((reachInfo ?? []).some((w) => w.profileBasedCapacity)) profileBasedReachByUserId.add(row.systemuserid);
   });
 
   report("Reading agent capacity…");
@@ -297,7 +390,7 @@ export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => v
   report("Reading presence…");
   const presenceByUserId = await loadPresence(candidateIds);
 
-  return userRows.map((row): AgentRecord => {
+  const agents = userRows.map((row): AgentRecord => {
     const id = row.systemuserid;
     const memberships = membershipsByUserId.get(id) ?? [];
     const queueSkillRequirements: Field<QueueSkillRequirement[]> = reachability instanceof Error
@@ -305,7 +398,11 @@ export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => v
       : known(memberships.map((m): QueueSkillRequirement => ({
         queueId: m.queueId,
         queueName: m.queueName,
-        required: reachability.requiredSkillsByQueue.has(m.queueId) ? (reachability.requiredSkillsByQueue.get(m.queueId) ?? []) : null
+        // required: [] both when a queue's reaching workstream(s) confirm no Skill identification
+        // step exists at all (a known fact, not a guess — see queueIdsWithSkillRouting above) and when
+        // a step exists but genuinely lists no skills; required: null only when a step exists and this
+        // tool's parser couldn't extract a usable requirement from it — see model.ts.
+        required: !reachability.queueIdsWithSkillRouting.has(m.queueId) ? [] : (reachability.requiredSkillsByQueue.get(m.queueId) ?? null)
       })));
 
     const reachableUnitCosts = unitCostsByUserId.get(id) ?? [];
@@ -317,47 +414,79 @@ export async function loadAgentRoster(onProgress?: (progress: LoadProgress) => v
       disabled: known(row.isdisabled === true),
       accessMode: known(accessModeOf(row.accessmode)),
       securityRoles: known(roleNamesByUserId.get(id) ?? []),
-      // No stable, documented read-only source for per-agent channel enablement was confirmed for
-      // this tool (see README's schema-confidence table) — always unknown rather than guessing a
-      // table name with no real basis. Queue membership / workstream reachability below are the
-      // reliable proxy for practical voice access.
-      channels: unknownField("This environment's per-agent channel configuration could not be confirmed from a documented Dataverse schema; verify manually in the Customer Service admin center under Users → Channels."),
+      // Confirmed directly by the environment's own administrator, after two schema dead ends
+      // (see IMPLEMENTATION_STATUS.md "Round 6"): this product has no separate per-agent "enable
+      // this channel" setting at all — voice access is entirely a function of queue membership and
+      // workstream routing, which this tool already determines with high confidence. So rather than
+      // guess at a table that doesn't represent this concept, "channels" is derived from that same
+      // reachability data — not an independent read.
+      channels: reachability instanceof Error
+        ? unknownField(`Could not read the routing configuration needed to determine channel access: ${reachability.message}`)
+        : known(memberships.some((m) => m.reachableByActiveVoiceWorkstream) ? ["Voice"] : []),
       queueMemberships: reachability instanceof Error
         ? unknownField(`Could not read the routing configuration needed to determine which queues are reachable: ${reachability.message}`)
         : known(memberships),
-      agentCapacity: capacityByUserId.get(id) ?? unknownField("Could not read systemuser.msdyn_Capacity."),
+      agentCapacity: capacityByUserId.get(id) ?? unknownField("Could not read capacity profile assignment."),
       workItemUnitCost: reachability instanceof Error
         ? unknownField(`Could not read the routing configuration needed to determine work-item unit cost: ${reachability.message}`)
         : known(reachableUnitCosts.length ? Math.min(...reachableUnitCosts) : null),
+      hasProfileBasedReachableWorkstream: reachability instanceof Error
+        ? unknownField(`Could not read the routing configuration needed to determine capacity format: ${reachability.message}`)
+        : known(profileBasedReachByUserId.has(id)),
       skills: skillsByUserId.get(id) ?? unknownField("Could not read this agent's skills."),
       queueSkillRequirements,
-      presence: presenceByUserId.get(id) ?? unknownField("Could not read this agent's current presence."),
-      // No defensible read-only source found for an explicit assignment exclusion/opt-out — see
-      // README. Always unknown, matching this tool's own guidance to mark truly unverifiable things
-      // as such rather than guess.
-      routingExclusion: unknownField("Not verifiable via read-only client-side access in this environment.")
+      presence: presenceByUserId.get(id)?.presence ?? unknownField("Could not read this agent's current presence."),
+      // msdyn_agentstatus.msdyn_isblockedbysomeprofile — confirmed live (see model.ts / Round 7).
+      capacityBlocked: presenceByUserId.get(id)?.capacityBlocked ?? unknownField("Could not read this agent's current status.")
     };
   });
+
+  return { agents };
 }
 
-// Confirmed live against academyexperiment: there is no separate "capacity profile" entity in this
-// product — systemuser.msdyn_Capacity is a plain whole number directly on the user record. A plain
-// $select suffices (unlike the lookup-expand cases elsewhere in this tool): this is a value field,
-// not a lookup, so there's no plain-_value-alias-omitted risk to work around.
-async function loadAgentCapacity(userIds: string[]): Promise<Map<string, Field<number | null>>> {
-  const result = new Map<string, Field<number | null>>();
+// Confirmed live against academyexperiment (two rounds — see IMPLEMENTATION_STATUS.md): capacity
+// is NOT systemuser.msdyn_capacity (that field exists but was confirmed empty/unused on a real
+// agent who nonetheless had capacity profiles assigned in the admin UI). The real chain is
+// bookableresource -> msdyn_bookableresourcecapacityprofile (the join table, one row per
+// channel/profile assignment, e.g. "Default voice inbound" and "Default voice outbound" were both
+// observed on the same agent) -> msdyn_capacityprofile (msdyn_name, msdyn_defaultmaxunits). The
+// join row's own msdyn_maxunits overrides the profile's msdyn_defaultmaxunits when set; both were
+// observed unset on a real assignment, in which case only the profile default applies.
+async function loadAgentCapacity(userIds: string[]): Promise<Map<string, Field<CapacityProfileAssignment[]>>> {
+  const result = new Map<string, Field<CapacityProfileAssignment[]>>();
   try {
-    const rows = await readByIdBatches("systemuser", "systemuserid", userIds, "$select=systemuserid,msdyn_Capacity");
-    rows.forEach((row) => {
-      result.set(row.systemuserid, known(typeof row.msdyn_Capacity === "number" ? row.msdyn_Capacity : null));
-    });
+    const resources = await readByIdBatches("bookableresource", "_userid_value", userIds, "$select=bookableresourceid,_userid_value");
+    const resourceUserById = new Map(resources.map((r) => [r.bookableresourceid, r._userid_value]));
+    const resourceIds = resources.map((r) => r.bookableresourceid);
+    userIds.forEach((id) => result.set(id, known([])));
+    if (resourceIds.length) {
+      const rows = await readByIdBatches(
+        "msdyn_bookableresourcecapacityprofile", "_msdyn_bookableresourceid_value", resourceIds,
+        "$select=_msdyn_bookableresourceid_value,msdyn_maxunits&$expand=msdyn_capacityprofileid($select=msdyn_name,msdyn_defaultmaxunits)"
+      );
+      rows.forEach((row) => {
+        const userId = resourceUserById.get(row._msdyn_bookableresourceid_value);
+        const profile = row.msdyn_capacityprofileid;
+        if (!userId || !profile?.msdyn_name) return;
+        const effectiveUnits = typeof row.msdyn_maxunits === "number" ? row.msdyn_maxunits : (typeof profile.msdyn_defaultmaxunits === "number" ? profile.msdyn_defaultmaxunits : null);
+        const assignment: CapacityProfileAssignment = { profileName: profile.msdyn_name, effectiveUnits };
+        const existing = result.get(userId);
+        if (existing?.known) result.set(userId, known([...existing.value, assignment]));
+      });
+    }
   } catch (error) {
-    const reason = `Could not read systemuser.msdyn_Capacity: ${errorMessage(error)}`;
+    const reason = `Could not read capacity profile assignment (bookableresource/msdyn_bookableresourcecapacityprofile): ${errorMessage(error)}`;
     userIds.forEach((id) => result.set(id, unknownField(reason)));
   }
   return result;
 }
 
+// bookableresourcecharacteristic's lookup to its owning resource is confirmed (via
+// EntityDefinitions metadata against academyexperiment) to be logical name "resource" (not
+// "bookableresourceid" as originally guessed), and its $expand navigation properties to
+// characteristic/ratingvalue use their PascalCase schema names ("Characteristic"/"RatingValue"),
+// unlike simple value fields, which are always lowercase. The "_value" filter/select alias itself
+// stays lowercase either way (_resource_value) — that convention is separate from $expand casing.
 async function loadSkills(userIds: string[]): Promise<Map<string, Field<AgentSkillInfo[]>>> {
   const result = new Map<string, Field<AgentSkillInfo[]>>();
   try {
@@ -365,17 +494,17 @@ async function loadSkills(userIds: string[]): Promise<Map<string, Field<AgentSki
     const resourceUserById = new Map(resources.map((r) => [r.bookableresourceid, r._userid_value]));
     const resourceIds = resources.map((r) => r.bookableresourceid);
     const characteristics = resourceIds.length
-      ? await readByIdBatches("bookableresourcecharacteristic", "_bookableresourceid_value", resourceIds, "$select=_bookableresourceid_value&$expand=characteristic($select=name),ratingvalue($select=name,value)")
+      ? await readByIdBatches("bookableresourcecharacteristic", "_resource_value", resourceIds, "$select=_resource_value&$expand=Characteristic($select=name),RatingValue($select=name,value)")
       : [];
     userIds.forEach((id) => result.set(id, known([])));
     characteristics.forEach((row) => {
-      const userId = resourceUserById.get(row._bookableresourceid_value);
-      if (!userId || !row.characteristic?.name) return;
+      const userId = resourceUserById.get(row._resource_value);
+      if (!userId || !row.Characteristic?.name) return;
       const skill: AgentSkillInfo = {
-        characteristicId: row.characteristic.characteristicid ?? row.characteristic.name,
-        name: row.characteristic.name,
-        proficiencyLabel: row.ratingvalue?.name,
-        proficiencyRank: typeof row.ratingvalue?.value === "number" ? row.ratingvalue.value : undefined
+        characteristicId: row.Characteristic.characteristicid ?? row.Characteristic.name,
+        name: row.Characteristic.name,
+        proficiencyLabel: row.RatingValue?.name,
+        proficiencyRank: typeof row.RatingValue?.value === "number" ? row.RatingValue.value : undefined
       };
       const existing = result.get(userId);
       if (existing?.known) result.set(userId, known([...existing.value, skill]));
@@ -387,17 +516,52 @@ async function loadSkills(userIds: string[]): Promise<Map<string, Field<AgentSki
   return result;
 }
 
-async function loadPresence(userIds: string[]): Promise<Map<string, Field<PresenceInfo | null>>> {
-  const result = new Map<string, Field<PresenceInfo | null>>();
+interface AgentStatusInfo {
+  presence: Field<PresenceInfo | null>;
+  capacityBlocked: Field<boolean>;
+}
+
+// Confirmed live against academyexperiment: systemuser.msdyn_defaultpresenceiduser (this tool's
+// first guess, found via EntityDefinitions metadata) is NOT live/current presence — it's a
+// "default" preference field, confirmed empty on a real agent who was actively logged in and
+// online at the time, which produced a false "may never have signed in" result. The real live
+// status lives on msdyn_agentstatus (one row per agent, updated in real time): msdyn_agentid
+// (lookup to systemuser), msdyn_isagentloggedin (boolean — whether the workspace client is
+// currently connected, independent of the presence label), msdyn_currentpresenceid (lookup to
+// msdyn_presence), and msdyn_isblockedbysomeprofile (boolean — confirmed live in Round 7: "Indicates
+// if agent's capacity is currently blocked by any capacity profile and hence, they can't get any
+// work assigned", the live signal behind the unified-routing-state check). $expand navigation
+// properties here are confirmed lowercase (matching the logical name), unlike the PascalCase ones
+// needed for skills — this varies per relationship, not per table, and has to be checked each time
+// rather than assumed from a prior finding.
+async function loadPresence(userIds: string[]): Promise<Map<string, AgentStatusInfo>> {
+  const result = new Map<string, AgentStatusInfo>();
   try {
-    const rows = await readByIdBatches("systemuser", "systemuserid", userIds, "$select=systemuserid,modifiedon&$expand=msdyn_presenceid($select=msdyn_name)");
+    const rows = await readByIdBatches(
+      "msdyn_agentstatus", "_msdyn_agentid_value", userIds,
+      "$select=_msdyn_agentid_value,msdyn_isagentloggedin,msdyn_isblockedbysomeprofile,modifiedon&$expand=msdyn_currentpresenceid($select=msdyn_name)"
+    );
+    userIds.forEach((id) => result.set(id, { presence: known(null), capacityBlocked: known(false) }));
     rows.forEach((row) => {
-      const presence = row.msdyn_presenceid;
-      result.set(row.systemuserid, known(presence?.msdyn_name ? { name: presence.msdyn_name, allowsAssignment: inferAllowsAssignment(presence.msdyn_name) } : null));
+      const userId = row._msdyn_agentid_value;
+      if (!userId) return;
+      const capacityBlocked = known(row.msdyn_isblockedbysomeprofile === true);
+      const presence = row.msdyn_currentpresenceid;
+      if (!presence?.msdyn_name) { result.set(userId, { presence: known(null), capacityBlocked }); return; }
+      const isLoggedIn = typeof row.msdyn_isagentloggedin === "boolean" ? row.msdyn_isagentloggedin : undefined;
+      result.set(userId, {
+        presence: known({
+          name: presence.msdyn_name,
+          isLoggedIn,
+          allowsAssignment: inferAllowsAssignment(presence.msdyn_name),
+          capturedOn: row.modifiedon
+        }),
+        capacityBlocked
+      });
     });
   } catch (error) {
-    const reason = `Could not read presence: ${errorMessage(error)}`;
-    userIds.forEach((id) => result.set(id, unknownField(reason)));
+    const reason = `Could not read agent status: ${errorMessage(error)}`;
+    userIds.forEach((id) => result.set(id, { presence: unknownField(reason), capacityBlocked: unknownField(reason) }));
   }
   return result;
 }

@@ -13,12 +13,13 @@ function baseAgent(overrides: Partial<AgentRecord> = {}): AgentRecord {
     securityRoles: known(["Customer Service Agent"]),
     channels: known(["Voice", "Chat"]),
     queueMemberships: known([{ queueId: "q1", queueName: "Support Queue", queueActive: true, reachableByActiveVoiceWorkstream: true, reachingWorkstreamNames: ["Inbound Voice"] }]),
-    agentCapacity: known(100),
+    agentCapacity: known([{ profileName: "Default voice inbound", effectiveUnits: 100 }]),
     workItemUnitCost: known(100),
+    hasProfileBasedReachableWorkstream: known(false),
     skills: known([{ characteristicId: "c1", name: "Dutch", proficiencyLabel: "Expert", proficiencyRank: 4 }]),
     queueSkillRequirements: known([{ queueId: "q1", queueName: "Support Queue", required: [{ name: "Dutch", minProficiencyLabel: "Intermediate", minProficiencyRank: 2 }] }]),
-    presence: known({ name: "Available", allowsAssignment: true }),
-    routingExclusion: known(false),
+    presence: known({ name: "Available", isLoggedIn: true, allowsAssignment: true }),
+    capacityBlocked: known(false),
     ...overrides
   };
 }
@@ -51,6 +52,10 @@ describe("checkSecurityRoles", () => {
   test("pass: has a configured agent role", () => {
     expect(checkSecurityRoles(baseAgent()).status).toBe("pass");
   });
+  test("evidenceItems lists each role individually, for list-style UI rendering", () => {
+    const result = checkSecurityRoles(baseAgent({ securityRoles: known(["Customer Service Agent", "Basic User"]) }));
+    expect(result.evidenceItems).toEqual(["Customer Service Agent", "Basic User"]);
+  });
   test("fail: has roles but none match", () => {
     const result = checkSecurityRoles(baseAgent({ securityRoles: known(["Sales Manager"]) }));
     expect(result.status).toBe("fail");
@@ -75,8 +80,12 @@ describe("checkChannelEnablement", () => {
   test("fail: no channels enabled", () => {
     expect(checkChannelEnablement(baseAgent({ channels: known([]) })).status).toBe("fail");
   });
-  test("unknown: channel configuration not readable (the common real-world case)", () => {
-    const result = checkChannelEnablement(baseAgent({ channels: unknownField("schema not confirmed in this environment") }));
+  // Now derived from the same queue/workstream reachability data as Queue membership and
+  // Workstream reachability — this is unknown only when that underlying data itself couldn't be
+  // read, not routinely (see IMPLEMENTATION_STATUS.md "Round 6" for why there's no independent
+  // per-agent channel setting to read in the first place).
+  test("unknown: underlying queue/workstream reachability data not readable", () => {
+    const result = checkChannelEnablement(baseAgent({ channels: unknownField("Could not read the routing configuration needed to determine channel access.") }));
     expect(result.status).toBe("unknown");
     expect(result.suggestedFix).toMatch(/Queue membership/);
   });
@@ -85,6 +94,15 @@ describe("checkChannelEnablement", () => {
 describe("checkQueueMembership", () => {
   test("pass: member of an active, reachable queue", () => {
     expect(checkQueueMembership(baseAgent()).status).toBe("pass");
+  });
+  test("evidenceItems has one readable line per queue", () => {
+    const result = checkQueueMembership(baseAgent({
+      queueMemberships: known([
+        { queueId: "q1", queueName: "Support Queue", queueActive: true, reachableByActiveVoiceWorkstream: true, reachingWorkstreamNames: ["Inbound Voice"] },
+        { queueId: "q2", queueName: "Legacy Queue", queueActive: false, reachableByActiveVoiceWorkstream: false, reachingWorkstreamNames: [] }
+      ])
+    }));
+    expect(result.evidenceItems).toEqual(["Support Queue — active, routed to", "Legacy Queue — disabled, not routed to"]);
   });
   test("fail: no queue memberships at all", () => {
     const result = checkQueueMembership(baseAgent({ queueMemberships: known([]) }));
@@ -133,23 +151,66 @@ describe("checkCapacityProfile", () => {
   test("pass: capacity covers the smallest reachable work item", () => {
     expect(checkCapacityProfile(baseAgent()).status).toBe("pass");
   });
-  test("fail: no capacity value configured", () => {
-    const result = checkCapacityProfile(baseAgent({ agentCapacity: known(null) }));
+  test("fail: no capacity profile assigned at all", () => {
+    const result = checkCapacityProfile(baseAgent({ agentCapacity: known([]) }));
     expect(result.status).toBe("fail");
+    expect(result.evidence).toMatch(/no capacity profile is assigned/i);
   });
-  test("fail: capacity is exactly 0", () => {
-    const result = checkCapacityProfile(baseAgent({ agentCapacity: known(0) }));
+  test("fail: assigned, but no profile has a usable value (join row and profile default both unset)", () => {
+    const result = checkCapacityProfile(baseAgent({ agentCapacity: known([{ profileName: "Default voice inbound", effectiveUnits: null }]) }));
     expect(result.status).toBe("fail");
-    expect(result.evidence).toMatch(/capacity is 0/i);
+    expect(result.evidence).toMatch(/none have a usable capacity value/i);
+  });
+  test("fail: effective capacity is exactly 0", () => {
+    const result = checkCapacityProfile(baseAgent({ agentCapacity: known([{ profileName: "Default voice inbound", effectiveUnits: 0 }]) }));
+    expect(result.status).toBe("fail");
+    expect(result.evidence).toMatch(/effective capacity is 0/i);
   });
   test("fail: capacity lower than one work item's unit cost", () => {
-    const result = checkCapacityProfile(baseAgent({ agentCapacity: known(50), workItemUnitCost: known(100) }));
+    const result = checkCapacityProfile(baseAgent({ agentCapacity: known([{ profileName: "Default voice inbound", effectiveUnits: 50 }]), workItemUnitCost: known(100) }));
     expect(result.status).toBe("fail");
     expect(result.evidence).toMatch(/more than this agent's capacity/);
+  });
+  test("prefers the profile whose name mentions 'inbound' when the agent has multiple profiles", () => {
+    const result = checkCapacityProfile(baseAgent({
+      agentCapacity: known([
+        { profileName: "Default voice outbound", effectiveUnits: 999 },
+        { profileName: "Default voice inbound", effectiveUnits: 100 }
+      ])
+    }));
+    expect(result.status).toBe("pass");
+    expect(result.evidence).toContain("Effective capacity: 100");
+  });
+  test("falls back to the smallest usable value when no profile name mentions 'inbound'", () => {
+    const result = checkCapacityProfile(baseAgent({
+      agentCapacity: known([
+        { profileName: "Escalation profile", effectiveUnits: 200 },
+        { profileName: "Standard profile", effectiveUnits: 50 }
+      ]),
+      workItemUnitCost: known(100)
+    }));
+    expect(result.status).toBe("fail"); // 50 < 100
+  });
+  test("evidenceItems lists every profile assignment", () => {
+    const result = checkCapacityProfile(baseAgent({
+      agentCapacity: known([
+        { profileName: "Default voice inbound", effectiveUnits: 1 },
+        { profileName: "Default voice outbound", effectiveUnits: null }
+      ])
+    }));
+    expect(result.evidenceItems).toEqual(["Default voice inbound: 1 unit", "Default voice outbound: no value set"]);
   });
   test("warn: capacity known but no reachable workstream to compare against", () => {
     const result = checkCapacityProfile(baseAgent({ workItemUnitCost: known(null) }));
     expect(result.status).toBe("warn");
+  });
+  // Reproduces a real false-failure found live: an agent's reachable voice workstream(s) all use
+  // "Profile based" capacity, where a non-zero capacity-profile assignment is sufficient on its
+  // own — no numeric comparison against msdyn_capacityrequired is meaningful under that format.
+  test("pass: no unit-based workstream to compare against, but a reachable workstream uses \"Profile based\" capacity", () => {
+    const result = checkCapacityProfile(baseAgent({ workItemUnitCost: known(null), hasProfileBasedReachableWorkstream: known(true) }));
+    expect(result.status).toBe("pass");
+    expect(result.evidence).toMatch(/Profile based/);
   });
   test("unknown: capacity not readable", () => {
     expect(checkCapacityProfile(baseAgent({ agentCapacity: unknownField("table not found") })).status).toBe("unknown");
@@ -162,6 +223,10 @@ describe("checkCapacityProfile", () => {
 describe("checkSkills", () => {
   test("pass: agent meets all determinable requirements", () => {
     expect(checkSkills(baseAgent()).status).toBe("pass");
+  });
+  test("evidenceItems lists each of the agent's own skills with proficiency", () => {
+    const result = checkSkills(baseAgent({ skills: known([{ characteristicId: "c1", name: "Dutch", proficiencyLabel: "Expert", proficiencyRank: 4 }, { characteristicId: "c2", name: "Billing" }]) }));
+    expect(result.evidenceItems).toEqual(["Dutch (Expert)", "Billing"]);
   });
   test("pass: no requirements configured on any reachable queue", () => {
     const result = checkSkills(baseAgent({ queueSkillRequirements: known([{ queueId: "q1", queueName: "Support Queue", required: [] }]) }));
@@ -199,12 +264,25 @@ describe("checkPresence", () => {
     expect(checkPresence(baseAgent()).status).toBe("pass");
   });
   test("warn: presence found but does not allow assignment (never fail — informational)", () => {
-    const result = checkPresence(baseAgent({ presence: known({ name: "Away", allowsAssignment: false }) }));
+    const result = checkPresence(baseAgent({ presence: known({ name: "Away", isLoggedIn: true, allowsAssignment: false }) }));
     expect(result.status).toBe("warn");
   });
   test("warn: no presence record found", () => {
     const result = checkPresence(baseAgent({ presence: known(null) }));
     expect(result.status).toBe("warn");
+  });
+  // Reproduces a real bug: msdyn_agentstatus.msdyn_isagentloggedin (the actual live login state)
+  // is independent of the presence label itself — a stale "Available" record from a prior session
+  // must not be read as "currently available" once the agent has logged out.
+  test("warn: not currently logged in, even though a presence label is present", () => {
+    const result = checkPresence(baseAgent({ presence: known({ name: "Available", isLoggedIn: false, allowsAssignment: true }) }));
+    expect(result.status).toBe("warn");
+    expect(result.evidence).toMatch(/not currently logged in/i);
+  });
+  test("pass: logged in and available", () => {
+    const result = checkPresence(baseAgent({ presence: known({ name: "Available", isLoggedIn: true, allowsAssignment: true }) }));
+    expect(result.status).toBe("pass");
+    expect(result.evidence).toMatch(/Currently logged in/);
   });
   test("unknown: presence not readable", () => {
     expect(checkPresence(baseAgent({ presence: unknownField("no privilege") })).status).toBe("unknown");
@@ -212,14 +290,19 @@ describe("checkPresence", () => {
 });
 
 describe("checkUnifiedRoutingState", () => {
-  test("unknown by design when not verifiable", () => {
-    const result = checkUnifiedRoutingState(baseAgent({ routingExclusion: unknownField("Not verifiable via read-only client-side access in this environment") }));
+  // msdyn_agentstatus.msdyn_isblockedbysomeprofile, confirmed live — see IMPLEMENTATION_STATUS.md
+  // "Round 7". Blocked-by-capacity is a transient, self-clearing state, not a structural
+  // misconfiguration, so it warns rather than fails.
+  test("unknown: underlying agent status not readable", () => {
+    const result = checkUnifiedRoutingState(baseAgent({ capacityBlocked: unknownField("Could not read this agent's current status.") }));
     expect(result.status).toBe("unknown");
   });
-  test("pass: confirmed not excluded", () => {
+  test("pass: not currently blocked", () => {
     expect(checkUnifiedRoutingState(baseAgent()).status).toBe("pass");
   });
-  test("fail: confirmed excluded", () => {
-    expect(checkUnifiedRoutingState(baseAgent({ routingExclusion: known(true) })).status).toBe("fail");
+  test("warn: currently blocked by capacity across their profile(s)", () => {
+    const result = checkUnifiedRoutingState(baseAgent({ capacityBlocked: known(true) }));
+    expect(result.status).toBe("warn");
+    expect(result.evidence).toMatch(/at capacity/i);
   });
 });

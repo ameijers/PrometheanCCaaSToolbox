@@ -10,12 +10,13 @@ function baseAgent(overrides: Partial<AgentRecord> = {}): AgentRecord {
     securityRoles: known(["Customer Service Agent"]),
     channels: known(["Voice"]),
     queueMemberships: known([{ queueId: "q1", queueName: "Support Queue", queueActive: true, reachableByActiveVoiceWorkstream: true, reachingWorkstreamNames: ["Inbound Voice"] }]),
-    agentCapacity: known(100),
+    agentCapacity: known([{ profileName: "Default voice inbound", effectiveUnits: 100 }]),
     workItemUnitCost: known(100),
+    hasProfileBasedReachableWorkstream: known(false),
     skills: known([]),
     queueSkillRequirements: known([{ queueId: "q1", queueName: "Support Queue", required: [] }]),
-    presence: known({ name: "Available", allowsAssignment: true }),
-    routingExclusion: known(false),
+    presence: known({ name: "Available", isLoggedIn: true, allowsAssignment: true }),
+    capacityBlocked: known(false),
     ...overrides
   };
 }
@@ -59,12 +60,12 @@ describe("evaluateAgent", () => {
   });
   test("only unreadable fields yields Not verifiable, not Not ready", () => {
     const result = evaluateAgent(baseAgent({
-      disabled: unknownField("no privilege"), accessMode: unknownField("no privilege"), channels: unknownField("unconfirmed schema"), routingExclusion: unknownField("not verifiable")
+      disabled: unknownField("no privilege"), accessMode: unknownField("no privilege"), channels: unknownField("unconfirmed schema"), capacityBlocked: unknownField("not verifiable")
     }));
     expect(result.overallStatus).toBe("notVerifiable");
   });
   test("failedCount/warnCount/unknownCount match the underlying checks", () => {
-    const result = evaluateAgent(baseAgent({ presence: known({ name: "Away", allowsAssignment: false }), routingExclusion: unknownField("not verifiable") }));
+    const result = evaluateAgent(baseAgent({ presence: known({ name: "Away", isLoggedIn: true, allowsAssignment: false }), capacityBlocked: unknownField("not verifiable") }));
     expect(result.warnCount).toBe(result.checks.filter((c) => c.status === "warn").length);
     expect(result.unknownCount).toBe(result.checks.filter((c) => c.status === "unknown").length);
   });
@@ -74,8 +75,8 @@ describe("evaluateAgents / summarize", () => {
   test("counts agents into the right overall-status buckets", () => {
     const healthy = baseAgent({ id: "a1", name: "Healthy" });
     const notReady = baseAgent({ id: "a2", name: "Broken", disabled: known(true) });
-    const warning = baseAgent({ id: "a3", name: "Warned", presence: known({ name: "Away", allowsAssignment: false }) });
-    const notVerifiable = baseAgent({ id: "a4", name: "Unverified", routingExclusion: unknownField("not verifiable"), presence: unknownField("not verifiable") });
+    const warning = baseAgent({ id: "a3", name: "Warned", presence: known({ name: "Away", isLoggedIn: true, allowsAssignment: false }) });
+    const notVerifiable = baseAgent({ id: "a4", name: "Unverified", capacityBlocked: unknownField("not verifiable"), presence: unknownField("not verifiable") });
 
     const results = evaluateAgents([healthy, notReady, warning, notVerifiable]);
     const summary = summarize(results);

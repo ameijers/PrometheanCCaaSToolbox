@@ -1,5 +1,5 @@
-import { hasRequiredRole, REQUIRED_SECURITY_ROLE_NAMES } from "./config";
-import { ACCESS_MODE_LABELS, AgentRecord, CheckResult, RequiredSkillInfo, AgentSkillInfo } from "./model";
+import { getActiveAgentRoleNames, hasRequiredRole } from "./config";
+import { ACCESS_MODE_LABELS, AgentRecord, CapacityProfileAssignment, CheckResult, RequiredSkillInfo, AgentSkillInfo } from "./model";
 
 // Every check function is pure (no I/O) and takes only the normalized AgentRecord, so each is
 // unit-testable with a hand-built record and no React/Dataverse involved. Each returns exactly one
@@ -28,36 +28,44 @@ export function checkAccount(agent: AgentRecord): CheckResult {
 export function checkSecurityRoles(agent: AgentRecord): CheckResult {
   const title = "Holds a Contact Center agent security role";
   const explanation = "Without one of the configured agent security roles, this user has no access to the Omnichannel/Contact Center agent experience and cannot be assigned or work conversations, regardless of routing configuration.";
-  const requiredList = REQUIRED_SECURITY_ROLE_NAMES.join(", ");
+  const requiredList = getActiveAgentRoleNames().join(", ") || "(none configured — connect to load your environment's roles)";
   if (!agent.securityRoles.known) {
     return { id: "securityRoles", category: "securityRoles", status: "unknown", title, evidence: agent.securityRoles.reason, explanation, suggestedFix: "Grant this tool read access to systemuserroles/role, or check the user's security roles manually." };
   }
   const roles = agent.securityRoles.value;
   if (hasRequiredRole(roles)) {
-    return { id: "securityRoles", category: "securityRoles", status: "pass", title, evidence: `Roles: ${roles.length ? roles.join(", ") : "(none)"}`, explanation };
+    return { id: "securityRoles", category: "securityRoles", status: "pass", title, evidence: `Roles: ${roles.length ? roles.join(", ") : "(none)"}`, evidenceItems: roles.length ? roles : undefined, explanation };
   }
   return {
     id: "securityRoles", category: "securityRoles", status: "fail", title,
     evidence: roles.length ? `Roles: ${roles.join(", ")} — none match a configured agent role.` : "This user has no security roles assigned.",
+    evidenceItems: roles.length ? roles : undefined,
     explanation,
-    suggestedFix: `Assign one of the configured agent roles (${requiredList}) — or add this environment's actual agent role name to REQUIRED_SECURITY_ROLE_NAMES in config.ts if it's not in that list.`
+    suggestedFix: `Assign one of the roles currently selected as "Agent" (${requiredList}) — or, if this user's real agent role isn't one of them, adjust it in the tool's role picker ("Configure roles").`
   };
 }
 
 export function checkChannelEnablement(agent: AgentRecord): CheckResult {
   const title = "Voice channel is enabled for this agent";
-  const explanation = "An agent must be enabled for the voice channel to receive voice work specifically, even if everything else about their setup is correct.";
+  // Confirmed directly by a real environment's own administrator (see IMPLEMENTATION_STATUS.md
+  // "Round 6"): there is no separate per-agent "enable this channel" setting in this product —
+  // voice access is entirely a function of queue membership and workstream routing. So this check
+  // is deliberately derived from the same data as Queue membership / Workstream reachability below,
+  // not an independent source — the three checks describe the same underlying fact from different
+  // angles (which is expected, not duplication for its own sake), and this one states the practical
+  // conclusion plainly rather than making an admin infer it from the other two.
+  const explanation = "This product has no separate per-agent voice-channel toggle — whether an agent can receive voice work is entirely determined by whether they belong to a queue that an active inbound voice workstream actually routes to.";
   if (!agent.channels.known) {
-    return { id: "channelEnablement", category: "channelEnablement", status: "unknown", title, evidence: agent.channels.reason, explanation, suggestedFix: "This environment's per-agent channel configuration could not be confirmed from this tool; verify manually in the Customer Service admin center under Users → Channels. Queue membership and workstream reachability below are a reliable proxy for practical voice access." };
+    return { id: "channelEnablement", category: "channelEnablement", status: "unknown", title, evidence: agent.channels.reason, explanation, suggestedFix: "Grant this tool read access to queuemembership and the routing configuration tables, or check Queue membership / Workstream reachability manually." };
   }
   const channels = agent.channels.value;
   const hasVoice = channels.some((c) => c.toLowerCase() === "voice");
-  if (hasVoice) return { id: "channelEnablement", category: "channelEnablement", status: "pass", title, evidence: `Enabled channels: ${channels.join(", ")}`, explanation };
+  if (hasVoice) return { id: "channelEnablement", category: "channelEnablement", status: "pass", title, evidence: `Enabled channels: ${channels.join(", ")}`, evidenceItems: channels.length ? channels : undefined, explanation };
   return {
     id: "channelEnablement", category: "channelEnablement", status: "fail", title,
-    evidence: channels.length ? `Enabled channels: ${channels.join(", ")} — voice is not among them.` : "No channels are enabled for this agent.",
+    evidence: "No channels are enabled for this agent — see Queue membership and Workstream reachability for why.",
     explanation,
-    suggestedFix: "Enable the Voice channel for this agent in the Customer Service admin center under Users → Channels."
+    suggestedFix: "Add this agent to a queue that an active inbound voice workstream routes to — see the suggested fixes on Queue membership / Workstream reachability."
   };
 }
 
@@ -72,9 +80,10 @@ export function checkQueueMembership(agent: AgentRecord): CheckResult {
     return { id: "queueMembership", category: "queueMembership", status: "fail", title, evidence: "This agent is not a member of any queue.", explanation, suggestedFix: "Add this agent as a member of at least one queue that an active inbound voice workstream routes to." };
   }
   const usable = memberships.filter((m) => m.queueActive && m.reachableByActiveVoiceWorkstream);
+  const items = memberships.map((m) => `${m.queueName} — ${m.queueActive ? "active" : "disabled"}, ${m.reachableByActiveVoiceWorkstream ? "routed to" : "not routed to"}`);
   const summary = memberships.map((m) => `${m.queueName} (${m.queueActive ? "active" : "disabled"}, ${m.reachableByActiveVoiceWorkstream ? "routed to" : "not routed to"})`).join("; ");
-  if (usable.length) return { id: "queueMembership", category: "queueMembership", status: "pass", title, evidence: `Queues: ${summary}`, explanation };
-  return { id: "queueMembership", category: "queueMembership", status: "fail", title, evidence: `Queues: ${summary} — none are both active and reachable by an active voice workstream.`, explanation, suggestedFix: "Either add this agent to a queue that's actually routed to by an active inbound voice workstream, or activate the workstream/queue-routing rule that should reach their current queue(s)." };
+  if (usable.length) return { id: "queueMembership", category: "queueMembership", status: "pass", title, evidence: `Queues: ${summary}`, evidenceItems: items, explanation };
+  return { id: "queueMembership", category: "queueMembership", status: "fail", title, evidence: `Queues: ${summary} — none are both active and reachable by an active voice workstream.`, evidenceItems: items, explanation, suggestedFix: "Either add this agent to a queue that's actually routed to by an active inbound voice workstream, or activate the workstream/queue-routing rule that should reach their current queue(s)." };
 }
 
 export function checkWorkstreamReachability(agent: AgentRecord): CheckResult {
@@ -88,35 +97,61 @@ export function checkWorkstreamReachability(agent: AgentRecord): CheckResult {
   if (!reaching.size) {
     return { id: "workstreamReachability", category: "workstreamReachability", status: "fail", title, evidence: "No active inbound voice workstream routes to any queue this agent belongs to.", explanation, suggestedFix: "Use Visual Routing Tester to confirm which workstream(s) should reach this agent's queue, and check the queue-routing rule and fallback queue configuration." };
   }
-  const evidence = [...reaching.entries()].map(([queue, workstreams]) => `${queue} ← ${workstreams.length ? workstreams.join(", ") : "an active workstream"}`).join("; ");
-  return { id: "workstreamReachability", category: "workstreamReachability", status: "pass", title, evidence, explanation };
+  const items = [...reaching.entries()].map(([queue, workstreams]) => `${queue} ← ${workstreams.length ? workstreams.join(", ") : "an active workstream"}`);
+  return { id: "workstreamReachability", category: "workstreamReachability", status: "pass", title, evidence: `Reachable via: ${items.join("; ")}`, evidenceItems: items, explanation };
+}
+
+// Capacity is assigned per channel/profile (e.g. an agent can have separate "Default voice inbound"
+// and "Default voice outbound" assignments), not one flat number — this picks the single value most
+// relevant to inbound voice (what this tool evaluates) out of however many profiles an agent has.
+// Prefers a profile whose name mentions "inbound"; falls back to the smallest usable value across
+// all of them (the conservative choice when no profile is clearly the voice-inbound one), since
+// there's no confirmed link from a workstream to a specific capacity profile to match on instead.
+function relevantCapacity(assignments: CapacityProfileAssignment[]): number | null {
+  const usable = assignments.filter((a): a is CapacityProfileAssignment & { effectiveUnits: number } => a.effectiveUnits !== null);
+  if (!usable.length) return null;
+  const inbound = usable.find((a) => /inbound/i.test(a.profileName));
+  return inbound ? inbound.effectiveUnits : Math.min(...usable.map((a) => a.effectiveUnits));
 }
 
 export function checkCapacityProfile(agent: AgentRecord): CheckResult {
   const title = "Capacity is sufficient for this agent to be assigned work";
-  const explanation = "An agent needs enough capacity to cover at least one work item's unit cost. If their capacity is lower than a workstream's unit cost — including a capacity of exactly 0 — unified routing can never assign that work to them, regardless of everything else being configured correctly.";
+  const explanation = "An agent needs a capacity-profile assignment with enough effective capacity to cover at least one work item's unit cost. If their capacity is lower than a workstream's unit cost — including a capacity of exactly 0 or an assignment with no value set — unified routing can never assign that work to them, regardless of everything else being configured correctly.";
   if (!agent.agentCapacity.known) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "unknown", title, evidence: agent.agentCapacity.reason, explanation, suggestedFix: "Grant this tool read access to systemuser.msdyn_Capacity, or check the agent's capacity manually in the Customer Service admin center." };
+    return { id: "capacityProfile", category: "capacityProfile", status: "unknown", title, evidence: agent.agentCapacity.reason, explanation, suggestedFix: "Grant this tool read access to bookableresource/msdyn_bookableresourcecapacityprofile, or check the agent's capacity profile manually in the Customer Service admin center." };
   }
-  if (agent.agentCapacity.value === null) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: "No capacity value is configured for this agent.", explanation, suggestedFix: "Set a capacity value for this agent in the Customer Service admin center under Users." };
+  const assignments = agent.agentCapacity.value;
+  if (!assignments.length) {
+    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: "No capacity profile is assigned to this agent.", explanation, suggestedFix: "Assign a capacity profile to this agent in the Customer Service admin center under Users." };
   }
-  const capacity = agent.agentCapacity.value;
+  const items = assignments.map((a) => `${a.profileName}: ${a.effectiveUnits === null ? "no value set" : `${a.effectiveUnits} unit${a.effectiveUnits === 1 ? "" : "s"}`}`);
+  const profileNames = assignments.map((a) => a.profileName).join(", ");
+  const capacity = relevantCapacity(assignments);
+  if (capacity === null) {
+    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: `Capacity profile(s): ${profileNames}. None have a usable capacity value set.`, evidenceItems: items, explanation, suggestedFix: "Set a capacity value (directly on the assignment, or via the profile's default) for at least one of this agent's capacity profiles." };
+  }
   if (capacity === 0) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: "This agent's capacity is 0.", explanation, suggestedFix: "Increase this agent's capacity above 0 in the Customer Service admin center under Users." };
+    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: `Capacity profile(s): ${profileNames}. Effective capacity is 0.`, evidenceItems: items, explanation, suggestedFix: "Increase this agent's capacity above 0 in the Customer Service admin center under Users." };
   }
-  const capacityEvidence = `Capacity: ${capacity}.`;
+  const capacityEvidence = `Capacity profile(s): ${profileNames}. Effective capacity: ${capacity}.`;
   if (!agent.workItemUnitCost.known) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "unknown", title, evidence: `${capacityEvidence} ${agent.workItemUnitCost.reason}`, explanation, suggestedFix: "Verify manually that this agent's capacity is at least as large as the relevant workstream's msdyn_CapacityRequired value." };
+    return { id: "capacityProfile", category: "capacityProfile", status: "unknown", title, evidence: `${capacityEvidence} ${agent.workItemUnitCost.reason}`, evidenceItems: items, explanation, suggestedFix: "Verify manually that this agent's capacity is at least as large as the relevant workstream's msdyn_capacityrequired value." };
   }
   if (agent.workItemUnitCost.value === null) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "warn", title, evidence: `${capacityEvidence} No reachable voice workstream was found to compare against — see Workstream reachability.`, explanation };
+    // Two different reasons land here, and they mean opposite things: either nothing reachable
+    // uses a "Unit based" capacity format to compare against (fine — under "Profile based" capacity
+    // a non-zero profile assignment is sufficient on its own, no comparison needed), or nothing is
+    // reachable at all (genuinely nothing to compare against, worth flagging).
+    if (agent.hasProfileBasedReachableWorkstream.known && agent.hasProfileBasedReachableWorkstream.value) {
+      return { id: "capacityProfile", category: "capacityProfile", status: "pass", title, evidence: `${capacityEvidence} This agent's reachable voice workstream(s) use "Profile based" capacity — a non-zero capacity-profile assignment is sufficient; no unit-based comparison applies.`, evidenceItems: items, explanation };
+    }
+    return { id: "capacityProfile", category: "capacityProfile", status: "warn", title, evidence: `${capacityEvidence} No reachable voice workstream was found to compare against — see Workstream reachability.`, evidenceItems: items, explanation };
   }
   const unitCost = agent.workItemUnitCost.value;
   if (capacity < unitCost) {
-    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: `${capacityEvidence} The smallest reachable work item costs ${unitCost} capacity units — more than this agent's capacity.`, explanation, suggestedFix: `Increase this agent's capacity to at least ${unitCost}.` };
+    return { id: "capacityProfile", category: "capacityProfile", status: "fail", title, evidence: `${capacityEvidence} The smallest reachable work item costs ${unitCost} capacity units — more than this agent's capacity.`, evidenceItems: items, explanation, suggestedFix: `Increase this agent's capacity to at least ${unitCost}.` };
   }
-  return { id: "capacityProfile", category: "capacityProfile", status: "pass", title, evidence: `${capacityEvidence} Sufficient for the smallest reachable work item (${unitCost} capacity units).`, explanation };
+  return { id: "capacityProfile", category: "capacityProfile", status: "pass", title, evidence: `${capacityEvidence} Sufficient for the smallest reachable work item (${unitCost} capacity units).`, evidenceItems: items, explanation };
 }
 
 function proficiencyMet(required: RequiredSkillInfo, actual: AgentSkillInfo | undefined): boolean {
@@ -137,10 +172,11 @@ export function checkSkills(agent: AgentRecord): CheckResult {
   const byName = new Map(agent.skills.value.map((s) => [s.name.toLowerCase(), s]));
   const determinable = agent.queueSkillRequirements.value.filter((q) => q.required !== null);
   const undeterminable = agent.queueSkillRequirements.value.filter((q) => q.required === null);
-  const skillsEvidence = agent.skills.value.length ? agent.skills.value.map((s) => s.proficiencyLabel ? `${s.name} (${s.proficiencyLabel})` : s.name).join(", ") : "(no skills recorded)";
+  const skillItems = agent.skills.value.map((s) => s.proficiencyLabel ? `${s.name} (${s.proficiencyLabel})` : s.name);
+  const skillsEvidence = skillItems.length ? skillItems.join(", ") : "(no skills recorded)";
 
   if (!determinable.length) {
-    return { id: "skills", category: "skills", status: "unknown", title, evidence: `Agent skills: ${skillsEvidence}. Required skills for this agent's queue(s) could not be determined from the routing configuration.`, explanation, suggestedFix: "Verify required skills manually on the relevant queue's routing rule (Skills step)." };
+    return { id: "skills", category: "skills", status: "unknown", title, evidence: `Agent skills: ${skillsEvidence}. Required skills for this agent's queue(s) could not be determined from the routing configuration.`, evidenceItems: skillItems.length ? skillItems : undefined, explanation, suggestedFix: "Verify required skills manually on the relevant queue's routing rule (Skills step)." };
   }
 
   const missingByQueue = determinable
@@ -149,40 +185,48 @@ export function checkSkills(agent: AgentRecord): CheckResult {
 
   if (missingByQueue.length) {
     const missingEvidence = missingByQueue.map((entry) => `${entry.queueName} needs ${entry.missing.map((m) => m.minProficiencyLabel ? `${m.name} (${m.minProficiencyLabel}+)` : m.name).join(", ")}`).join("; ");
-    return { id: "skills", category: "skills", status: "fail", title, evidence: `Agent skills: ${skillsEvidence}. Missing: ${missingEvidence}.`, explanation, suggestedFix: "Add the missing skill(s) at the required proficiency to this agent's profile, or adjust the queue's skill requirements if they're no longer accurate." };
+    return { id: "skills", category: "skills", status: "fail", title, evidence: `Agent skills: ${skillsEvidence}. Missing: ${missingEvidence}.`, evidenceItems: skillItems.length ? skillItems : undefined, explanation, suggestedFix: "Add the missing skill(s) at the required proficiency to this agent's profile, or adjust the queue's skill requirements if they're no longer accurate." };
   }
   if (undeterminable.length) {
-    return { id: "skills", category: "skills", status: "warn", title, evidence: `Agent skills: ${skillsEvidence}. All determinable skill requirements are met, but requirements for ${undeterminable.length} queue(s) could not be verified.`, explanation };
+    return { id: "skills", category: "skills", status: "warn", title, evidence: `Agent skills: ${skillsEvidence}. All determinable skill requirements are met, but requirements for ${undeterminable.length} queue(s) could not be verified.`, evidenceItems: skillItems.length ? skillItems : undefined, explanation };
   }
-  return { id: "skills", category: "skills", status: "pass", title, evidence: `Agent skills: ${skillsEvidence}. All required skills for this agent's reachable queues are met.`, explanation };
+  return { id: "skills", category: "skills", status: "pass", title, evidence: `Agent skills: ${skillsEvidence}. All required skills for this agent's reachable queues are met.`, evidenceItems: skillItems.length ? skillItems : undefined, explanation };
 }
 
 export function checkPresence(agent: AgentRecord): CheckResult {
   const title = "Current presence allows assignment";
-  const explanation = "Presence is a point-in-time snapshot, not a structural blocker — an agent correctly set up in every other way still won't be assigned work while their presence is Offline/Away or similar. Re-check this if the agent says they're currently at their desk and available.";
+  const explanation = "Presence is a point-in-time snapshot, not a structural blocker — an agent correctly set up in every other way still won't be assigned work while their presence is Offline/Away or similar, or while their workspace client isn't logged in at all. Re-check this if the agent says they're currently at their desk and available.";
   if (!agent.presence.known) {
     return { id: "presence", category: "presence", status: "unknown", title, evidence: agent.presence.reason, explanation, suggestedFix: "Check the agent's current presence in the Omnichannel/Customer Service Workspace app directly." };
   }
   if (agent.presence.value === null) {
-    return { id: "presence", category: "presence", status: "warn", title, evidence: "No current presence record was found for this agent (they may never have signed in to the agent workspace).", explanation, suggestedFix: "Confirm the agent has signed in to Customer Service workspace / Omnichannel at least once." };
+    return { id: "presence", category: "presence", status: "warn", title, evidence: "No current status record was found for this agent (they may never have signed in to the agent workspace).", explanation, suggestedFix: "Confirm the agent has signed in to Customer Service workspace / Omnichannel at least once." };
   }
   const presence = agent.presence.value;
   const capturedNote = presence.capturedOn ? ` (as of ${presence.capturedOn})` : "";
-  if (presence.allowsAssignment === true) return { id: "presence", category: "presence", status: "pass", title, evidence: `Current presence: ${presence.name}${capturedNote}.`, explanation };
-  if (presence.allowsAssignment === false) return { id: "presence", category: "presence", status: "warn", title, evidence: `Current presence: ${presence.name}${capturedNote} — this status does not allow new assignments.`, explanation, suggestedFix: "If the agent believes they should be receiving work now, have them set their presence to an available status." };
-  return { id: "presence", category: "presence", status: "warn", title, evidence: `Current presence: ${presence.name}${capturedNote} — whether this status allows assignment could not be determined.`, explanation };
+  if (presence.isLoggedIn === false) {
+    return { id: "presence", category: "presence", status: "warn", title, evidence: `Not currently logged in to the workspace client. Last known presence: ${presence.name}${capturedNote}.`, explanation, suggestedFix: "Have the agent sign in to Customer Service workspace / Omnichannel — being logged out overrides whatever their last presence status says." };
+  }
+  const loginNote = presence.isLoggedIn === undefined ? " (login status could not be confirmed)" : "";
+  if (presence.allowsAssignment === true) return { id: "presence", category: "presence", status: "pass", title, evidence: `Currently logged in. Presence: ${presence.name}${capturedNote}${loginNote}.`, explanation };
+  if (presence.allowsAssignment === false) return { id: "presence", category: "presence", status: "warn", title, evidence: `Currently logged in. Presence: ${presence.name}${capturedNote}${loginNote} — this status does not allow new assignments.`, explanation, suggestedFix: "If the agent believes they should be receiving work now, have them set their presence to an available status." };
+  return { id: "presence", category: "presence", status: "warn", title, evidence: `Currently logged in. Presence: ${presence.name}${capturedNote}${loginNote} — whether this status allows assignment could not be determined.`, explanation };
 }
 
 export function checkUnifiedRoutingState(agent: AgentRecord): CheckResult {
-  const title = "Not excluded from unified routing assignment";
-  const explanation = "Some environments support explicitly excluding or opting an agent out of automatic assignment, independent of everything else being correctly configured.";
-  if (!agent.routingExclusion.known) {
-    return { id: "unifiedRoutingState", category: "unifiedRoutingState", status: "unknown", title, evidence: agent.routingExclusion.reason, explanation, suggestedFix: "Not verifiable via read-only client-side access in this environment — if this agent's assignment seems otherwise correctly configured but they still aren't receiving work, ask a Contact Center administrator to check for an explicit assignment exclusion or opt-out." };
+  const title = "Not currently blocked from new work by capacity";
+  // No separate "explicitly excluded/opted out" admin toggle was found to exist in this product after
+  // a broad search (see model.ts / IMPLEMENTATION_STATUS.md "Round 7") — this check instead reports
+  // the real, live signal unified routing itself tracks: whether the agent has hit the ceiling of
+  // every capacity profile assigned to them, so no new work of any kind is being assigned right now.
+  const explanation = "Unlike the capacity check above (which verifies a big-enough profile is assigned at all), this reflects the agent's current, real-time utilization against that profile. While blocked, unified routing assigns them no new work even though everything else about their setup is correct — and unlike a structural misconfiguration, it clears on its own as their active work drops back under the limit.";
+  if (!agent.capacityBlocked.known) {
+    return { id: "unifiedRoutingState", category: "unifiedRoutingState", status: "unknown", title, evidence: agent.capacityBlocked.reason, explanation, suggestedFix: "Check the agent's current capacity utilization in the Customer Service admin center, or re-check once they've signed in to the agent workspace." };
   }
-  if (agent.routingExclusion.value) {
-    return { id: "unifiedRoutingState", category: "unifiedRoutingState", status: "fail", title, evidence: "This agent is explicitly excluded from unified routing assignment.", explanation, suggestedFix: "Remove the assignment exclusion/opt-out for this agent if it's no longer intended." };
+  if (agent.capacityBlocked.value) {
+    return { id: "unifiedRoutingState", category: "unifiedRoutingState", status: "warn", title, evidence: "This agent is currently blocked from new work — they're at capacity across their assigned capacity profile(s).", explanation, suggestedFix: "Usually no action needed — this clears automatically once the agent's active work drops below their capacity limit. If it persists longer than expected, check their capacity profile assignment and current work item load." };
   }
-  return { id: "unifiedRoutingState", category: "unifiedRoutingState", status: "pass", title, evidence: "No assignment exclusion found for this agent.", explanation };
+  return { id: "unifiedRoutingState", category: "unifiedRoutingState", status: "pass", title, evidence: "Not currently blocked from new work by capacity.", explanation };
 }
 
 export function runAllChecks(agent: AgentRecord): CheckResult[] {
