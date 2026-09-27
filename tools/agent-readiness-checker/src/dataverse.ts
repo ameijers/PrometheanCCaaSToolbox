@@ -392,9 +392,18 @@ export async function loadAgentRoster(relevantRoleIds: string[], onProgress?: (p
   const membershipsByUserId = new Map<string, QueueMembershipInfo[]>();
   const unitCostsByUserId = new Map<string, number[]>();
   const profileBasedReachByUserId = new Set<string>();
+  // A membership row whose queue came back empty is a queue the person running the tool can't read —
+  // Dataverse returns no error for rows outside the caller's security scope (e.g. a queue owned in
+  // another business unit), just fewer rows. Counted rather than dropped, so an agent whose only
+  // queues are out of scope shows as "couldn't be verified", not a false "not a member of any queue".
+  const unreadableQueueCountByUserId = new Map<string, number>();
   queueMembershipRows.forEach((row) => {
+    if (!row.systemuserid) return;
     const queue = queueById.get(row.queueid);
-    if (!row.systemuserid || !queue) return;
+    if (!queue) {
+      unreadableQueueCountByUserId.set(row.systemuserid, (unreadableQueueCountByUserId.get(row.systemuserid) ?? 0) + 1);
+      return;
+    }
     const reachInfo = reachability instanceof Error ? undefined : reachability.reachableQueues.get(row.queueid);
     const info: QueueMembershipInfo = {
       queueId: row.queueid,
@@ -421,6 +430,13 @@ export async function loadAgentRoster(relevantRoleIds: string[], onProgress?: (p
   const agents = userRows.map((row): AgentRecord => {
     const id = row.systemuserid;
     const memberships = membershipsByUserId.get(id) ?? [];
+    // Only matters when the readable queues alone don't already make the agent routable — one
+    // usable queue is enough to pass regardless of what the unreadable ones are.
+    const unreadableQueueCount = unreadableQueueCountByUserId.get(id) ?? 0;
+    const unreadableQueueReason = unreadableQueueCount && !memberships.some((m) => m.queueActive && m.reachableByActiveVoiceWorkstream)
+      ? `No permission to read ${unreadableQueueCount} of this agent's queue(s) — most likely outside your security role's scope (e.g. another business unit) — so which queues they can receive work from can't be fully determined.`
+      : undefined;
+    const queueScoped = <T>(field: Field<T>): Field<T> => (unreadableQueueReason && field.known ? unknownField(unreadableQueueReason) : field);
     const queueSkillRequirements: Field<QueueSkillRequirement[]> = reachability instanceof Error
       ? unknownField(`Could not read routing configuration to determine required skills: ${reachability.message}`)
       : known(memberships.map((m): QueueSkillRequirement => ({
@@ -448,21 +464,21 @@ export async function loadAgentRoster(relevantRoleIds: string[], onProgress?: (p
       // workstream routing, which this tool already determines with high confidence. So rather than
       // guess at a table that doesn't represent this concept, "channels" is derived from that same
       // reachability data — not an independent read.
-      channels: reachability instanceof Error
+      channels: queueScoped(reachability instanceof Error
         ? unknownField(`Could not read the routing configuration needed to determine channel access: ${reachability.message}`)
-        : known(memberships.some((m) => m.reachableByActiveVoiceWorkstream) ? ["Voice"] : []),
-      queueMemberships: reachability instanceof Error
+        : known(memberships.some((m) => m.reachableByActiveVoiceWorkstream) ? ["Voice"] : [])),
+      queueMemberships: queueScoped(reachability instanceof Error
         ? unknownField(`Could not read the routing configuration needed to determine which queues are reachable: ${reachability.message}`)
-        : known(memberships),
+        : known(memberships)),
       agentCapacity: capacityByUserId.get(id) ?? unknownField("Could not read capacity profile assignment."),
-      workItemUnitCost: reachability instanceof Error
+      workItemUnitCost: queueScoped(reachability instanceof Error
         ? unknownField(`Could not read the routing configuration needed to determine work-item unit cost: ${reachability.message}`)
-        : known(reachableUnitCosts.length ? Math.min(...reachableUnitCosts) : null),
-      hasProfileBasedReachableWorkstream: reachability instanceof Error
+        : known(reachableUnitCosts.length ? Math.min(...reachableUnitCosts) : null)),
+      hasProfileBasedReachableWorkstream: queueScoped(reachability instanceof Error
         ? unknownField(`Could not read the routing configuration needed to determine capacity format: ${reachability.message}`)
-        : known(profileBasedReachByUserId.has(id)),
+        : known(profileBasedReachByUserId.has(id))),
       skills: skillsByUserId.get(id) ?? unknownField("Could not read this agent's skills."),
-      queueSkillRequirements,
+      queueSkillRequirements: queueScoped(queueSkillRequirements),
       presence: presenceByUserId.get(id)?.presence ?? unknownField("Could not read this agent's current presence."),
       // msdyn_agentstatus.msdyn_isblockedbysomeprofile — confirmed live (see model.ts / Round 7).
       capacityBlocked: presenceByUserId.get(id)?.capacityBlocked ?? unknownField("Could not read this agent's current status.")

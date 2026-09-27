@@ -262,6 +262,44 @@ describe("loadAgentRoster", () => {
     });
   });
 
+  // Dataverse returns no error for rows outside the caller's security scope (e.g. a queue in another
+  // business unit) — the queue simply doesn't come back. That must never look like "not a member".
+  describe("queue memberships pointing to queues the caller can't read", () => {
+    const OTHER_QUEUE_ID = "77777777-7777-7777-7777-777777777777";
+    const WORKSTREAM_ID = "88888888-cccc-8888-cccc-888888888888";
+    const CONFIG_ID = "aaaaaaaa-cccc-aaaa-cccc-aaaaaaaaaaaa";
+    const reachesQueue = (queueId: string): Partial<Record<string, Handler>> => ({
+      msdyn_liveworkstream: (query: string) => {
+        if (query.includes("$expand=msdyn_defaultqueue")) return { entities: [{ msdyn_liveworkstreamid: WORKSTREAM_ID, msdyn_defaultqueue: { queueid: queueId } }] };
+        return { entities: [{ msdyn_liveworkstreamid: WORKSTREAM_ID, msdyn_name: "Inbound Voice", statecode: 0, msdyn_direction: 0, msdyn_enablevoicev2: true }] };
+      },
+      msdyn_routingconfiguration: () => ({ entities: [{ msdyn_routingconfigurationid: CONFIG_ID, msdyn_isactiveconfiguration: true }] }),
+      msdyn_routingconfigurationstep: () => ({ entities: [] })
+    });
+
+    test("reports queue-dependent fields as unknown (not 'no queues') when the agent's only queue can't be read", async () => {
+      installXrm(baseHandlers({ queue: () => ({ entities: [] }) }));
+      const { agents: [agent] } = await loadAgentRoster([ROLE_ID]);
+      expect(agent.queueMemberships.known).toBe(false);
+      if (!agent.queueMemberships.known) expect(agent.queueMemberships.reason).toMatch(/No permission to read 1 of this agent's queue/);
+      expect(agent.channels.known).toBe(false);
+      expect(agent.workItemUnitCost.known).toBe(false);
+      expect(agent.hasProfileBasedReachableWorkstream.known).toBe(false);
+      expect(agent.queueSkillRequirements.known).toBe(false);
+    });
+
+    test("still reports known memberships when a readable queue already makes the agent routable", async () => {
+      installXrm(baseHandlers({
+        ...reachesQueue(QUEUE_ID),
+        queuemembership: () => ({ entities: [{ queueid: QUEUE_ID, systemuserid: USER_A }, { queueid: OTHER_QUEUE_ID, systemuserid: USER_A }] })
+      }));
+      const { agents: [agent] } = await loadAgentRoster([ROLE_ID]);
+      expect(agent.channels).toEqual({ known: true, value: ["Voice"] });
+      expect(agent.queueMemberships.known).toBe(true);
+      if (agent.queueMemberships.known) expect(agent.queueMemberships.value.map((m) => m.queueId)).toEqual([QUEUE_ID]);
+    });
+  });
+
   // Confirmed live against academyexperiment (see IMPLEMENTATION_STATUS.md "Round 7"): none of a
   // real environment's inbound voice workstreams had a Skill identification routing step at all
   // (confirmed against the real msdyn_type option set), which is what made this check permanently

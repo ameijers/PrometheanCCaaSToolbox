@@ -41,6 +41,25 @@ Role *names* are never guessed against live data — an even earlier version shi
 
 For which queues an active inbound voice workstream can actually reach, this tool reuses (read-only import, no changes made to that tool) [Visual Routing Tester](../visual-routing-tester/README.md)'s already-verified `msdyn_liveworkstream`/routing-configuration schema and its pure `parseDecisionXml` rule-XML parser, rather than re-deriving that from scratch.
 
+## Required permissions
+
+Every read runs as the signed-in user through `Xrm.WebApi`; the tool calls no admin APIs (Power Platform admin center, Graph, etc.). **The Omnichannel Administrator security role is sufficient** — System Administrator / environment admin is not required (confirmed with a test user holding only that role). The user also needs a role that gives access to the app hosting the tool's Site Map entry.
+
+If you use a custom role instead, it needs **organization-level Read** on:
+
+| Area | Tables |
+| --- | --- |
+| Users, roles, teams | `systemuser`, `role`, `team` (covers `systemuserroles`, `teamroles`, `teammembership`) |
+| Queues | `queue` (covers `queuemembership`) |
+| Routing | `msdyn_liveworkstream`, `msdyn_routingconfiguration`, `msdyn_routingconfigurationstep`, `msdyn_decisionruleset` |
+| Capacity & skills | `bookableresource`, `msdyn_bookableresourcecapacityprofile`, `msdyn_capacityprofile`, `bookableresourcecharacteristic`, `characteristic`, `ratingvalue` |
+| Presence | `msdyn_agentstatus` |
+
+What happens when access is missing:
+- **Users, roles, teams or queue membership unreadable** → the roster can't be built; the load stops with a `No permission to read "<table>"` message.
+- **Routing, capacity, skills or presence unreadable** → the roster still loads; the affected checks show **Not verifiable** with the same message as evidence.
+- **Read limited to your own business unit** → Dataverse returns fewer rows rather than an error. Agents outside your scope won't appear on the roster, and an agent whose only queues are out of scope shows the queue-related checks as **Not verifiable** (not as "not a member of any queue").
+
 ## Schema assumptions — please read before trusting live results
 
 Unlike the other two tools, most of this tool's schema shipped **unverified** against a live environment (see `IMPLEMENTATION_STATUS.md` for why) and was corrected afterward as live access became available — every row below is now confirmed against a live environment except the exact JSON shape of a per-queue skill requirement, which stays an honest best-effort guess. Two rows were resolved not by finding the "right" table but by confirming no independent one exists — see Rounds 6 and 7. Every field degrades gracefully to **"Not verifiable"** in the UI if the underlying query fails — it never crashes and never presents a guess as a confirmed fact — but the confidence table matters for judging how much to trust a "pass" or "fail" you see:

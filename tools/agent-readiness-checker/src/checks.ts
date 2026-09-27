@@ -73,7 +73,7 @@ export function checkQueueMembership(agent: AgentRecord): CheckResult {
   const title = "Belongs to at least one active, routable queue";
   const explanation = "An agent only receives work through queues they're a member of. Membership in a queue that's disabled or that no active workstream actually routes to gives them no practical path to receiving calls.";
   if (!agent.queueMemberships.known) {
-    return { id: "queueMembership", category: "queueMembership", status: "unknown", title, evidence: agent.queueMemberships.reason, explanation, suggestedFix: "Grant this tool read access to queuemembership, or check the agent's queues manually." };
+    return { id: "queueMembership", category: "queueMembership", status: "unknown", title, evidence: agent.queueMemberships.reason, explanation, suggestedFix: "Run this tool as a user with organization-wide read access to queues and queue membership, or check the agent's queues manually." };
   }
   const memberships = agent.queueMemberships.value;
   if (!memberships.length) {
