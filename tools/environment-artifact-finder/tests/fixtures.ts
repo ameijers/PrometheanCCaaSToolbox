@@ -47,6 +47,18 @@ export function makeSnapshot(tables: Record<string, TableInput>, edges: EdgeSpec
   return { mode: "demo", scannedAt: "2026-09-27T12:00:00Z", tables: out, edges, warnings: [] };
 }
 
+// Unified-routing decision XML in the shape Visual Routing Tester verified live.
+export function queueRoutingXml(queueIds: string[], conditionVariable = "Language"): string {
+  const rules = queueIds.map((queueId, index) => `<rule id="r${index}" name="Rule ${index}"><logical operator="AND"><condition operator="=="><lhs>liveworkitemcontext.${conditionVariable}</lhs><rhs>x</rhs></condition></logical><action><setattribute><lhs>assign_to.queue</lhs><rhs>{${queueId.toUpperCase()}}</rhs></setattribute></action></rule>`).join("");
+  return `<decision hit-policy="first"><rules>${rules}</rules></decision>`;
+}
+
+export function overflowXml(overflowActionId: string): string {
+  return `<decision hit-policy="first"><rules><rule id="o1" name="Long wait"><logical operator="AND"><condition operator="&gt;"><lhs>queue_prequeue.estimatedwaittimeinminutes</lhs><rhs>10</rhs></condition></logical><action><setattribute><lhs>overflowaction.msdyn_overflowactionconfig.msdyn_overflowactionconfigid</lhs><rhs>${overflowActionId}</rhs></setattribute></action></rule></rules></decision>`;
+}
+
+export const EMPTY_DECISION_XML = `<decision hit-policy="first"><rules></rules></decision>`;
+
 export function edge(partial: Partial<EdgeSpec> & Pick<EdgeSpec, "from" | "field" | "to">): EdgeSpec {
   return { id: `${partial.from}.${partial.field}`, kind: "lookup", semantics: "reference", verification: "discovered", description: `${partial.from}.${partial.field}`, ...partial };
 }
