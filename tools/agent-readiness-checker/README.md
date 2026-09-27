@@ -96,4 +96,4 @@ Then open `http://localhost:5434/index.html` to explore the demo mode's 25 sampl
 pwsh ./scripts/deploy.ps1 -Tool agentreadiness -CreateIfMissing
 ```
 
-Use `-CreateIfMissing` the first time (creates the three web resources and adds them to the solution); omit it for routine redeploys. See the [toolbox README](../../Readme.md#deployment) for how deployment is configured. **The Site Map subarea is not created by the deploy script** — see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md#site-map-subarea) for the exact steps to add it, same as the other two tools.
+Use `-CreateIfMissing` the first time (creates the three web resources and adds them to the solution); omit it for routine redeploys. See the [toolbox README](../../Readme.md#deployment) for how deployment is configured. **The Site Map subarea is not created by the deploy script** — it ships in the packaged solution from 1.0.0.3 onward; for an environment on an older solution version, see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md#site-map-subarea) for the exact steps to add it, same as the other two tools.

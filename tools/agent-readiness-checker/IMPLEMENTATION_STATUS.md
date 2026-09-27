@@ -147,6 +147,8 @@ That was corrected across eleven follow-up rounds, once live testing started —
 
 ## Site Map subarea
 
+Included in the packaged solution from **1.0.0.3** onward — importing `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_3.zip` (or later) brings the "Agent Readiness Checker" subarea with it, so the steps below are only needed when deploying into an environment that has an older solution version via `deploy.ps1`.
+
 Not created by the deploy script (same as the other two tools). The packaged solution's Site Map lives only inside the exported solution zip in `power_platform_solution/`, not as editable source in this repo, so add it manually after `deploy.ps1 -Tool agentreadiness -CreateIfMissing` has created the three web resources:
 
 1. In the maker portal ([make.powerapps.com](https://make.powerapps.com)), open the **PrometheanCCaaSToolbox** solution.
