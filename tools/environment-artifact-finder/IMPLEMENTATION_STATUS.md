@@ -67,12 +67,65 @@ For the unverifiable tables, the tool doesn't hardcode any lookup column name. I
 | `msdyn_ocruleitem` (legacy routing rules) | **In, as a supporting read** | Needed so a workstream still on the legacy rule engine isn't reported as "has no routing". |
 | `msdyn_ocphonenumber` | **In the config, disabled by default** | A plausible out-of-box phone-number table, but not in the requested list and unverified. Switch it on in `src/config.ts` / `src/referenceMap.ts` if your environment uses it. |
 
-## Plan (commit sequence)
+## Architecture
 
-1. Discovery and plan (this document).
-2. Model, reference map, generic reference-graph engine + tests.
-3. Entity-specific rules and housekeeping checks + tests.
-4. Data layer (`Xrm.WebApi` + metadata discovery, demo implementation behind the same interface) + tests.
-5. Demo dataset + coverage test.
-6. React UI, webpack entry, local demo script.
-7. Docs, deploy config, root README.
+- Same shape as the other tools: plain HTML/CSS/React (TypeScript), deployed as a Dataverse web resource trio (`pct_/tools/artifactfinder/{index.html,style.css,bundle.js}`) and hosted through its own Site Map subarea. Built through the shared `webpack.config.js` (entry key `artifactfinder`) and deployed through the shared `scripts/deploy.ps1` (`-Tool artifactfinder`).
+- Layers: `referenceMap.ts`/`config.ts` (declarative) → `dataSource.ts` interface, with `dataverse.ts` (live) and `demoData.ts` (sample) behind it → `scan.ts` (describe, discover, read, then a `Snapshot`) → `engine.ts` (the generic reference graph) → `rules.ts`/`housekeeping.ts` (pure checks) → `analyze.ts`/`aggregate.ts` → `App.tsx`. See the README's table.
+- Reuses, as a read-only import of a pure function, Visual Routing Tester's `parseDecisionXml`, the same way Agent Readiness Checker does. Neither of those tools was modified.
+- **Read-only:** `tests/readOnly.test.ts` fails if any `Xrm.WebApi` write method appears in `src/`, if any `fetch` uses a method other than GET, or if `fetch` appears anywhere other than `dataverse.ts`.
+
+## Complete
+
+- A generic reference-graph engine with lookup ("uses" / "belongs to") and id-mention edges; alive-ness through parent chains, with a cycle guard; a structural check whose confidence reflects coverage gaps; fixed-point "used only by other candidates" propagation; and broken-reference detection that follows "uses" lookups only.
+- Live relationship discovery from `ManyToOneRelationships` metadata, classified by `keptAliveBy`, excluding system lookups, deduplicated against curated edges, with polymorphic lookups merged into one edge.
+- 26 checks (see the README): 3 structural, 2 broken-reference, 17 functional/rule-based, 4 housekeeping.
+- A data layer with `@odata.nextLink` paging, per-column drop-and-retry for columns the environment doesn't have, flattening of the `$expand`-only `msdyn_defaultqueue` lookup, retry without a rejected filter, and typed not-found / permission errors. Tables are read 4 at a time. A failing table degrades on its own.
+- UI: Summary (counts, cleanup estimate, billed-number note, by entity, by check, skipped checks), Findings (filter, sort, paginate, detail panel with related-record links), Housekeeping, Coverage, and CSV/Markdown export. The disclaimer is on every view and in every export.
+- Demo mode: a sample environment served through the `DataSource` interface. It includes one table that's missing, one with no permission, one disabled by configuration, and `cts_*` relationships that are discovered rather than curated. `tests/demoData.test.ts` asserts that every check in the `CHECKS` registry fires at least once and that a list of clean records produces nothing.
+- Tests: 100 for this tool (`engine`, `rules`, `housekeeping`, `aggregate`, `dataverse` with mocked `Xrm.WebApi` and `fetch`, `scan`, `demoData`, `export`, `readOnly`). 272 across the repo.
+- Deploy config and webpack entry. The offline part of `deploy.ps1 -Tool artifactfinder -CreateIfMissing` (config lookup, staging, file checks, cache-bust rewrite) was replayed successfully. The network part (token, create/patch, publish) wasn't run against a real environment, as the brief asked, and it's the same code the other three tools use.
+
+## Still open / not yet verified
+
+- **Nothing in this tool has been run against a live environment yet.** The verified-schema tables reuse live-confirmed findings from the other tools. Everything marked Unverified or Custom in the README depends on live discovery working as designed. The first live scan should be reviewed on the Coverage tab: which tables were found, which relationships were discovered, and whether each `keptAliveBy` classification looks right.
+- Reading relationship metadata through `fetch` to `/api/data/v9.2/EntityDefinitions(...)`. The same-origin session technique is the one Visual Routing Tester already uses live, but this specific endpoint hasn't been exercised live by this tool.
+- The open questions in "Step 0" above, especially whether chat/SMS channels should get an endpoint check.
+
+## Follow-up ideas
+
+- Queue conversation volume ("no work in the last N days"), once an aggregate over `msdyn_ocliveworkitem` by queue is verified live.
+- A visual dependency graph for the selected record (reusing Visual Routing Tester's diagram), instead of the related-records list.
+- Chat/SMS channel endpoint checks, once the channel tables are confirmed.
+- Per-table on/off toggles in the UI, instead of only in `referenceMap.ts`.
+- Following `msdyn_operatinghour` → `calendar` to flag operating hours whose calendar has no rules left.
+
+## Site Map subarea
+
+Not created by the deploy script, and not yet in the packaged solution (`PrometheanCCaaSToolbox_1_0_0_3.zip`). After `deploy.ps1 -Tool artifactfinder -CreateIfMissing` has created the three web resources:
+
+1. In the maker portal ([make.powerapps.com](https://make.powerapps.com)), open the **PrometheanCCaaSToolbox** solution.
+2. Open the **Promethean CCaaS Toolbox** app's Site Map in the Site Map designer (App → Site map → Edit).
+3. In the existing **Tools** group, add a new **Subarea**:
+   - **Title:** `Environment Artifact Finder`
+   - **Type:** Web Resource
+   - **Web Resource:** `pct_/tools/artifactfinder/index.html`
+   - Keep Client/Availability/Sku the same as the existing subareas (all clients, available offline).
+4. Save and publish the Site Map, then publish the app.
+5. Open the app and confirm the new subarea loads `pct_/tools/artifactfinder/index.html`.
+
+Re-export the solution afterwards if the packaged zip in `power_platform_solution/` should include this tool.
+
+## Build & test locally
+
+```powershell
+npm install
+npm test
+npm run demo:artifactfinder   # http://localhost:5435/index.html
+```
+
+## Deploy
+
+```powershell
+pwsh ./scripts/deploy.ps1 -Tool artifactfinder -CreateIfMissing   # first time
+pwsh ./scripts/deploy.ps1 -Tool artifactfinder                    # afterwards
+```
