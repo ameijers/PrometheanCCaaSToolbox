@@ -51,7 +51,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 </tr>
 </table>
 
-Each tool has its own README with details on what it does, how it works, and how to build/run/deploy it individually, plus a step-by-step manual with screenshots: [Visual Routing Tester manual](tools/visual-routing-tester/manual.md), [Context Variable Monitor manual](tools/context-variable-monitor/manual.md), [Agent Readiness Checker manual](tools/agent-readiness-checker/manual.md) (screenshots pending for this newest tool).
+Each tool has its own README with details on what it does, how it works, and how to build/run/deploy it individually, plus a step-by-step manual with screenshots: [Visual Routing Tester manual](tools/visual-routing-tester/manual.md), [Context Variable Monitor manual](tools/context-variable-monitor/manual.md), [Agent Readiness Checker manual](tools/agent-readiness-checker/manual.md).
 
 ## Architecture
 

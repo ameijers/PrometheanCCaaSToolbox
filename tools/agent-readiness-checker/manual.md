@@ -8,8 +8,7 @@ Part of the [Promethean CCaaS Toolbox](../../Readme.md). For what the tool does 
 2. On load, the tool connects using your own signed-in session — one click, no extra confirmation step — and goes straight to the **summary header**, a filterable/paginated **agent list**, and an empty **Agent information** panel. Behind the scenes it also resolves which real role means Agent/Supervisor/Omnichannel Admin (see "Setting up roles" below); the first time it connects to a given environment this is a best-effort guess, and the notice banner says so — review it via **Configure roles…** if the results don't look right.
 3. If it can't reach Dataverse, it falls back to a **demo roster** of 25 sample agents — a banner says "Demo data is shown until a Dataverse connection is available." Everything below works the same way against demo data (the role picker never appears in demo mode), and the demo roster deliberately includes every kind of pass/warning/failure/not-verifiable result so you can see the full range of the tool's output without a live connection.
 
-> **[Screenshot 1 — Overview]**
-> Full-page screenshot right after opening, showing the top bar ("Agent Readiness Checker" title, "Read-only mode" badge), the summary strip with its four status counts and "Most common failing check", the left filter sidebar, the agent list table in the middle with a mix of statuses visible, and the empty "No agent selected" state in the right-hand Agent information panel.
+![Overview of Agent Readiness Checker showing the top bar, summary strip, filter sidebar, agent list, and empty Agent information panel](images/01-overview.png)
 
 ## 2. Setting up roles
 
@@ -22,15 +21,13 @@ This tool needs to know which of your environment's security roles put someone i
 
 The roster then includes anyone holding a picked role — **directly, or via a Dataverse Team the role is assigned to** (a common setup: a team like "Sales Supervisors" holds the Supervisor role directly, and everyone added to that team inherits it). If connecting reports "No one matched the selected roles," open **Configure roles…** and adjust — it's usually a sign the selection needs correcting, not that the environment has no agents.
 
-> **[Screenshot 2 — Role picker popup]**
-> Screenshot of the "Configure roles" popup open over the rest of the page (backdrop visible), showing the explanatory text at the top and the three Agent/Supervisor/Omnichannel Admin dropdowns each with a real role name selected, plus the Cancel / Save & load agents buttons.
+![Configure roles popup with the Agent, Supervisor, and Omnichannel Admin dropdowns](images/02-role-picker.png)
 
 ## 3. Reading the summary header
 
 Across the top, a caption states exactly how many agents these numbers describe, and four tiles show how many of them are **Ready**, **Warning**, **Not ready**, and **Not verifiable**, plus the single **most common failing check** among them — useful for spotting a systemic problem (e.g. "40 agents are all missing the same security role") instead of chasing one agent at a time. These counts always match the agent table below them exactly: they reflect your search box and Queue/Workstream/Role filters, just not the Status filter itself (so all four counts stay visible and comparable no matter which one you've selected). Click any count to filter the table to just that status; click it again to clear the filter.
 
-> **[Screenshot 3 — Summary header]**
-> Close-up of the summary strip: the four status-count tiles and the "Most common failing check" tile, with non-zero counts in more than one status.
+![Summary strip with the four status counts and the most common failing check](images/03-summary-header.png)
 
 ## 4. Filtering, sorting, and paging the agent list
 
@@ -42,8 +39,7 @@ Use the left-hand panel to narrow the list:
 
 Click any column header in the agent table (**Agent**, **Status**, **Failed**, **Top issue**) to sort by it; click again to reverse the direction. The table shows 5 agents per page — use **◀ Prev** / **Next ▶** below the table to page through the rest; the count next to the buttons ("Page X of Y (N agents)") reflects your current filters, and paging resets to page 1 whenever a filter or sort changes.
 
-> **[Screenshot 4 — Filtered, sorted, and paged list]**
-> Screenshot of the sidebar with a status filter applied (e.g. "Not ready" selected) and the Role checkboxes visible, the agent table sorted by a column other than the default (sort arrow visible in the column header), and the pagination row below the table showing "Page 1 of N".
+![Agent list filtered by status, sorted by a column, with pagination below](images/04-filtered-list.png)
 
 ## 5. Reading the agent information panel and readiness checklist
 
@@ -51,8 +47,7 @@ Click any row in the agent list to open two things:
 
 **On the right, a compact "Agent information" panel** — the agent's identity (name, domain, overall status pill), then a "Needs attention" list with just the failing/warning/not-verifiable checks and their suggested fix, one line each. An agent with nothing wrong shows "No action needed — every check passes" instead. This is a quick triage view, not a second copy of the full checklist below — for the complete evidence and explanation behind any check, see the Outcome section.
 
-> **[Screenshot 5 — Agent information panel]**
-> Screenshot of the right-hand "Agent information" panel for a selected agent, showing the status pill and the "Needs attention" list with a couple of failing/warning checks and their suggested fixes.
+![Agent information panel with the status pill and the Needs attention list](images/05-agent-information.png)
 
 **Below the agent table, a full-width "Outcome" section** with one card per check, grouped in a fixed diagnosis order (account → security roles → channel enablement → queue membership → workstream reachability → capacity → skills → presence → unified routing state). Each card shows:
 - A **status badge** (Pass / Warning / Fail / Not verifiable).
@@ -60,11 +55,9 @@ Click any row in the agent list to open two things:
 - For anything other than Pass, a plain-language **suggested fix**.
 - A collapsed **"Why this matters"** toggle — click it to expand the fuller explanation; collapsed by default to keep the checklist scannable.
 
-> **[Screenshot 6 — Outcome checklist, Not ready agent]**
-> Screenshot of the outcome panel below the table for an agent with overall status "Not ready", showing several check cards in the multi-column layout, including at least one Fail (with its bulleted evidence list and suggested fix visible) and one Pass.
+![Outcome checklist for a Not ready agent showing failing and passing check cards](images/06-outcome-not-ready.png)
 
-> **[Screenshot 7 — Outcome checklist, Not verifiable checks]**
-> Screenshot of the outcome panel scrolled to show one or more "Not verifiable" check cards (e.g. Skills, when a queue's reaching workstream has a skill-identification step this tool couldn't fully parse — see the README's schema-confidence table), demonstrating how the tool presents a check it couldn't confirm rather than guessing. Include one card with "Why this matters" expanded, to show what that looks like.
+![Outcome checklist showing Not verifiable check cards with Why this matters expanded](images/07-outcome-not-verifiable.png)
 
 ## 6. Exporting
 
@@ -72,8 +65,7 @@ Both views export client-side (no server involved):
 - **Bulk view:** the "Export CSV" / "Export Markdown" buttons in the summary header export the currently filtered and sorted agent list (all matching pages, not just the one on screen).
 - **Outcome view:** the "Export CSV" / "Export Markdown" buttons above the checklist export the selected agent's full checklist.
 
-> **[Screenshot 8 — Export buttons]**
-> Screenshot showing both sets of export buttons — the summary header's bulk-export buttons and the outcome panel's per-agent export buttons — with an agent selected so both are visible in the same shot.
+![Bulk export buttons in the summary header and per-agent export buttons in the outcome panel](images/08-export-buttons.png)
 
 ## Notes
 
