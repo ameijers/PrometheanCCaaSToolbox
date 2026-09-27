@@ -265,11 +265,13 @@ export function structuralFindings(snapshot: Snapshot, graph: ReferenceGraph, de
 }
 
 // Lookups from tables marked reportBrokenRefs to records that don't exist or are deactivated.
+// Only "reference" lookups: a missing or deactivated *parent* means the record is detached, which
+// the structural check already reports — repeating it here would double-count it.
 export function brokenReferenceFindings(snapshot: Snapshot, graph: ReferenceGraph): Finding[] {
   const findings: Finding[] = [];
   Object.values(snapshot.tables).forEach((table) => {
     if (table.status !== "ok" || !table.spec.reportBrokenRefs) return;
-    const edges = snapshot.edges.filter((edge) => edge.from === table.spec.logicalName && edge.kind === "lookup" && graph.edgeAvailability(edge).available);
+    const edges = snapshot.edges.filter((edge) => edge.from === table.spec.logicalName && edge.kind === "lookup" && edge.semantics === "reference" && graph.edgeAvailability(edge).available);
     table.rows.forEach((row) => {
       (graph.outbound.get(recordKey(row.table, row.id)) ?? []).forEach((ref) => {
         if (!edges.includes(ref.edge)) return;

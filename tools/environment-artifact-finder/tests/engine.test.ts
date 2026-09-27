@@ -210,6 +210,14 @@ describe("broken references", () => {
     expect(findings.every((f) => f.checkType === "broken" && !f.marksDead)).toBe(true);
   });
 
+  test("a deactivated or missing parent isn't a broken reference (the structural check already reports it)", () => {
+    const findings = broken({
+      ...tables([{ msdyn_liveworkstreamcapacityprofileid: id(112), name: "Detached", _msdyn_liveworkstreamid_value: id(102), _msdyn_capacityprofileid_value: undefined }]),
+      msdyn_liveworkstream: { rows: [{ msdyn_liveworkstreamid: id(102), name: "Old", statecode: 1 }] }
+    });
+    expect(findings).toEqual([]);
+  });
+
   test("no 'missing' claim when the target table itself couldn't be read", () => {
     const findings = broken(tables([{ msdyn_liveworkstreamcapacityprofileid: id(111), name: "x", _msdyn_liveworkstreamid_value: id(101), _msdyn_capacityprofileid_value: id(999) }], "notFound"));
     expect(findings).toEqual([]);
