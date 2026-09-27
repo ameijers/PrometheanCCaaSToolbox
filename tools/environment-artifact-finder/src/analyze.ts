@@ -1,6 +1,7 @@
 import { ReferenceGraph, brokenReferenceFindings, buildGraph, inboundEdges, structuralCoverage, structuralFindings } from "./engine";
 import { housekeepingFindings } from "./housekeeping";
 import { CONFIDENCE_ORDER, EdgeSpec, Finding, Snapshot, TableCheckMode, TableStatus, Verification, recordKey } from "./model";
+import { TABLES } from "./referenceMap";
 import { runRules } from "./rules";
 
 // Shown in the UI on every view, and in every export — not just in the docs.
@@ -58,7 +59,8 @@ export function analyze(snapshot: Snapshot, now: Date = new Date()): AnalysisRes
     ...housekeepingFindings(snapshot, now)
   ].sort((a, b) => CONFIDENCE_ORDER.indexOf(a.confidence) - CONFIDENCE_ORDER.indexOf(b.confidence) || a.table.localeCompare(b.table) || a.recordName.localeCompare(b.recordName));
 
-  const coverage = Object.values(snapshot.tables).map((table): TableCoverage => {
+  const order = (name: string) => { const index = TABLES.findIndex((t) => t.logicalName === name); return index < 0 ? TABLES.length : index; };
+  const coverage = Object.values(snapshot.tables).sort((a, b) => order(a.spec.logicalName) - order(b.spec.logicalName)).map((table): TableCoverage => {
     const name = table.spec.logicalName;
     const structural = table.spec.check === "generic" && table.status === "ok" ? structuralCoverage(snapshot, graph, name) : undefined;
     return {

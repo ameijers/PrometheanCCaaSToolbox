@@ -42,6 +42,18 @@
         { "name": "pct_/tools/agentreadiness/style.css", "path": "dist/webresource/agentreadiness/style.css", "type": 2, "displayName": "Agent Readiness Checker - style.css" },
         { "name": "pct_/tools/agentreadiness/bundle.js", "path": "dist/webresource/agentreadiness/bundle.js", "type": 3, "displayName": "Agent Readiness Checker - bundle.js" }
       ]
+    },
+    "artifactfinder": {
+      "displayName": "Environment Artifact Finder",
+      "stage": [
+        { "from": "tools/environment-artifact-finder/webresource/artifactfinder.html", "to": "dist/webresource/artifactfinder/index.html" },
+        { "from": "tools/environment-artifact-finder/css/environmentArtifactFinder.css", "to": "dist/webresource/artifactfinder/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/artifactfinder/index.html", "path": "dist/webresource/artifactfinder/index.html", "type": 1, "displayName": "Environment Artifact Finder - index.html", "cacheBust": true },
+        { "name": "pct_/tools/artifactfinder/style.css", "path": "dist/webresource/artifactfinder/style.css", "type": 2, "displayName": "Environment Artifact Finder - style.css" },
+        { "name": "pct_/tools/artifactfinder/bundle.js", "path": "dist/webresource/artifactfinder/bundle.js", "type": 3, "displayName": "Environment Artifact Finder - bundle.js" }
+      ]
     }
   }
 }
