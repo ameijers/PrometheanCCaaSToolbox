@@ -42,6 +42,66 @@
         { "name": "pct_/tools/agentreadiness/style.css", "path": "dist/webresource/agentreadiness/style.css", "type": 2, "displayName": "Agent Readiness Checker - style.css" },
         { "name": "pct_/tools/agentreadiness/bundle.js", "path": "dist/webresource/agentreadiness/bundle.js", "type": 3, "displayName": "Agent Readiness Checker - bundle.js" }
       ]
+    },
+    "artifactfinder": {
+      "displayName": "Environment Artifact Finder",
+      "stage": [
+        { "from": "tools/environment-artifact-finder/webresource/artifactfinder.html", "to": "dist/webresource/artifactfinder/index.html" },
+        { "from": "tools/environment-artifact-finder/css/environmentArtifactFinder.css", "to": "dist/webresource/artifactfinder/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/artifactfinder/index.html", "path": "dist/webresource/artifactfinder/index.html", "type": 1, "displayName": "Environment Artifact Finder - index.html", "cacheBust": true },
+        { "name": "pct_/tools/artifactfinder/style.css", "path": "dist/webresource/artifactfinder/style.css", "type": 2, "displayName": "Environment Artifact Finder - style.css" },
+        { "name": "pct_/tools/artifactfinder/bundle.js", "path": "dist/webresource/artifactfinder/bundle.js", "type": 3, "displayName": "Environment Artifact Finder - bundle.js" }
+      ]
+    },
+    "voicebuilder": {
+      "displayName": "Voice Workstream Builder",
+      "stage": [
+        { "from": "tools/voice-workstream-builder/webresource/voicebuilder.html", "to": "dist/webresource/voicebuilder/index.html" },
+        { "from": "tools/voice-workstream-builder/css/voiceWorkstreamBuilder.css", "to": "dist/webresource/voicebuilder/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/voicebuilder/index.html", "path": "dist/webresource/voicebuilder/index.html", "type": 1, "displayName": "Voice Workstream Builder - index.html", "cacheBust": true },
+        { "name": "pct_/tools/voicebuilder/style.css", "path": "dist/webresource/voicebuilder/style.css", "type": 2, "displayName": "Voice Workstream Builder - style.css" },
+        { "name": "pct_/tools/voicebuilder/bundle.js", "path": "dist/webresource/voicebuilder/bundle.js", "type": 3, "displayName": "Voice Workstream Builder - bundle.js" }
+      ]
+    },
+    "recordingprovisioner": {
+      "displayName": "Recording & Transcription Provisioner",
+      "stage": [
+        { "from": "tools/voice-recording-provisioner/webresource/recordingprovisioner.html", "to": "dist/webresource/recordingprovisioner/index.html" },
+        { "from": "tools/voice-recording-provisioner/css/recordingProvisioner.css", "to": "dist/webresource/recordingprovisioner/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/recordingprovisioner/index.html", "path": "dist/webresource/recordingprovisioner/index.html", "type": 1, "displayName": "Recording & Transcription Provisioner - index.html", "cacheBust": true },
+        { "name": "pct_/tools/recordingprovisioner/style.css", "path": "dist/webresource/recordingprovisioner/style.css", "type": 2, "displayName": "Recording & Transcription Provisioner - style.css" },
+        { "name": "pct_/tools/recordingprovisioner/bundle.js", "path": "dist/webresource/recordingprovisioner/bundle.js", "type": 3, "displayName": "Recording & Transcription Provisioner - bundle.js" }
+      ]
+    },
+    "queuebuilder": {
+      "displayName": "Queue Builder",
+      "stage": [
+        { "from": "tools/queue-builder/webresource/queuebuilder.html", "to": "dist/webresource/queuebuilder/index.html" },
+        { "from": "tools/queue-builder/css/queueBuilder.css", "to": "dist/webresource/queuebuilder/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/queuebuilder/index.html", "path": "dist/webresource/queuebuilder/index.html", "type": 1, "displayName": "Queue Builder - index.html", "cacheBust": true },
+        { "name": "pct_/tools/queuebuilder/style.css", "path": "dist/webresource/queuebuilder/style.css", "type": 2, "displayName": "Queue Builder - style.css" },
+        { "name": "pct_/tools/queuebuilder/bundle.js", "path": "dist/webresource/queuebuilder/bundle.js", "type": 3, "displayName": "Queue Builder - bundle.js" }
+      ]
+    },
+    "profilebuilder": {
+      "displayName": "Profile Builder",
+      "stage": [
+        { "from": "tools/profile-builder/webresource/profilebuilder.html", "to": "dist/webresource/profilebuilder/index.html" },
+        { "from": "tools/profile-builder/css/profileBuilder.css", "to": "dist/webresource/profilebuilder/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/profilebuilder/index.html", "path": "dist/webresource/profilebuilder/index.html", "type": 1, "displayName": "Profile Builder - index.html", "cacheBust": true },
+        { "name": "pct_/tools/profilebuilder/style.css", "path": "dist/webresource/profilebuilder/style.css", "type": 2, "displayName": "Profile Builder - style.css" },
+        { "name": "pct_/tools/profilebuilder/bundle.js", "path": "dist/webresource/profilebuilder/bundle.js", "type": 3, "displayName": "Profile Builder - bundle.js" }
+      ]
     }
   }
 }

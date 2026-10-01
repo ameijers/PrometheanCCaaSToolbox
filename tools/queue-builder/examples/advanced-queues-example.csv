@@ -1,0 +1,6 @@
+queue_name,queue_type,assignment_method,priority,visibility,operating_hours,description,members
+Sales – NL,Voice,Least active,1,Private,Workdays,Dutch-speaking sales calls,anna@contoso.com|bram@contoso.com
+Sales – Priority customers,Voice,Highest capacity,1,,Workdays,,anna@contoso.com
+Support – Overflow,Voice,Advanced round robin,5,Public,24/7,,bram@contoso.com|chris@contoso.com|dana@contoso.com
+Support – Chat,Messaging,Highest capacity,2,,,,chris@contoso.com
+Case follow-up,Record,Advanced round robin,10,,,Cases waiting for a callback,
