@@ -1,0 +1,8 @@
+workstream_name,direction,work_distribution,capacity_format,capacity_profile,capacity_units,allowed_presences,default_queue,outbound_queue,notification,agent_affinity,restrict_recording_download,restrict_transcript_download,channel_name,phone_number,language,tts_voice,voice_style,voice_speed,voice_pitch,hold_music,wait_music,operating_hours,transcript_recording,transcript_recording_start,agent_transcription_controls,agent_recording_controls,request_recording_consent,stop_recording_on_hold,play_recording_notifications,show_transcript_by_default,pstn_transfer_controls,teams_transfer_controls
+Sales – Voice,Inbound,Push,Profile,,,Available|Busy,Sales Fallback,,Screen pop with timeout,,,,Sales – NL,+31201234567,nl-NL,nl-NL-FennaNeural,,,,Transform,Transform,Workdays,Transcript and Recording,Automatic,,,Yes,,,,,
+Sales – Voice,,,,,,,,,,,,,Sales – EN,,en-US,en-US-AvaMultilingualNeural,,,,Transform,Transform,Workdays,Transcript,,,,,,,,,
+Sales – Voice,,,,,,,,,,,,,Sales – BE,,nl-BE,nl-BE-DenaNeural,,,,Transform,Transform,Workdays,Transcript,,,,,,,,,
+Support – Voice,Inbound,,,,,,Support Fallback,,,Yes,,,Support line,+31201234568,en-GB,en-GB-SoniaNeural,,,,Anthem,Parallel,24/7,Transcript and Recording,Manual,Yes,Yes,,Yes,,,,
+Claims – Voice,Inbound,,Unit,,50,,Claims Fallback,,,,Yes,,Claims hotline,,de-DE,de-DE-KatjaNeural,,,,,,,None,,,,,,,,,
+Callbacks – Outbound,Outbound,,,,,,,Callbacks,,,,,Callbacks outbound,+18005550100,en-US,,,,,,,,Transcript,Automatic,,,,,,,,
+Escalations – Voice,Inbound,,,,,,Escalations,,,,,,,,,,,,,,,,,,,,,,,,,
