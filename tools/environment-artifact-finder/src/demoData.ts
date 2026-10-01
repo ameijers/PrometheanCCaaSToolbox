@@ -325,7 +325,7 @@ const TABLES: Record<string, DemoTable> = {
 // Two tables are deliberately unavailable, to show how the scan degrades.
 const UNAVAILABLE: Record<string, { status: AccessFailure; message: string }> = {
   msdyn_templateruleset: { status: "notFound", message: "Sample environment: this table doesn't exist here." },
-  msdyn_oclocalizationdata: { status: "noPermission", message: "Sample environment: no read permission on this table." }
+  msdyn_decisioncontract: { status: "noPermission", message: "Sample environment: no read permission on this table." }
 };
 
 export const demoSource: DataSource = {

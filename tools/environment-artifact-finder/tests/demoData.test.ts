@@ -41,7 +41,9 @@ describe("demo dataset", () => {
     const { coverage } = await demo();
     const status = (table: string) => coverage.find((c) => c.table === table)?.status;
     expect(status("msdyn_templateruleset")).toBe("notFound");
-    expect(status("msdyn_oclocalizationdata")).toBe("noPermission");
+    expect(status("msdyn_decisioncontract")).toBe("noPermission");
+    expect(status("msdyn_soundnotificationsetting")).toBe("disabled");
+    expect(status("msdyn_oclocalizationdata")).toBe("disabled");
     expect(status("msdyn_ocphonenumber")).toBe("disabled");
     expect(coverage.find((c) => c.table === "cts_servicenumber")?.inbound.some((e) => e.verification === "discovered")).toBe(true);
   });

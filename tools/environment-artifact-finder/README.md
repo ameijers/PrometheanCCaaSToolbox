@@ -126,7 +126,9 @@ No "last used" signal for saved views is available through Dataverse reads, so t
 | `queuemembership` (evidence only) | Verified | `queueid`, `systemuserid` | member counts |
 | `characteristic` | Verified | — | used by `bookableresourcecharacteristic` (`_characteristic_value`) and by id in rulesets |
 | `msdyn_capacityprofile` | Verified | — | used by `msdyn_bookableresourcecapacityprofile` (`_msdyn_capacityprofileid_value`); discovered |
-| `msdyn_decisioncontract`, `msdyn_templateruleset`, `msdyn_notificationtemplate`, `msdyn_soundnotificationsetting`, `msdyn_oclocalizationdata` | **Unverified** | — | discovered |
+| `msdyn_decisioncontract`, `msdyn_templateruleset`, `msdyn_notificationtemplate` | **Unverified** | — | discovered |
+| `msdyn_soundnotificationsetting` | **Disabled** | — | Not scanned, for the same reason as localization data: sound settings are applied at runtime from notification and presence configuration, not reached through a lookup column, so every row came out as a false High-confidence orphan. |
+| `msdyn_oclocalizationdata` | **Disabled** | — | Not scanned. Localization rows are looked up at runtime by language/locale settings, never through a lookup column, so the reference check reported every row as a High-confidence orphan in the first live scan. A useful check would be "no workstream or channel uses this locale", which needs schema that isn't known yet. |
 | `msdyn_assignmentconfiguration` | **Unverified** | — | discovered; `keptAliveBy: queue` |
 | `msdyn_assignmentconfigurationstep` | **Unverified** | — | discovered; `keptAliveBy: msdyn_assignmentconfiguration`; broken refs reported |
 | `msdyn_liveworkstreamcapacityprofile` | **Unverified** | — | discovered; `keptAliveBy: msdyn_liveworkstream`; broken refs reported |

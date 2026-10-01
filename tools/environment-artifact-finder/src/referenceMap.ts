@@ -90,13 +90,15 @@ export const TABLES: TableSpec[] = [
   },
   {
     logicalName: "msdyn_notificationtemplate", label: "Notification template", verification: "assumed", enabled: true, check: "generic",
-    expectedReferencers: ["msdyn_liveworkstream", "msdyn_omnichannelconfiguration", "msdyn_soundnotificationsetting"],
+    expectedReferencers: ["msdyn_liveworkstream", "msdyn_omnichannelconfiguration"],
     notes: "Referencing columns are discovered live."
   },
   {
-    logicalName: "msdyn_soundnotificationsetting", label: "Sound notification setting", verification: "assumed", enabled: true, check: "generic",
-    expectedReferencers: ["msdyn_liveworkstream"],
-    notes: "Referencing columns are discovered live."
+    // Disabled after the first live scan, same reason as msdyn_oclocalizationdata: sound settings are
+    // applied from notification/presence configuration at runtime, not reached through a lookup
+    // column, so the reference check flagged every row as a false High-confidence orphan.
+    logicalName: "msdyn_soundnotificationsetting", label: "Sound notification setting", verification: "assumed", enabled: false, check: "generic",
+    notes: "Disabled: applied at runtime from notification/presence configuration, not referenced by lookups, so the reference check flags every row. Don't re-enable it without a rule based on how the settings are actually selected."
   },
   {
     logicalName: "msdyn_omnichannelconfiguration", label: "Omnichannel configuration", verification: "assumed", enabled: true, check: "rule",
@@ -104,9 +106,12 @@ export const TABLES: TableSpec[] = [
     notes: "Near-singleton: rules.ts only reports extra (deactivated or older) records when more than one exists."
   },
   {
-    logicalName: "msdyn_oclocalizationdata", label: "Localization data", verification: "assumed", enabled: true, check: "generic",
-    expectedReferencers: ["msdyn_liveworkstream"],
-    notes: "Referencing columns are discovered live."
+    // Disabled after the first live scan: localization rows are looked up at runtime by language/
+    // locale settings, never by a lookup column, so "nothing references it" was true of every row and
+    // every row came out as a false High-confidence orphan. A reference check can't judge this table;
+    // a meaningful check would be "no workstream/channel uses this locale", which needs schema we don't have.
+    logicalName: "msdyn_oclocalizationdata", label: "Localization data", verification: "assumed", enabled: false, check: "generic",
+    notes: "Disabled: looked up at runtime by language/locale, not referenced by lookups, so the reference check flags every row. Don't re-enable it without a locale-based rule."
   },
 
   // --- Category A: voice channel ---------------------------------------------------------------

@@ -91,6 +91,16 @@ For the unverifiable tables, the tool doesn't hardcode any lookup column name. I
 - Reading relationship metadata through `fetch` to `/api/data/v9.2/EntityDefinitions(...)`. The same-origin session technique is the one Visual Routing Tester already uses live, but this specific endpoint hasn't been exercised live by this tool.
 - The open questions in "Step 0" above, especially whether chat/SMS channels should get an endpoint check.
 
+## Live findings
+
+**Round 1 (2026-09-28) — localization data disabled.** The first live scan against `academyexperiment` reported a large number of High-confidence "Nothing references it" findings on `msdyn_oclocalizationdata`. The operator pointed out they were all false: localization rows are never the target of a lookup column. The product finds the right row at runtime from the language/locale settings. For a table used like that, "no lookup points to it" is true of every row and says nothing about whether the row is used. Worse, because every *known* relationship was checked, the engine rated those findings High.
+
+The table is now `enabled: false` in `referenceMap.ts`, with the reason recorded next to it. It stays in the map so the decision is visible on the Coverage tab. A useful check would be locale-based ("no active workstream or channel uses this language"), and that needs schema that isn't known yet. The demo's "no permission" example moved to `msdyn_decisioncontract`.
+
+**Round 2 (2026-09-28) — sound notification settings disabled.** Same problem, reported by the operator: `msdyn_soundnotificationsetting` rows are applied from notification and presence configuration at runtime, not referenced through a lookup, so every row was a false High. The table is disabled the same way, and it was removed from `msdyn_notificationtemplate`'s expected referencers. Otherwise a disabled table would have lowered every notification-template finding to Medium for no real reason.
+
+Lesson for the remaining unverified tables: the reference check is only valid for tables whose records are *referenced*, not *looked up by key*. When reviewing the next live scan, treat any table where nearly every row is flagged High as a sign it may be keyed data, and check that before trusting it.
+
 ## Follow-up ideas
 
 - Queue conversation volume ("no work in the last N days"), once an aggregate over `msdyn_ocliveworkitem` by queue is verified live.
