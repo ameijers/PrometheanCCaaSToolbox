@@ -55,8 +55,8 @@ The platform's own `msdyn_CreateQueue` custom API describes its assignment param
 ## Not yet verified
 
 - **Nothing has been written to a live environment yet.** See open questions 1 and 2 for the first live run.
-- Not deployed yet: `pwsh ./scripts/deploy.ps1 -Tool queuebuilder -CreateIfMissing`.
+- Deployed to `academyexperiment`; in the packaged solution from 1.0.0.4.
 
 ## Site Map subarea
 
-Title `Queue Builder`, Type Web Resource, `pct_/tools/queuebuilder/index.html` (stored as `$webresource:pct_/tools/queuebuilder/index.html`). Put it with the other creation and provisioning tools.
+Included in the packaged solution from **1.0.0.4** onward: importing `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_4.zip` (or later) brings the **Queue Builder** subarea in the app's **Creation** group. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/queuebuilder/index.html` (stored as `$webresource:pct_/tools/queuebuilder/index.html`). See the [toolbox README](../../Readme.md#site-map-subareas).

@@ -111,19 +111,7 @@ Lesson for the remaining unverified tables: the reference check is only valid fo
 
 ## Site Map subarea
 
-Not created by the deploy script, and not yet in the packaged solution (`PrometheanCCaaSToolbox_1_0_0_3.zip`). After `deploy.ps1 -Tool artifactfinder -CreateIfMissing` has created the three web resources:
-
-1. In the maker portal ([make.powerapps.com](https://make.powerapps.com)), open the **PrometheanCCaaSToolbox** solution.
-2. Open the **Promethean CCaaS Toolbox** app's Site Map in the Site Map designer (App → Site map → Edit).
-3. In the existing **Tools** group, add a new **Subarea**:
-   - **Title:** `Environment Artifact Finder`
-   - **Type:** Web Resource
-   - **Web Resource:** `pct_/tools/artifactfinder/index.html`
-   - Keep Client/Availability/Sku the same as the existing subareas (all clients, available offline).
-4. Save and publish the Site Map, then publish the app.
-5. Open the app and confirm the new subarea loads `pct_/tools/artifactfinder/index.html`.
-
-Re-export the solution afterwards if the packaged zip in `power_platform_solution/` should include this tool.
+Included in the packaged solution from **1.0.0.4** onward: importing `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_4.zip` (or later) brings the **Environment Artifact Finder** subarea in the app's **Tools** group. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/artifactfinder/index.html` (stored as `$webresource:pct_/tools/artifactfinder/index.html`). See the [toolbox README](../../Readme.md#site-map-subareas).
 
 ## Build & test locally
 

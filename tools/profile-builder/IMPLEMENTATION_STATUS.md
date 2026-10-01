@@ -39,4 +39,4 @@ So an outbound profile is exactly the record set Voice Workstream Builder create
 
 ## Not yet verified
 
-- Nothing created live yet (open question 2). Not deployed yet: `pwsh ./scripts/deploy.ps1 -Tool profilebuilder -CreateIfMissing`.
+- Nothing created live yet (open question 2). Deployed to `academyexperiment` and in the packaged solution from 1.0.0.4 (Site Map: **Creation → Outbound Profile Builder**).

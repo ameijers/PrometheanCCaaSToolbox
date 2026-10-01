@@ -44,4 +44,4 @@ Part of the [Promethean CCaaS Toolbox](../../Readme.md); see [README.md](README.
 
 ## Site Map subarea
 
-As for Voice Workstream Builder: Title `Recording & Transcription Provisioner`, Web Resource `pct_/tools/recordingprovisioner/index.html`, ideally in a "Create & provision" group shared only with admin roles.
+Included in the packaged solution from **1.0.0.4** onward: importing `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_4.zip` (or later) brings the **Recording & Transcription** subarea in the app's **Provisioning** group. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/recordingprovisioner/index.html` (stored as `$webresource:pct_/tools/recordingprovisioner/index.html`). See the [toolbox README](../../Readme.md#site-map-subareas).

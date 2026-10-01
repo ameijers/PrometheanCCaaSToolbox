@@ -76,4 +76,4 @@ pwsh ./scripts/deploy.ps1 -Tool queuebuilder -CreateIfMissing   # first time
 pwsh ./scripts/deploy.ps1 -Tool queuebuilder                    # afterwards
 ```
 
-Web resources: `pct_/tools/queuebuilder/{index.html,style.css,bundle.js}`. Site Map subarea: Type Web Resource, `pct_/tools/queuebuilder/index.html` (stored as `$webresource:pct_/tools/queuebuilder/index.html`).
+Web resources: `pct_/tools/queuebuilder/{index.html,style.css,bundle.js}`. In the packaged solution from 1.0.0.4 (Site Map group **Creation**). Site Map subarea: Type Web Resource, `pct_/tools/queuebuilder/index.html` (stored as `$webresource:pct_/tools/queuebuilder/index.html`).

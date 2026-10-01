@@ -24,8 +24,8 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 | --- | --- | --- |
 | [Voice Workstream Builder](tools/voice-workstream-builder/README.md) | Creates voice workstreams and their voice channels in bulk from a CSV file (one row per channel, so a workstream can have several). A channel can be created without a phone number, to be assigned later. | Creates only: `msdyn_liveworkstream`, `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoice`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes. |
 | [Queue Builder](tools/queue-builder/README.md) | Creates advanced (unified routing) queues in bulk from a CSV file: type, assignment method, priority, visibility, operating hours and members. | Creates only: `queue` (advanced queues), and adds members through `queuemembership_association`. Never updates or deletes. |
-| [Profile Builder](tools/profile-builder/README.md) | Creates **outbound** profiles in bulk from a CSV file: name, phone number (required), outbound queue, caller ID and behaviors. Inbound profiles aren't supported yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_liveworkstream` (outbound), `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes, and never changes the default profile. |
-| [Recording & Transcription Provisioner](tools/voice-recording-provisioner/README.md) | Sets transcript and recording on a selection of voice channels at once — None, Transcript, or Transcript and Recording — with a per-channel preview, a read-back check afterwards, and a one-click revert. | Updates only the recording/transcription columns of `msdyn_ocvoicechannelsetting`. Never creates or deletes. |
+| [Profile Builder](tools/profile-builder/README.md) (*Outbound Profile Builder* in the app) | Creates **outbound** profiles in bulk from a CSV file: name, phone number (required), outbound queue, caller ID and behaviors. Inbound profiles aren't supported yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_liveworkstream` (outbound), `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes, and never changes the default profile. |
+| [Recording & Transcription Provisioner](tools/voice-recording-provisioner/README.md) (*Recording & Transcription* in the app) | Sets transcript and recording on a selection of voice channels at once — None, Transcript, or Transcript and Recording — with a per-channel preview, a read-back check afterwards, and a one-click revert. | Updates only the recording/transcription columns of `msdyn_ocvoicechannelsetting`. Never creates or deletes. |
 
 <table>
 <tr>
@@ -71,9 +71,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_3.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_3.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_4.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_4.zip)
 >
-> **This version contains the first three tools only:** Visual Routing Tester, Context Variable Monitor and Agent Readiness Checker. The other tools are deployed from this repo with `deploy.ps1` (Option B) on top of the imported solution, and added to the Site Map (see [Site Map subareas](#site-map-subareas)).
+> **Version 1.0.0.4 contains all eight tools**, already in the app's Site Map in three groups: **Tools** (the four diagnostic tools), **Creation** (Voice Workstream Builder, Queue Builder, Outbound Profile Builder) and **Provisioning** (Recording & Transcription). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -83,14 +83,14 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_3.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_4.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
 
 ### Option B — Build and deploy each tool yourself from this repo
 
-See [Deployment](#deployment) below. Every tool can be deployed this way, including the ones not in the solution zip.
+See [Deployment](#deployment) below. Use this to deploy a newer build of a tool than the one in the solution zip, or to a solution of your own.
 
 ### Required setup after import
 
@@ -98,24 +98,24 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 1. **Share the app with security roles.** The "Promethean CCaaS Toolbox" model-driven app is shared with specific security roles from the environment it was exported from; those role IDs won't exist in your environment, so by default **no one will see the app in the app picker**. In the maker portal, go to **Apps**, select **Promethean CCaaS Toolbox**, choose **Share**, and add whichever security roles/users in your environment should have access. This step is required in every new target environment, regardless of import method.
 2. **Confirm Dynamics 365 Contact Center (unified routing) is provisioned, and that users have read access to it.** The diagnostic tools read live routing/call/agent/configuration data (`msdyn_liveworkstream`, `msdyn_ocliveworkitem`, `msdyn_ocliveworkitemcontextitemelastic`, `queuemembership`, and related tables — see each tool's own README for its full table list) at runtime — this isn't checked at solution-import time, so import will succeed even in an environment without Contact Center, but the tools will show empty/unverifiable data instead of real results. The toolbox doesn't ship its own security role; users need read privileges on those tables through whatever routing/queue-admin role your environment already uses.
-3. **Limit the creation and provisioning tools to administrators.** They're meant for **system administrators** (or roles with create/write privileges on the tables in the [Writes](#creation-and-provisioning-tools) column). Dataverse enforces the user's own privileges on every write, but it's clearer to put these tools in their own Site Map group (e.g. "Create & provision") and only show it to admin roles.
+3. **Limit the creation and provisioning tools to administrators.** They're meant for **system administrators** (or roles with create/write privileges on the tables in the [Writes](#creation-and-provisioning-tools) column). Dataverse enforces the user's own privileges on every write; the Site Map already keeps them apart in the **Creation** and **Provisioning** groups, so you can hide those groups from non-admin roles.
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`.
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.4 already has all of them, in the app's **CCaaS Toolbox** area:
 
-| Tool | Web resource | In solution zip 1.0.0.3 |
+| Group | Subarea title | Web resource |
 | --- | --- | --- |
-| Visual Routing Tester | `pct_/tools/routingtester/index.html` | Yes |
-| Context Variable Monitor | `pct_/tools/contextvariablemonitor/index.html` | Yes |
-| Agent Readiness Checker | `pct_/tools/agentreadiness/index.html` | Yes |
-| Environment Artifact Finder | `pct_/tools/artifactfinder/index.html` | No — deploy with `deploy.ps1` |
-| Voice Workstream Builder | `pct_/tools/voicebuilder/index.html` | No — deploy with `deploy.ps1` |
-| Queue Builder | `pct_/tools/queuebuilder/index.html` | No — deploy with `deploy.ps1` |
-| Profile Builder | `pct_/tools/profilebuilder/index.html` | No — deploy with `deploy.ps1` |
-| Recording & Transcription Provisioner | `pct_/tools/recordingprovisioner/index.html` | No — deploy with `deploy.ps1` |
+| Tools | Visual Routing Tester | `pct_/tools/routingtester/index.html` |
+| Tools | Context Variable Monitor | `pct_/tools/contextvariablemonitor/index.html` |
+| Tools | Agent Readiness Checker | `pct_/tools/agentreadiness/index.html` |
+| Tools | Environment Artifact Finder | `pct_/tools/artifactfinder/index.html` |
+| Creation | Voice Workstream Builder | `pct_/tools/voicebuilder/index.html` |
+| Creation | Queue Builder | `pct_/tools/queuebuilder/index.html` |
+| Creation | Outbound Profile Builder | `pct_/tools/profilebuilder/index.html` |
+| Provisioning | Recording & Transcription | `pct_/tools/recordingprovisioner/index.html` |
 
-Until a subarea exists, a deployed tool can be opened inside the app with `https://<org>.crm.dynamics.com/main.aspx?appid=<app id>&pagetype=webresource&webresourceName=<web resource>`. Open it inside the app, not as a bare web resource URL: outside the app the tool can't reach Dataverse and shows its sample data instead (the topbar says which one you're looking at).
+When you add a tool to an environment yourself, add a subarea the same way. Until it exists, a deployed tool can be opened inside the app with `https://<org>.crm.dynamics.com/main.aspx?appid=<app id>&pagetype=webresource&webresourceName=<web resource>`. Open it inside the app, not as a bare web resource URL: outside the app the tool can't reach Dataverse and shows its sample data instead (the topbar says which one you're looking at).
 
 ## Architecture
 
@@ -188,7 +188,7 @@ pwsh ./scripts/deploy.ps1 -Tool <toolkey>
 
 The script builds the project, stages non-webpack files, stamps a fresh cache-busting version automatically, looks up each web resource by name in the target environment (never hardcoding a GUID), updates its content, publishes, and verifies the result by reading the live content back. Requires the Azure CLI (`az`) to be logged in with access to the target environment. Add `-CreateIfMissing` the first time a new tool's web resources don't exist yet in the target environment (this also adds each newly-created web resource to the solution named by `solutionUniqueName`). After a first deploy, add the tool's [Site Map subarea](#site-map-subareas).
 
-The script only deploys the tools' own web resources; it never touches Contact Center configuration.
+The script only deploys the tools' own web resources; it never touches Contact Center configuration, and it doesn't change the Site Map — add a subarea for a tool that's new to an environment (see [Site Map subareas](#site-map-subareas)). To refresh the solution zip in `power_platform_solution/`, export the solution from the environment after deploying.
 
 ```powershell
 # First deploy of a tool into an environment where its web resources don't exist yet:

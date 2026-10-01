@@ -116,4 +116,4 @@ pwsh ./scripts/deploy.ps1 -Tool voicebuilder -CreateIfMissing   # first time
 pwsh ./scripts/deploy.ps1 -Tool voicebuilder                    # afterwards
 ```
 
-Web resources: `pct_/tools/voicebuilder/{index.html,style.css,bundle.js}`. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md#site-map-subarea) for adding the Site Map subarea.
+Web resources: `pct_/tools/voicebuilder/{index.html,style.css,bundle.js}`. In the packaged solution from 1.0.0.4 (Site Map group **Creation**); see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md#site-map-subarea) for adding the Site Map subarea.
