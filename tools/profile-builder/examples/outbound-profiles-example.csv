@@ -1,0 +1,5 @@
+profile_name,profile_type,phone_number,outbound_queue,caller_id_number,caller_id_name,anonymous_caller_id,capacity_profile,allowed_presences,language,hold_music,wait_music,transcript_recording,transcript_recording_start,agent_transcription_controls,agent_recording_controls,request_recording_consent,stop_recording_on_hold,play_recording_notifications,show_transcript_by_default,pstn_transfer_controls,teams_transfer_controls
+Sales – Outbound,Outbound,+31201234567,Sales Fallback,,Contoso Sales,,,,nl-NL,Transform,Transform,Transcript and Recording,Automatic,,,Yes,,,,,
+Callbacks – Outbound,Outbound,+18005550100,Callbacks,,,,,,en-US,,,Transcript,,,,,,,,,
+Support – Outbound,,+31201234568,Support Fallback,+31201234567,,,,,en-GB,Anthem,Anthem,Transcript and Recording,Manual,,,,Yes,,,,
+Escalations – Outbound (hidden number),,+31201234568,Escalations,,,Yes,Escalation profile,Available|Busy|Busy - DND,,,,,,,,,,,,,
