@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // The one interface the scan reads through. dataverse.ts implements it over Xrm.WebApi (live);
 // demoData.ts implements it over bundled sample data. Nothing else in the tool knows which one it
 // has — demo mode runs exactly the same scan, discovery and analysis code as a live environment.

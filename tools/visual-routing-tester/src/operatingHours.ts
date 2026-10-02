@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { OperatingHoursRule } from "./model";
 
 // `localTime`'s UTC-getters must already represent the queue's own local wall-clock time (obtained

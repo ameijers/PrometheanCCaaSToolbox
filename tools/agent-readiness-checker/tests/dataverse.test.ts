@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { loadAgentRoster, loadAllRoles, loadCurrentUserDomain } from "../src/dataverse";
 
 // Minimal mock of the subset of Xrm.WebApi.retrieveMultipleRecords this tool actually calls,

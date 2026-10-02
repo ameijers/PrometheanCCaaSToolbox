@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { simulate, validateValues } from "../src/evaluator";
 import { Queue, RoutingModel, Workstream } from "../src/model";
 

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import * as fs from "fs";
 import * as path from "path";
 import { CREATABLE_TABLES } from "../src/dataSource";

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { DISCLAIMER } from "../src/analyze";
 import { findingsToCsv, findingsToMarkdown } from "../src/export";
 import { CHECKS, Finding } from "../src/model";

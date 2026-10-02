@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { AccessFailure, DataSource, DescribeResult, ReadRequest, ReadResult } from "./dataSource";
 
 // A hand-authored sample environment ("Contoso Contact Center"), served through the same DataSource

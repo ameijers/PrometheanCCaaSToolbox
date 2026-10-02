@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 export interface User { id: string; fullName: string; signIn: string; email?: string; disabled: boolean; interactive: boolean; businessUnitName: string; }
 
 // An active skill assignment on a bookable resource (bookableresourcecharacteristic).

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { variableType, parseDisplayValue } from "./contextValues";
 import { CapturedValue, ContextVariableDefinition, WorkItemSummary, Workstream } from "./model";
 

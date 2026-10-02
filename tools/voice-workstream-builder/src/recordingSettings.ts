@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // Recording and transcription settings of a voice channel (msdyn_ocvoicechannelsetting). Shared by
 // Voice Workstream Builder (settings for new channels) and Recording & Transcription Provisioner
 // (bulk changes to existing ones), so both tools write exactly the same columns the same way.

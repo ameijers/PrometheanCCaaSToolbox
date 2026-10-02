@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 export interface ParsedCondition {
   operator: string;
   lhs: string;

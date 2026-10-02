@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { toCsv } from "./csv";
 import { Issue, WorkstreamResult } from "./model";
 import { RUN_HEADERS, RunInfo, logTime, runColumns } from "./runLog";

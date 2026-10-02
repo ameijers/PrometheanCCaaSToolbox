@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { SCAN_SETTINGS } from "./config";
 import { CHECKS, CheckId, Finding, RecordRow, Snapshot, normalizeId } from "./model";
 import { tableLabel } from "./referenceMap";

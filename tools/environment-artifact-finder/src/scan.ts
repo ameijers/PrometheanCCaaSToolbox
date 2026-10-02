@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { SCAN_SETTINGS } from "./config";
 import { DataAccessError, DataSource, DescribeResult, TableMetadata } from "./dataSource";
 import { EdgeSpec, RecordRow, Snapshot, TableData, TableSpec, isActive, lookupValueKey, normalizeId } from "./model";

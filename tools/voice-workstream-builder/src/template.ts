@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { toCsv } from "./csv";
 import { CAPACITY_FORMAT, DIRECTIONS, NOTIFICATION, PRESENCES, WORK_DISTRIBUTION } from "./voiceSchema";
 

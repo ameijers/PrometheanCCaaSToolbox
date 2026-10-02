@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { BuilderSource, CreatableTable } from "./dataSource";
 import { ResolvedPlan, ResolvedWorkstream, StepResult, WorkstreamOutcome, WorkstreamResult } from "./model";
 import { capacityLinkPayload, channelPayload, languageSettingPayload, ttsVoicePayload, workstreamPayload } from "./payload";

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { dataverseSource, recordUrl } from "../src/dataverse";
 
 function installXrm(rows: Record<string, Record<string, unknown>[]>) {

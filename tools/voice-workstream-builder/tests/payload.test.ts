@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ResolvedChannel, ResolvedWorkstream } from "../src/model";
 import { capacityLinkPayload, channelPayload, languageSettingPayload, ttsVoicePayload, workstreamPayload } from "../src/payload";
 import { DEFAULT_RECORDING_SETTINGS, readRecordingSettings, recordingColumns } from "../src/recordingSettings";

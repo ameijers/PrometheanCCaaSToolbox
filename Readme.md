@@ -284,3 +284,5 @@ Adding a new tool to the toolbox means: a new `tools/<toolname>/` folder followi
 ## License
 
 [MIT](LICENSE) © Alexander Meijers. Free to use, modify, and redistribute — the copyright notice and license text must stay in every copy.
+
+Every code file (`.ts`, `.tsx`, `.js`, `.cjs`, `.css`, `.html`, `.ps1`) starts with the notice `Copyright (c) 2026 Alexander Meijers` and `SPDX-License-Identifier: MIT`; add it to new files too.

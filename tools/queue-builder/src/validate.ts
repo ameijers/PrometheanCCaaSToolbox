@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ParsedCsv } from "../../voice-workstream-builder/src/csv";
 import { Issue, ParsedPlan, QueueSpec } from "./model";
 import { AssignmentMethod, QueueType, Visibility } from "./queueSchema";

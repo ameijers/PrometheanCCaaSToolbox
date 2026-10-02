@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { isWithinOperatingHours } from "../src/operatingHours";
 import { OperatingHoursRule } from "../src/model";
 

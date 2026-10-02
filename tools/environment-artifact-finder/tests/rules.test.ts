@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { analyze } from "../src/analyze";
 import { buildGraph } from "../src/engine";
 import { CURATED_EDGES } from "../src/referenceMap";

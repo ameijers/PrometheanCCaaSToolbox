@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { Condition, ContextVariable, EnrichmentRule, Outcome, OverflowRule, Queue, QueueRoutingRule, QueueRoutingTarget, RoutingModel, SimulationResult, TraceStep, Workstream } from "./model";
 
 const MAX_QUEUE_TRANSFERS = 5;

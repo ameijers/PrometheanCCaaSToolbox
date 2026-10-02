@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 Alexander Meijers. SPDX-License-Identifier: MIT */
+
 :root { font-family: Manrope, sans-serif; color: #172a36; background: #f5f8f7; font-size: 14px; }
 * { box-sizing: border-box; } body { margin: 0; } button, input, select { font: inherit; } button { cursor: pointer; }
 code { font: 12px 'DM Mono', monospace; color: #24565b; background: #eaf2f0; padding: 1px 4px; border-radius: 2px; }

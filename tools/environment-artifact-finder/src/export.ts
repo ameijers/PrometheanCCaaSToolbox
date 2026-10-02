@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { DISCLAIMER } from "./analyze";
 import { CHECK_TYPE_LABELS, CONFIDENCE_LABELS, Finding } from "./model";
 import { tableLabel } from "./referenceMap";

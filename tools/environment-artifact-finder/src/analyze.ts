@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ReferenceGraph, brokenReferenceFindings, buildGraph, inboundEdges, structuralCoverage, structuralFindings } from "./engine";
 import { housekeepingFindings } from "./housekeeping";
 import { CONFIDENCE_ORDER, EdgeSpec, Finding, Snapshot, TableCheckMode, TableStatus, Verification, recordKey } from "./model";

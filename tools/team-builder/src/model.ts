@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 export interface BusinessUnit { id: string; name: string; parentId?: string; disabled: boolean; }
 export interface User { id: string; fullName: string; signIn: string; email?: string; disabled: boolean; interactive: boolean; }
 export interface Role { id: string; name: string; businessUnitId: string; }

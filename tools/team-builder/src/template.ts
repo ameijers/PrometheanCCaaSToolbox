@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ColumnDef, emptyCsvFrom, exampleCsvFrom } from "../../shared/src/columns";
 import { MEMBERSHIP_TYPES, TEAM_TYPES } from "./model";
 

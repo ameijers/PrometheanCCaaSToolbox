@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ParsedCsv } from "../../voice-workstream-builder/src/csv";
 import { Catalog, ChannelSpec, Issue, ParsedPlan, ResolvedPlan, WorkstreamSpec } from "../../voice-workstream-builder/src/model";
 import { Capture, StartMode } from "../../voice-workstream-builder/src/recordingSettings";

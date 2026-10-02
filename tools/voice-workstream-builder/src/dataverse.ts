@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { BuilderSource, CREATABLE_TABLES, CreatableTable } from "./dataSource";
 import { normalizePhoneNumber } from "./validate";
 import { Catalog } from "./model";

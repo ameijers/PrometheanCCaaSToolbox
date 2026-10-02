@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ParsedCsv } from "./csv";
 import { ChannelSpec, Issue, ParsedPlan, WorkstreamSpec } from "./model";
 import { Capture, StartMode, WritableSettings } from "./recordingSettings";

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { Catalog, Issue, ParsedPlan, ResolvedPlan, ResolvedQueue, UserRecord } from "./model";
 
 // Matches every name in the parsed CSV to what the environment holds: operating hours by name, members

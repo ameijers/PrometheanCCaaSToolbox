@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // Tunables for the checks. Kept separate from referenceMap.ts (which describes the schema) so an
 // administrator adapting the tool to their environment has one small file of "policy" to review.
 export const SCAN_SETTINGS = {

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import {
   CAPTURE_LABELS, RECORDING_FIELDS, RECORDING_FIELD_LABELS, RecordingField, RecordingSettings, START_LABELS
 } from "../../voice-workstream-builder/src/recordingSettings";

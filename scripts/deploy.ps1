@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Alexander Meijers
+# SPDX-License-Identifier: MIT
+
 <#
 .SYNOPSIS
   Deploys one Promethean CCaaS Toolbox tool's web resources to a Dataverse environment.

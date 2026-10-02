@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { Catalog } from "./model";
 import { TableKey } from "./voiceSchema";
 

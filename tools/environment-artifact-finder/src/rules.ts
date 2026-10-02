@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // Reuses Visual Routing Tester's live-verified decision-XML parser (a read-only import of a pure
 // function, same as Agent Readiness Checker does) rather than re-deriving the rule format.
 import { parseDecisionXml } from "../../visual-routing-tester/src/ruleXml";

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { parseCsv } from "../src/csv";
 import { templateCsv } from "../src/template";
 import { normalizePhoneNumber, validateCsv } from "../src/validate";

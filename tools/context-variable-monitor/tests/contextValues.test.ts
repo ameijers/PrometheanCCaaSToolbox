@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { buildSnapshot, parseDisplayValue, variableType } from "../src/contextValues";
 import { CapturedValue, ContextVariableDefinition } from "../src/model";
 

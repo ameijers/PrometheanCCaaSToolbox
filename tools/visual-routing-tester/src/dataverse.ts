@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { Condition, ContextVariable, EnrichmentRule, OperatingHoursRule, Outcome, OverflowRule, Queue, QueueRoutingRule, QueueRoutingTarget, RoutingModel, Workstream } from "./model";
 import { ParsedCondition, ParsedDecision, ParsedRule, parseDecisionXml } from "./ruleXml";
 

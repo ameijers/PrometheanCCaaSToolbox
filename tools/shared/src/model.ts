@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // The model shared by the row-based provisioning tools (Team Builder, User Setup, Queue Membership).
 // Each CSV row becomes a PlanItem with a list of actions. An action that's already in place is
 // "noChange" and is never written; the rest run in order, and an action whose dependency failed or was

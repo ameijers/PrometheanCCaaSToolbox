@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { parseCsv } from "../src/csv";
 import { BuilderSource, CreatableTable } from "../src/dataSource";
 import { executePlan } from "../src/execute";

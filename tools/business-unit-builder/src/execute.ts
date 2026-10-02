@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { PARENT_NAV, UNIT_ENTITY_SET, UnitSource } from "./dataSource";
 import { Plan, PlannedUnit, UnitResult } from "./model";
 import { parentLabel } from "./plan";

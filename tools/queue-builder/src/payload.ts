@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ResolvedQueue } from "./model";
 import { ASSIGNMENT_METHODS, OPERATING_HOURS_NAV, QUEUE_TYPES, VISIBILITY } from "./queueSchema";
 

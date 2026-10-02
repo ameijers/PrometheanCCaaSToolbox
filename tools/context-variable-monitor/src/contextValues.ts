@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { CapturedValue, ContextVariableDefinition, ContextVariableType, MonitorSnapshot } from "./model";
 
 // msdyn_ocliveworkstreamcontextvariable.msdyn_datatype: 192350000 Text, 192350001 Number,

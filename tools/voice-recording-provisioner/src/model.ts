@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { Capture, RecordingField, RecordingSettings, WritableSettings } from "../../voice-workstream-builder/src/recordingSettings";
 
 export type Direction = "Inbound" | "Outbound" | "Other";

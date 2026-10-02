@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // Every table, column, relationship and option value this tool writes, read from the live
 // academyexperiment environment's metadata and from the advanced queues the admin center created
 // there (see IMPLEMENTATION_STATUS.md, "Step 0"). Nothing here is guessed.
