@@ -16,7 +16,8 @@ module.exports = {
     businessunitbuilder: "./tools/business-unit-builder/webresource/index.tsx",
     teambuilder: "./tools/team-builder/webresource/index.tsx",
     usersetup: "./tools/user-setup/webresource/index.tsx",
-    queuemembership: "./tools/queue-membership/webresource/index.tsx"
+    queuemembership: "./tools/queue-membership/webresource/index.tsx",
+    skillassignment: "./tools/skill-assignment/webresource/index.tsx"
   },
   output: {
     path: path.resolve(__dirname, "dist/webresource"),

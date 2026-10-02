@@ -175,3 +175,28 @@ h2, h3, p { margin-top: 0; }
   .action-list li { grid-template-columns: 70px 1fr; } .action-target { grid-column: 2; }
   .next-steps { margin: 0 12px 12px; }
 }
+
+/* Second way in (selection) next to the CSV upload */
+.mode-tabs { max-width: 1520px; margin: 18px auto 0; display: flex; gap: 4px; border-bottom: 1px solid #dce8e5; }
+.mode-tabs .tab { border: 1px solid transparent; border-bottom: 0; background: transparent; padding: 9px 16px; color: #567273; font-weight: 700; font-size: 12px; border-radius: 3px 3px 0 0; margin-bottom: -1px; }
+.mode-tabs .tab.active { background: #fff; border-color: #dce8e5; color: #123d43; }
+@media (max-width: 760px) { .mode-tabs { margin: 12px 12px 0; overflow-x: auto; } }
+.pick-count { font: 600 11px 'DM Mono', monospace; color: #17766c; white-space: nowrap; }
+.pick-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 10px; }
+.pick-search { flex: 1 1 200px; min-width: 0; padding: 8px 10px; border: 1px solid #cfe0dc; font: inherit; font-size: 12px; background: #fff; }
+.pick-list { margin: 0; padding: 0; list-style: none; max-height: 460px; overflow-y: auto; border: 1px solid #e3ece9; }
+.pick-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-top: 1px solid #f0f4f2; }
+.pick-list li:first-child { border-top: 0; }
+.pick-list li.selected { background: #eef7f4; }
+.pick-list li.disabled { color: #9aaeae; }
+.pick-list label { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; cursor: pointer; }
+.pick-list li.disabled label { cursor: not-allowed; }
+.pick-list input[type=checkbox] { margin-top: 2px; accent-color: #17766c; }
+.pick-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 12.5px; overflow-wrap: anywhere; }
+.pick-main small { font-size: 11px; color: #607b7c; }
+.pick-list li.disabled .pick-main small { color: #9aaeae; }
+.pick-current { font-style: italic; }
+.pick-rating { padding: 5px 6px; border: 1px solid #cfe0dc; font: inherit; font-size: 12px; background: #fff; max-width: 50%; }
+.pick-empty { color: #7c9696; font-size: 12px; justify-content: center !important; }
+.pick-footer { max-width: 1520px; margin: 0 auto 18px; display: flex; justify-content: flex-end; align-items: center; gap: 14px; }
+@media (max-width: 760px) { .pick-footer { margin: 0 12px 12px; flex-wrap: wrap; } }

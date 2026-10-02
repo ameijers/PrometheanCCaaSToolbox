@@ -6,9 +6,11 @@ import { ColumnDef } from "./columns";
 import { Issue, ItemResult, Plan, actionCounts, errorCount } from "./model";
 import { RunProgress, issuesToCsv, runLogCsv, runPlan } from "./runner";
 
-// The page shared by Team Builder, User Setup and Queue Membership: Upload CSV → Review (every row's
-// actions, marked "will do" or "already in place") → Run → results and log. Each tool supplies its
-// columns, example, how to read the environment and how to turn rows into actions.
+// The page shared by the onboarding tools: Upload CSV → Review (every row's actions, marked "will do" or
+// "already in place") → Run → results and log. Each tool supplies its columns, example, how to read the
+// environment and how to turn rows into actions. A tool can also offer a second way in next to the CSV
+// upload — picking from lists in the page (config.selection) — which produces the same kind of plan and
+// goes through the same review, run and log.
 
 export interface ToolSource<C> {
   mode: "live" | "demo";
@@ -38,7 +40,16 @@ export interface ToolConfig<C> {
   // The table an action writes to, so a result can link to the record.
   tableOf(actionKey: string): string | undefined;
   nextSteps?: string;
+  selection?: SelectionInput<C>;
 }
+
+export interface SelectionInput<C> {
+  tabLabel: string;          // e.g. "Select users and skills"
+  // Renders the selection page for the loaded catalog; calls onReview with the plan it built.
+  component: React.ComponentType<{ catalog: C; onReview: (plan: Plan) => void }>;
+}
+
+type InputMode = "file" | "selection";
 
 type Step = "upload" | "review" | "run";
 const STEPS: Step[] = ["upload", "review", "run"];
@@ -59,7 +70,35 @@ export function ProvisioningApp<C>({ config }: { config: ToolConfig<C> }): React
   const [progress, setProgress] = useState<RunProgress | undefined>(undefined);
   const [results, setResults] = useState<ItemResult[] | undefined>(undefined);
   const [run, setRun] = useState<RunInfo | undefined>(undefined);
+  const [mode, setMode] = useState<InputMode>("file");
+  const [catalog, setCatalog] = useState<C | undefined>(undefined);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  async function openSelection() {
+    setMode("selection");
+    if (catalog) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      setCatalog(await source.loadCatalog());
+    } catch (error) {
+      setMessage(`Couldn't read the environment: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reloadSelection() {
+    setBusy(true);
+    try { setCatalog(await source.loadCatalog()); } catch { setCatalog(undefined); } finally { setBusy(false); }
+  }
+
+  function reviewSelection(selectionPlan: Plan) {
+    setPlan(selectionPlan);
+    setFileName("your selection");
+    setConfirming(false);
+    setStep("review");
+  }
 
   async function loadFile(file: File) {
     setBusy(true);
@@ -91,6 +130,8 @@ export function ProvisioningApp<C>({ config }: { config: ToolConfig<C> }): React
 
   function startOver() {
     setStep("upload");
+    setCatalog(undefined);
+    if (mode === "selection") void reloadSelection();
     setPlan(undefined);
     setResults(undefined);
     setRun(undefined);
@@ -116,13 +157,21 @@ export function ProvisioningApp<C>({ config }: { config: ToolConfig<C> }): React
 
     <ol className="stepper">
       {STEPS.map((s, i) => <li key={s} className={s === step ? "active" : (STEPS.indexOf(step) > i ? "done" : "")}>
-        <span className="step-number">{i + 1}</span>{s === "upload" ? "Upload CSV" : s === "review" ? "Review plan" : config.runVerb}
+        <span className="step-number">{i + 1}</span>{s === "upload" ? (mode === "selection" ? "Select" : "Upload CSV") : s === "review" ? "Review plan" : config.runVerb}
       </li>)}
     </ol>
 
-    {step === "upload" && <UploadStep config={config} busy={busy} fileInput={fileInput} onFile={loadFile} />}
+    {step === "upload" && config.selection && <div className="mode-tabs" role="tablist">
+      <button role="tab" aria-selected={mode === "file"} className={`tab ${mode === "file" ? "active" : ""}`} onClick={() => setMode("file")}>From a CSV file</button>
+      <button role="tab" aria-selected={mode === "selection"} className={`tab ${mode === "selection" ? "active" : ""}`} onClick={() => void openSelection()}>{config.selection.tabLabel}</button>
+    </div>}
+    {step === "upload" && mode === "file" && <UploadStep config={config} busy={busy} fileInput={fileInput} onFile={loadFile} />}
+    {/* Stays mounted (hidden) during review, so "Change selection" comes back to the same choices. */}
+    {step !== "run" && mode === "selection" && config.selection && <div hidden={step !== "upload"}>{catalog
+      ? <config.selection.component catalog={catalog} onReview={reviewSelection} />
+      : <section className="panel progress-panel"><p className="muted">{busy ? "Reading the environment…" : "Couldn't load the lists."}</p></section>}</div>}
     {step === "review" && plan && <ReviewStep config={config} plan={plan} fileName={fileName} environment={environment} confirming={confirming} live={live}
-      onReplace={() => fileInput.current?.click()} onBack={startOver} onRun={() => setConfirming(true)} onCancel={() => setConfirming(false)} onConfirm={startRun} />}
+      fromSelection={mode === "selection"} onReplace={() => (mode === "selection" ? setStep("upload") : fileInput.current?.click())} onBack={startOver} onRun={() => setConfirming(true)} onCancel={() => setConfirming(false)} onConfirm={startRun} />}
     <input ref={fileInput} type="file" accept=".csv,text/csv,text/plain" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void loadFile(f); }} />
     {step === "run" && <RunStep config={config} progress={progress} results={results} run={run} issues={plan?.issues ?? []} environment={environment} onStartOver={startOver} />}
   </main>;
@@ -171,7 +220,7 @@ function IssueList({ issues }: { issues: Issue[] }): React.ReactElement {
 }
 
 function ReviewStep<C>(props: {
-  config: ToolConfig<C>; plan: Plan; fileName: string; environment: string; confirming: boolean; live: boolean;
+  config: ToolConfig<C>; plan: Plan; fileName: string; environment: string; confirming: boolean; live: boolean; fromSelection: boolean;
   onReplace: () => void; onBack: () => void; onRun: () => void; onCancel: () => void; onConfirm: () => void;
 }): React.ReactElement {
   const { plan, config } = props;
@@ -183,7 +232,7 @@ function ReviewStep<C>(props: {
 
   return <>
     <section className="summary-strip">
-      <p className="summary-caption">Checked <strong>{props.fileName}</strong> ({plan.rowCount} row{plan.rowCount === 1 ? "" : "s"}) against <strong>{props.environment}</strong>. Nothing has been written yet.</p>
+      <p className="summary-caption">Checked <strong>{props.fileName}</strong> ({plan.rowCount} {props.fromSelection ? (plan.rowCount === 1 ? config.itemLabel.toLowerCase() : config.itemPlural) : `row${plan.rowCount === 1 ? "" : "s"}`}) against <strong>{props.environment}</strong>. Nothing has been written yet.</p>
       <div className="summary-tiles">
         <div className="stat-tile"><span className="eyebrow">{config.itemPlural}</span><strong>{n}</strong></div>
         <div className="stat-tile good"><span className="eyebrow">To do</span><strong>{counts.todo}</strong><span>actions</span></div>
@@ -192,7 +241,7 @@ function ReviewStep<C>(props: {
         <div className={`stat-tile ${warnings ? "warn" : ""}`}><span className="eyebrow">Warnings</span><strong>{warnings}</strong><span>check, won't block</span></div>
         <div className="summary-actions">
           <button className="button ghost" onClick={props.onBack}>Start over</button>
-          <button className="button secondary" onClick={props.onReplace}>Upload corrected file</button>
+          <button className="button secondary" onClick={props.onReplace}>{props.fromSelection ? "Change selection" : "Upload corrected file"}</button>
           <button className="button primary" disabled={!canRun || props.confirming} onClick={props.onRun}>{config.runVerb} ({counts.todo} action{counts.todo === 1 ? "" : "s"})</button>
         </div>
       </div>
@@ -209,7 +258,7 @@ function ReviewStep<C>(props: {
         {n ? plan.items.map((item) => {
           const hasErrors = plan.issues.some((i) => i.severity === "error" && i.line === item.line);
           return <article key={item.key} className={`item-card ${hasErrors ? "has-errors" : ""}`}>
-            <header><div><h3>{item.title}</h3><p className="item-facts">{item.facts.join(" · ")}</p></div><span className="line-ref">Line {item.line}</span></header>
+            <header><div><h3>{item.title}</h3><p className="item-facts">{item.facts.join(" · ")}</p></div>{!props.fromSelection && <span className="line-ref">Line {item.line}</span>}</header>
             <ul className="action-list">{item.actions.map((a) => <li key={a.key} className={a.status}>
               <span className={`action-pill ${a.status}`}>{a.status === "todo" ? "Will do" : "In place"}</span>
               <span className="action-label">{a.label}</span>
@@ -221,7 +270,7 @@ function ReviewStep<C>(props: {
       </div>
       <div className="panel">
         <div className="section-heading"><div><p className="eyebrow">Checks</p><h2>Problems found</h2></div>{plan.issues.length > 0 && <button className="button ghost small" onClick={() => downloadCsv(`${config.logPrefix}-issues.csv`, issuesToCsv(plan.issues, config.itemLabel))}>Download</button>}</div>
-        {plan.issues.length ? <IssueList issues={plan.issues} /> : <div className="scenario-empty"><span>✓</span><p>No problems found</p><small>Every name in the file matches a record in the environment.</small></div>}
+        {plan.issues.length ? <IssueList issues={plan.issues} /> : <div className="scenario-empty"><span>✓</span><p>No problems found</p><small>{props.fromSelection ? "Every selected user can get these skills." : "Every name in the file matches a record in the environment."}</small></div>}
       </div>
     </section>
   </>;
@@ -258,7 +307,7 @@ function RunStep<C>({ config, progress, results, run, issues, environment, onSta
         <div />
         <div className="summary-actions">
           {run && <button className="button secondary" onClick={() => downloadCsv(logFileName(config.logPrefix, run), runLogCsv(results, issues, run, config.itemLabel))}>⇩ Download log</button>}
-          <button className="button primary" onClick={onStartOver}>Upload another file</button>
+          <button className="button primary" onClick={onStartOver}>Start again</button>
         </div>
       </div>
     </section>
