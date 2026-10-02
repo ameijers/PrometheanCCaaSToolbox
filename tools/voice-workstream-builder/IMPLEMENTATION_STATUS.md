@@ -95,4 +95,4 @@ The Artifact Finder treats `msdyn_ocvoice` as the voice channel (`referenceMap.t
 
 ## Site Map subarea
 
-Included in the packaged solution from **1.0.0.4** onward: importing the current `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_6.zip` brings the **Voice Workstream Builder** subarea in the app's **Creation** group. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/voicebuilder/index.html` (stored as `$webresource:pct_/tools/voicebuilder/index.html`). See the [toolbox README](../../Readme.md#site-map-subareas).
+Included in the packaged solution from **1.0.0.4** onward: importing the current `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_7.zip` brings the **Voice Workstream Builder** subarea in the app's **Creation** group. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/voicebuilder/index.html` (stored as `$webresource:pct_/tools/voicebuilder/index.html`). See the [toolbox README](../../Readme.md#site-map-subareas).

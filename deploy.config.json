@@ -150,6 +150,18 @@
         { "name": "pct_/tools/queuemembership/style.css", "path": "dist/webresource/queuemembership/style.css", "type": 2, "displayName": "Queue Membership - style.css" },
         { "name": "pct_/tools/queuemembership/bundle.js", "path": "dist/webresource/queuemembership/bundle.js", "type": 3, "displayName": "Queue Membership - bundle.js" }
       ]
+    },
+    "skillassignment": {
+      "displayName": "Skill Assignment",
+      "stage": [
+        { "from": "tools/skill-assignment/webresource/skillassignment.html", "to": "dist/webresource/skillassignment/index.html" },
+        { "from": "tools/shared/css/provisioning.css", "to": "dist/webresource/skillassignment/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/skillassignment/index.html", "path": "dist/webresource/skillassignment/index.html", "type": 1, "displayName": "Skill Assignment - index.html", "cacheBust": true },
+        { "name": "pct_/tools/skillassignment/style.css", "path": "dist/webresource/skillassignment/style.css", "type": 2, "displayName": "Skill Assignment - style.css" },
+        { "name": "pct_/tools/skillassignment/bundle.js", "path": "dist/webresource/skillassignment/bundle.js", "type": 3, "displayName": "Skill Assignment - bundle.js" }
+      ]
     }
   }
 }
