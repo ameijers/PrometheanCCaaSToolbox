@@ -12,7 +12,8 @@ module.exports = {
     voicebuilder: "./tools/voice-workstream-builder/webresource/index.tsx",
     recordingprovisioner: "./tools/voice-recording-provisioner/webresource/index.tsx",
     queuebuilder: "./tools/queue-builder/webresource/index.tsx",
-    profilebuilder: "./tools/profile-builder/webresource/index.tsx"
+    profilebuilder: "./tools/profile-builder/webresource/index.tsx",
+    businessunitbuilder: "./tools/business-unit-builder/webresource/index.tsx"
   },
   output: {
     path: path.resolve(__dirname, "dist/webresource"),

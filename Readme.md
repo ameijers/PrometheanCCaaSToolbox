@@ -24,7 +24,8 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 | --- | --- | --- |
 | [Voice Workstream Builder](tools/voice-workstream-builder/README.md) | Creates voice workstreams and their voice channels in bulk from a CSV file (one row per channel, so a workstream can have several). A channel can be created without a phone number, to be assigned later. | Creates only: `msdyn_liveworkstream`, `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoice`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes. |
 | [Queue Builder](tools/queue-builder/README.md) | Creates advanced (unified routing) queues in bulk from a CSV file: type, assignment method, priority, visibility, operating hours and members. | Creates only: `queue` (advanced queues), and adds members through `queuemembership_association`. Never updates or deletes. |
-| [Profile Builder](tools/profile-builder/README.md) (*Outbound Profile Builder* in the app) | Creates **outbound** profiles in bulk from a CSV file: name, phone number (required), outbound queue, caller ID and behaviors. Inbound profiles aren't supported yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_liveworkstream` (outbound), `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes, and never changes the default profile. |
+| [Profile Builder](tools/profile-builder/README.md) | Creates **outbound** profiles in bulk from a CSV file: name, phone number (required), outbound queue, caller ID and behaviors. Inbound profiles aren't supported yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_liveworkstream` (outbound), `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes, and never changes the default profile. |
+| [Business Unit Builder](tools/business-unit-builder/README.md) (*Business Units Builder* in the app) | Creates business units in bulk from a CSV file — whole hierarchies in one file, in any row order: a parent can be an existing business unit or another row. Shows the resulting hierarchy as a tree before anything is created, and creates parents first. | Creates only: `businessunit`. Never updates, disables or deletes. |
 | [Recording & Transcription Provisioner](tools/voice-recording-provisioner/README.md) (*Recording & Transcription* in the app) | Sets transcript and recording on a selection of voice channels at once — None, Transcript, or Transcript and Recording — with a per-channel preview, a read-back check afterwards, and a one-click revert. | Updates only the recording/transcription columns of `msdyn_ocvoicechannelsetting`. Never creates or deletes. |
 
 <table>
@@ -40,16 +41,20 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 <td width="50%"><a href="tools/queue-builder/README.md"><img src="tools/queue-builder/images/02-review-errors.png" alt="Queue Builder review step" /></a></td>
 <td width="50%"><a href="tools/profile-builder/README.md"><img src="tools/profile-builder/images/02-review.png" alt="Profile Builder review step" /></a></td>
 </tr>
+<tr>
+<td width="50%"><a href="tools/business-unit-builder/README.md"><img src="tools/business-unit-builder/images/02-review.png" alt="Business Unit Builder hierarchy review" /></a></td>
+<td width="50%"></td>
+</tr>
 </table>
 
-Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md).
+Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md).
 
 ### How the creation tools work
 
-The three creation tools share one flow and one set of conventions:
+The four creation tools share one flow and one set of conventions:
 
 1. **Upload a CSV.** Each tool offers a **Download example CSV** (also in the tool's `examples/` folder, kept identical by a test) and an empty template. Comma-, semicolon- and tab-separated files are all read, so files saved by Excel in any locale work. Every column has a documented behavior for an **empty cell** — a default, "not set", required, or (in Voice Workstream Builder) inherited from the workstream's first row; each manual has a section *What happens when you leave a cell empty*.
-2. **Review.** Every row is checked, then every name in the file (queues, numbers, users, languages, music, operating hours, capacity profiles) is matched against the environment, and new names against existing records. Problems are listed per line and column; **errors block creation, warnings don't. Nothing is written in this step.**
+2. **Review.** Every row is checked, then every name in the file (queues, numbers, users, languages, music, operating hours, capacity profiles, parent business units) is matched against the environment, and new names against existing records. Problems are listed per line and column; **errors block creation, warnings don't. Nothing is written in this step.**
 3. **Create.** After a confirmation that names the target environment, records are created one by one and reported with status, id and a link. A failure stops only the affected item; nothing is ever deleted automatically.
 4. **Download log.** A CSV of the run: tool, environment, user, start and finish time, and every record with its status, id and time, plus notes and the warnings accepted at review.
 
@@ -63,7 +68,7 @@ All tools have been built against schema read from a live environment (`academye
 | --- | --- |
 | Diagnostic tools | In use against the live environment; see each tool's *Live findings*. |
 | Voice Workstream Builder | Workstreams and channels without a phone number are created and completed by the platform. Routing rules are **not** created automatically: set them up in the admin center (the tool says so per workstream). |
-| Queue Builder, Profile Builder, Recording & Transcription Provisioner | Deployed; not yet confirmed with a live run. Each tool's `IMPLEMENTATION_STATUS.md` lists what to check on the first run. |
+| Queue Builder, Profile Builder, Business Unit Builder, Recording & Transcription Provisioner | Deployed; not yet confirmed with a live run. Each tool's `IMPLEMENTATION_STATUS.md` lists what to check on the first run. |
 
 ## Getting the toolbox into your environment
 
@@ -71,9 +76,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_4.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_4.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_5.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_5.zip)
 >
-> **Version 1.0.0.4 contains all eight tools**, already in the app's Site Map in three groups: **Tools** (the four diagnostic tools), **Creation** (Voice Workstream Builder, Queue Builder, Outbound Profile Builder) and **Provisioning** (Recording & Transcription). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.5 contains all nine tools**, already in the app's Site Map in three groups: **Tools** (the four diagnostic tools), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Business Units Builder) and **Provisioning** (Recording & Transcription). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -83,7 +88,7 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_4.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_5.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
@@ -102,7 +107,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.4 already has all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.5 already has all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
@@ -112,7 +117,8 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Tools | Environment Artifact Finder | `pct_/tools/artifactfinder/index.html` |
 | Creation | Voice Workstream Builder | `pct_/tools/voicebuilder/index.html` |
 | Creation | Queue Builder | `pct_/tools/queuebuilder/index.html` |
-| Creation | Outbound Profile Builder | `pct_/tools/profilebuilder/index.html` |
+| Creation | Profile Builder | `pct_/tools/profilebuilder/index.html` |
+| Creation | Business Units Builder | `pct_/tools/businessunitbuilder/index.html` |
 | Provisioning | Recording & Transcription | `pct_/tools/recordingprovisioner/index.html` |
 
 When you add a tool to an environment yourself, add a subarea the same way. Until it exists, a deployed tool can be opened inside the app with `https://<org>.crm.dynamics.com/main.aspx?appid=<app id>&pagetype=webresource&webresourceName=<web resource>`. Open it inside the app, not as a bare web resource URL: outside the app the tool can't reach Dataverse and shows its sample data instead (the topbar says which one you're looking at).
@@ -146,6 +152,7 @@ tools/
   voice-workstream-builder/    # Creation — also holds the shared CSV, log and recording code
   queue-builder/               # Creation
   profile-builder/             # Creation (outbound profiles)
+  business-unit-builder/       # Creation (business units)
   voice-recording-provisioner/ # Provisioning
 power_platform_solution/       # Packaged unmanaged solution zip (see Option A above)
 webpack.config.js              # One build entry per tool
@@ -177,6 +184,7 @@ Each tool can be run locally in its offline demo mode:
 | Recording & Transcription Provisioner | `recordingprovisioner` | `npm run demo:recordingprovisioner` → http://localhost:5437/index.html |
 | Queue Builder | `queuebuilder` | `npm run demo:queuebuilder` → http://localhost:5438/index.html |
 | Profile Builder | `profilebuilder` | `npm run demo:profilebuilder` → http://localhost:5439/index.html |
+| Business Unit Builder | `businessunitbuilder` | `npm run demo:businessunitbuilder` → http://localhost:5440/index.html |
 
 ## Deployment
 

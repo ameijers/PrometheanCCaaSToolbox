@@ -1,0 +1,7 @@
+name,parent_business_unit,description,division,cost_center,email,website,address_name,street,city,postal_code,country,phone
+Contact Center NL – Inbound,Contact Center NL,"Inbound voice and chat agents, Netherlands",,,,,,,,,,
+Contact Center,,All contact center teams,Customer Service,CC-000,contactcenter@contoso.com,https://www.contoso.com,,,,,,
+Contact Center NL,Contact Center,,Customer Service,CC-100,,,Amsterdam office,Keizersgracht 1,Amsterdam,1015 AA,Netherlands,+31201234567
+Contact Center NL – Outbound,Contact Center NL,"Outbound and callback agents, Netherlands",,,,,,,,,,
+Contact Center BE,Contact Center,,Customer Service,CC-200,,,,,Antwerpen,,Belgium,
+Sales – Partners,Sales,Partner sales desk,,,,,,,,,,
