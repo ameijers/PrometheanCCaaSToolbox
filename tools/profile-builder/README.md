@@ -81,4 +81,4 @@ pwsh ./scripts/deploy.ps1 -Tool profilebuilder -CreateIfMissing   # first time
 pwsh ./scripts/deploy.ps1 -Tool profilebuilder                    # afterwards
 ```
 
-Web resources: `pct_/tools/profilebuilder/{index.html,style.css,bundle.js}`. In the packaged solution from 1.0.0.4 as **Outbound Profile Builder** (Site Map group **Creation**). Site Map subarea: Type Web Resource, `pct_/tools/profilebuilder/index.html`.
+Web resources: `pct_/tools/profilebuilder/{index.html,style.css,bundle.js}`. In the packaged solution from 1.0.0.4 (Site Map: **Creation → Profile Builder**; titled "Outbound Profile Builder" in 1.0.0.4). Site Map subarea: Type Web Resource, `pct_/tools/profilebuilder/index.html`.

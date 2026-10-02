@@ -102,6 +102,18 @@
         { "name": "pct_/tools/profilebuilder/style.css", "path": "dist/webresource/profilebuilder/style.css", "type": 2, "displayName": "Profile Builder - style.css" },
         { "name": "pct_/tools/profilebuilder/bundle.js", "path": "dist/webresource/profilebuilder/bundle.js", "type": 3, "displayName": "Profile Builder - bundle.js" }
       ]
+    },
+    "businessunitbuilder": {
+      "displayName": "Business Unit Builder",
+      "stage": [
+        { "from": "tools/business-unit-builder/webresource/businessunitbuilder.html", "to": "dist/webresource/businessunitbuilder/index.html" },
+        { "from": "tools/business-unit-builder/css/businessUnitBuilder.css", "to": "dist/webresource/businessunitbuilder/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/businessunitbuilder/index.html", "path": "dist/webresource/businessunitbuilder/index.html", "type": 1, "displayName": "Business Unit Builder - index.html", "cacheBust": true },
+        { "name": "pct_/tools/businessunitbuilder/style.css", "path": "dist/webresource/businessunitbuilder/style.css", "type": 2, "displayName": "Business Unit Builder - style.css" },
+        { "name": "pct_/tools/businessunitbuilder/bundle.js", "path": "dist/webresource/businessunitbuilder/bundle.js", "type": 3, "displayName": "Business Unit Builder - bundle.js" }
+      ]
     }
   }
 }
