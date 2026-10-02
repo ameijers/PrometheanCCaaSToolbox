@@ -114,6 +114,42 @@
         { "name": "pct_/tools/businessunitbuilder/style.css", "path": "dist/webresource/businessunitbuilder/style.css", "type": 2, "displayName": "Business Unit Builder - style.css" },
         { "name": "pct_/tools/businessunitbuilder/bundle.js", "path": "dist/webresource/businessunitbuilder/bundle.js", "type": 3, "displayName": "Business Unit Builder - bundle.js" }
       ]
+    },
+    "teambuilder": {
+      "displayName": "Team Builder",
+      "stage": [
+        { "from": "tools/team-builder/webresource/teambuilder.html", "to": "dist/webresource/teambuilder/index.html" },
+        { "from": "tools/shared/css/provisioning.css", "to": "dist/webresource/teambuilder/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/teambuilder/index.html", "path": "dist/webresource/teambuilder/index.html", "type": 1, "displayName": "Team Builder - index.html", "cacheBust": true },
+        { "name": "pct_/tools/teambuilder/style.css", "path": "dist/webresource/teambuilder/style.css", "type": 2, "displayName": "Team Builder - style.css" },
+        { "name": "pct_/tools/teambuilder/bundle.js", "path": "dist/webresource/teambuilder/bundle.js", "type": 3, "displayName": "Team Builder - bundle.js" }
+      ]
+    },
+    "usersetup": {
+      "displayName": "User Setup",
+      "stage": [
+        { "from": "tools/user-setup/webresource/usersetup.html", "to": "dist/webresource/usersetup/index.html" },
+        { "from": "tools/shared/css/provisioning.css", "to": "dist/webresource/usersetup/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/usersetup/index.html", "path": "dist/webresource/usersetup/index.html", "type": 1, "displayName": "User Setup - index.html", "cacheBust": true },
+        { "name": "pct_/tools/usersetup/style.css", "path": "dist/webresource/usersetup/style.css", "type": 2, "displayName": "User Setup - style.css" },
+        { "name": "pct_/tools/usersetup/bundle.js", "path": "dist/webresource/usersetup/bundle.js", "type": 3, "displayName": "User Setup - bundle.js" }
+      ]
+    },
+    "queuemembership": {
+      "displayName": "Queue Membership",
+      "stage": [
+        { "from": "tools/queue-membership/webresource/queuemembership.html", "to": "dist/webresource/queuemembership/index.html" },
+        { "from": "tools/shared/css/provisioning.css", "to": "dist/webresource/queuemembership/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/queuemembership/index.html", "path": "dist/webresource/queuemembership/index.html", "type": 1, "displayName": "Queue Membership - index.html", "cacheBust": true },
+        { "name": "pct_/tools/queuemembership/style.css", "path": "dist/webresource/queuemembership/style.css", "type": 2, "displayName": "Queue Membership - style.css" },
+        { "name": "pct_/tools/queuemembership/bundle.js", "path": "dist/webresource/queuemembership/bundle.js", "type": 3, "displayName": "Queue Membership - bundle.js" }
+      ]
     }
   }
 }

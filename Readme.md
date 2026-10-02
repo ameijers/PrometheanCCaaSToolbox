@@ -28,6 +28,18 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 | [Business Unit Builder](tools/business-unit-builder/README.md) (*Business Units Builder* in the app) | Creates business units in bulk from a CSV file — whole hierarchies in one file, in any row order: a parent can be an existing business unit or another row. Shows the resulting hierarchy as a tree before anything is created, and creates parents first. | Creates only: `businessunit`. Never updates, disables or deletes. |
 | [Recording & Transcription Provisioner](tools/voice-recording-provisioner/README.md) (*Recording & Transcription* in the app) | Sets transcript and recording on a selection of voice channels at once — None, Transcript, or Transcript and Recording — with a per-channel preview, a read-back check afterwards, and a one-click revert. | Updates only the recording/transcription columns of `msdyn_ocvoicechannelsetting`. Never creates or deletes. |
 
+### Onboarding agents (provisioning tools)
+
+Three tools, one step each, to get an agent from "synced user" to "taking work from a queue". Run them in this order; each one is safe to run again with the same file (anything already in place is left alone).
+
+| Step | Tool | What it does | Writes |
+| --- | --- | --- | --- |
+| 1 | [Team Builder](tools/team-builder/README.md) | Creates **Owner** and **Microsoft Entra ID security group** teams with a business unit, administrator and security roles (taken from the team's business unit). | Creates `team`; assigns roles (`teamroles_association`). Never removes or deletes. |
+| 2 | [User Setup](tools/user-setup/README.md) | For users already synced from Entra ID: assigns security roles **directly** and/or adds them to **owner teams**, makes each one a **bookable resource** and links **capacity profiles** (default Default voice inbound + outbound). | Assigns roles (`systemuserroles_association`), `AddMembersTeam`, creates `bookableresource` and `msdyn_bookableresourcecapacityprofile`. Never creates users, removes or deletes. |
+| 3 | [Queue Membership](tools/queue-membership/README.md) | Adds users who are bookable resources to one or more advanced queues. | Adds members (`queuemembership_association`). Never removes. |
+
+Users themselves come from Microsoft Entra ID: a user is in the environment once they're licensed and in the environment's security group. User Setup reports users who aren't synced yet instead of guessing.
+
 <table>
 <tr>
 <td width="50%"><a href="tools/visual-routing-tester/README.md"><img src="tools/visual-routing-tester/images/01-overview.png" alt="Visual Routing Tester overview" /></a></td>
@@ -43,11 +55,11 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 </tr>
 <tr>
 <td width="50%"><a href="tools/business-unit-builder/README.md"><img src="tools/business-unit-builder/images/02-review.png" alt="Business Unit Builder hierarchy review" /></a></td>
-<td width="50%"></td>
+<td width="50%"><a href="tools/user-setup/README.md"><img src="tools/user-setup/images/02-review.png" alt="User Setup review" /></a></td>
 </tr>
 </table>
 
-Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md).
+Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md).
 
 ### How the creation tools work
 
@@ -58,7 +70,9 @@ The four creation tools share one flow and one set of conventions:
 3. **Create.** After a confirmation that names the target environment, records are created one by one and reported with status, id and a link. A failure stops only the affected item; nothing is ever deleted automatically.
 4. **Download log.** A CSV of the run: tool, environment, user, start and finish time, and every record with its status, id and time, plus notes and the warnings accepted at review.
 
-The provisioning tool (Recording & Transcription Provisioner) works on a selection instead of a file: filter and select records, choose the setting, check the per-record preview, confirm, and afterwards download the log or revert.
+The onboarding tools use the same flow, but each row becomes a list of **actions** shown as *Will do* or *In place*: anything already in place isn't written again, so a file can be run as often as needed.
+
+The Recording & Transcription Provisioner works on a selection instead of a file: filter and select records, choose the setting, check the per-record preview, confirm, and afterwards download the log or revert.
 
 ### Live status
 
@@ -68,7 +82,7 @@ All tools have been built against schema read from a live environment (`academye
 | --- | --- |
 | Diagnostic tools | In use against the live environment; see each tool's *Live findings*. |
 | Voice Workstream Builder | Workstreams and channels without a phone number are created and completed by the platform. Routing rules are **not** created automatically: set them up in the admin center (the tool says so per workstream). |
-| Queue Builder, Profile Builder, Business Unit Builder, Recording & Transcription Provisioner | Deployed; not yet confirmed with a live run. Each tool's `IMPLEMENTATION_STATUS.md` lists what to check on the first run. |
+| Queue Builder, Profile Builder, Business Unit Builder, Recording & Transcription Provisioner, Team Builder, User Setup, Queue Membership | Deployed; not yet confirmed with a live run. Each tool's `IMPLEMENTATION_STATUS.md` lists what to check on the first run. |
 
 ## Getting the toolbox into your environment
 
@@ -76,9 +90,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_5.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_5.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_6.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_6.zip)
 >
-> **Version 1.0.0.5 contains all nine tools**, already in the app's Site Map in three groups: **Tools** (the four diagnostic tools), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Business Units Builder) and **Provisioning** (Recording & Transcription). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.6 contains all twelve tools**, already in the app's Site Map in four groups: **Tools** (the four diagnostic tools), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder), **Provisioning** (Recording & Transcription, Queue Membership) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -88,7 +102,7 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_5.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_6.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
@@ -103,11 +117,11 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 1. **Share the app with security roles.** The "Promethean CCaaS Toolbox" model-driven app is shared with specific security roles from the environment it was exported from; those role IDs won't exist in your environment, so by default **no one will see the app in the app picker**. In the maker portal, go to **Apps**, select **Promethean CCaaS Toolbox**, choose **Share**, and add whichever security roles/users in your environment should have access. This step is required in every new target environment, regardless of import method.
 2. **Confirm Dynamics 365 Contact Center (unified routing) is provisioned, and that users have read access to it.** The diagnostic tools read live routing/call/agent/configuration data (`msdyn_liveworkstream`, `msdyn_ocliveworkitem`, `msdyn_ocliveworkitemcontextitemelastic`, `queuemembership`, and related tables — see each tool's own README for its full table list) at runtime — this isn't checked at solution-import time, so import will succeed even in an environment without Contact Center, but the tools will show empty/unverifiable data instead of real results. The toolbox doesn't ship its own security role; users need read privileges on those tables through whatever routing/queue-admin role your environment already uses.
-3. **Limit the creation and provisioning tools to administrators.** They're meant for **system administrators** (or roles with create/write privileges on the tables in the [Writes](#creation-and-provisioning-tools) column). Dataverse enforces the user's own privileges on every write; the Site Map already keeps them apart in the **Creation** and **Provisioning** groups, so you can hide those groups from non-admin roles.
+3. **Limit the creation and provisioning tools to administrators.** They're meant for **system administrators** (or roles with create/write privileges on the tables in the [Writes](#creation-and-provisioning-tools) column). Dataverse enforces the user's own privileges on every write; the Site Map already keeps them apart in the **Creation**, **Provisioning** and **Security** groups, so you can hide those groups from non-admin roles.
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.5 already has all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.6 already has all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
@@ -118,8 +132,11 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Creation | Voice Workstream Builder | `pct_/tools/voicebuilder/index.html` |
 | Creation | Queue Builder | `pct_/tools/queuebuilder/index.html` |
 | Creation | Profile Builder | `pct_/tools/profilebuilder/index.html` |
-| Creation | Business Units Builder | `pct_/tools/businessunitbuilder/index.html` |
 | Provisioning | Recording & Transcription | `pct_/tools/recordingprovisioner/index.html` |
+| Provisioning | Queue Membership | `pct_/tools/queuemembership/index.html` |
+| Security | Business Units Builder | `pct_/tools/businessunitbuilder/index.html` |
+| Security | Team Builder | `pct_/tools/teambuilder/index.html` |
+| Security | User Setup | `pct_/tools/usersetup/index.html` |
 
 When you add a tool to an environment yourself, add a subarea the same way. Until it exists, a deployed tool can be opened inside the app with `https://<org>.crm.dynamics.com/main.aspx?appid=<app id>&pagetype=webresource&webresourceName=<web resource>`. Open it inside the app, not as a bare web resource URL: outside the app the tool can't reach Dataverse and shows its sample data instead (the topbar says which one you're looking at).
 
@@ -133,13 +150,13 @@ All tools:
 - Talk to Dataverse with the signed-in user's existing session — mostly through `Xrm.WebApi`, and through the same-origin Web API where `Xrm.WebApi` has no helper (metadata reads, adding queue members) — so no separate Microsoft Entra ID app registration or manual OAuth setup is required, and Dataverse applies the user's own privileges.
 - Live in one Dataverse solution and one model-driven app/Site Map, rather than one solution per tool.
 - Include a fully working **offline demo mode** with bundled sample data, so you can try them out locally without a Dataverse connection. In the writing tools, demo mode simulates the writes in memory.
-- Keep every Dataverse call in one `dataverse.ts` per tool. Profile Builder has none of its own: it uses Voice Workstream Builder's.
+- Keep every Dataverse write in one `dataverse.ts` per tool. Profile Builder has none of its own: it uses Voice Workstream Builder's. The onboarding tools share read helpers from `tools/shared/`, which never writes.
 
 **Read-only vs. writing.** The diagnostic tools are **read-only**: none of them ever creates, updates or deletes a record, and each has a `readOnly.test.ts` that enforces it. The creation and provisioning tools write, but each within a fixed scope (the [Writes](#creation-and-provisioning-tools) column): their `dataverse.ts` refuses anything outside it at runtime (tables, and for the provisioner columns), and each has a `writeScope.test.ts` that fails the build if the code could write outside it. No tool deletes anything. Writes happen only after a preview and an explicit confirmation that names the target environment, and every run can be downloaded as a log.
 
 **Verified schema.** Before a writing tool writes a column, that column, its option values and its navigation property were read from a live environment's metadata and from records the admin center itself created; nothing written is guessed. Each tool's `IMPLEMENTATION_STATUS.md` has the details ("Step 0").
 
-**Shared code.** The writing tools share Voice Workstream Builder's CSV reader, run log and recording/transcription settings (`tools/voice-workstream-builder/src/`), so all of them read files, write logs and store transcript/recording options the same way. Diagnostic tools reuse Visual Routing Tester's decision-ruleset parser.
+**Shared code.** The writing tools share Voice Workstream Builder's CSV reader, run log and recording/transcription settings (`tools/voice-workstream-builder/src/`), so all of them read files, write logs and store transcript/recording options the same way. The onboarding tools also share `tools/shared/`: column definitions, the plan/run engine (actions, *in place* detection, dependency skipping), the page and its stylesheet; their write scopes are tested together in `tools/shared/tests/writeScopes.test.ts`. Diagnostic tools reuse Visual Routing Tester's decision-ruleset parser.
 
 ## Repository layout
 
@@ -153,6 +170,10 @@ tools/
   queue-builder/               # Creation
   profile-builder/             # Creation (outbound profiles)
   business-unit-builder/       # Creation (business units)
+  team-builder/                # Onboarding step 1 (teams)
+  user-setup/                  # Onboarding step 2 (users, bookable resources)
+  queue-membership/            # Onboarding step 3 (queue membership)
+  shared/                      # Kit shared by the onboarding tools: CSV columns, plan/run engine, page, stylesheet
   voice-recording-provisioner/ # Provisioning
 power_platform_solution/       # Packaged unmanaged solution zip (see Option A above)
 webpack.config.js              # One build entry per tool
@@ -185,6 +206,9 @@ Each tool can be run locally in its offline demo mode:
 | Queue Builder | `queuebuilder` | `npm run demo:queuebuilder` → http://localhost:5438/index.html |
 | Profile Builder | `profilebuilder` | `npm run demo:profilebuilder` → http://localhost:5439/index.html |
 | Business Unit Builder | `businessunitbuilder` | `npm run demo:businessunitbuilder` → http://localhost:5440/index.html |
+| Team Builder | `teambuilder` | `npm run demo:teambuilder` → http://localhost:5441/index.html |
+| User Setup | `usersetup` | `npm run demo:usersetup` → http://localhost:5442/index.html |
+| Queue Membership | `queuemembership` | `npm run demo:queuemembership` → http://localhost:5443/index.html |
 
 ## Deployment
 

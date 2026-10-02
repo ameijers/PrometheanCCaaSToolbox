@@ -71,4 +71,4 @@ pwsh ./scripts/deploy.ps1 -Tool businessunitbuilder -CreateIfMissing   # first t
 pwsh ./scripts/deploy.ps1 -Tool businessunitbuilder                    # afterwards
 ```
 
-Web resources: `pct_/tools/businessunitbuilder/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.5** (Site Map: **Creation → Business Units Builder**). For an environment on an older solution version, add a Site Map subarea: Type Web Resource, `pct_/tools/businessunitbuilder/index.html`.
+Web resources: `pct_/tools/businessunitbuilder/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.5** (Site Map: **Security → Business Units Builder** from 1.0.0.6; under Creation in 1.0.0.5). For an environment on an older solution version, add a Site Map subarea: Type Web Resource, `pct_/tools/businessunitbuilder/index.html`.

@@ -1,0 +1,5 @@
+team_name,team_type,business_unit,administrator,description,entra_group_object_id,membership_type,security_roles
+Sales Agents,Owner,Sales,anna@contoso.com,All sales contact center agents,,,Basic User|Omnichannel agent
+Sales Supervisors,Entra ID security group,Sales,anna@contoso.com,,d65dcffa-60e8-4519-8e70-9cd95147ba20,Members,Basic User|Omnichannel supervisor
+Service Agents,,Service,,,,,Basic User|Omnichannel agent
+All Agents (Entra),Entra ID security group,,,,0b6f4e1a-2c3d-4e5f-8a9b-1c2d3e4f5a6b,,Omnichannel agent
