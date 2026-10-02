@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ParsedCsv } from "../../voice-workstream-builder/src/csv";
 import { findOne, readRows } from "../../shared/src/columns";
 import { Plan, PlanItem, PlannedAction } from "../../shared/src/model";

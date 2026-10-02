@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { RECORDING_COLUMNS, readRecordingSettings } from "../../voice-workstream-builder/src/recordingSettings";
 import { ProvisionerSource } from "./dataSource";
 import { ChannelRow, Direction } from "./model";

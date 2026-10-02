@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { evaluateAgent, evaluateAgents, overallStatus, summarize } from "../src/aggregate";
 import { AgentRecord, CheckResult, known, unknownField } from "../src/model";
 

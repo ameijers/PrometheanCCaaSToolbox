@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { evaluateAgents } from "../src/aggregate";
 import { CHECK_ORDER } from "../src/model";
 import { DEMO_AGENTS } from "../src/demoData";

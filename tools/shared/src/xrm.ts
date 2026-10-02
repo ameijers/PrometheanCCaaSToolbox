@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 declare const Xrm: any;
 
 // Read-only Dataverse helpers shared by the provisioning tools: finding Xrm (the page may run as a

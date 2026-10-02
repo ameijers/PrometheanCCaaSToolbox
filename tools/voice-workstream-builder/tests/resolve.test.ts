@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { parseCsv } from "../src/csv";
 import { demoSource, resetDemo } from "../src/demoData";
 import { Catalog } from "../src/model";

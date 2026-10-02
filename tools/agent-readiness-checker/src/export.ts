@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { AgentReadiness, CATEGORY_LABELS, OVERALL_STATUS_LABELS } from "./model";
 
 // Pure string-building functions, kept separate from the browser-only download trigger below so

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { parseDecisionXml } from "../src/ruleXml";
 
 // Fixtures captured verbatim from a real Dynamics 365 Contact Center environment

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { checkAccount, checkCapacityProfile, checkChannelEnablement, checkPresence, checkQueueMembership, checkSecurityRoles, checkSkills, checkUnifiedRoutingState, checkWorkstreamReachability } from "../src/checks";
 import { AgentRecord, known, unknownField } from "../src/model";
 

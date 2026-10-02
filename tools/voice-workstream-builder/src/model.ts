@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { WritableSettings } from "./recordingSettings";
 import { CapacityFormat, Direction, Notification, Presence, TableKey, WorkDistribution } from "./voiceSchema";
 

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { TableCoverage } from "./analyze";
 import { CONFIDENCE_ORDER, Category, CheckType, Confidence, Finding } from "./model";
 import { tableLabel } from "./referenceMap";

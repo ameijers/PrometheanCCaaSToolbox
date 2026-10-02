@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import * as React from "react";
 import { useMemo, useRef, useState } from "react";
 import { ParsedCsv, downloadCsv, parseCsv } from "../../voice-workstream-builder/src/csv";

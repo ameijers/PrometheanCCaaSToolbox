@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { brokenReferenceFindings, buildGraph, structuralCoverage, structuralFindings } from "../src/engine";
 import { CURATED_EDGES } from "../src/referenceMap";
 import { recordKey } from "../src/model";

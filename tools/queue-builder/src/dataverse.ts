@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { Catalog } from "./model";
 import { QueueSource } from "./dataSource";
 import { MEMBERSHIP_RELATIONSHIP, QUEUE_ENTITY_SET, QUEUE_TABLE } from "./queueSchema";

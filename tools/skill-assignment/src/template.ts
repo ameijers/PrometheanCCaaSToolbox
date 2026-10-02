@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ColumnDef, emptyCsvFrom, exampleCsvFrom } from "../../shared/src/columns";
 
 // One row per user. Drives the example file, validation and the in-app column reference.

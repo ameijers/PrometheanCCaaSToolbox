@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { AssignmentMethod, QueueType, Visibility } from "./queueSchema";
 
 export type Severity = "error" | "warning";

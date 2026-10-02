@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { toCsv } from "../../voice-workstream-builder/src/csv";
 import { describeCapture } from "../../voice-workstream-builder/src/recordingSettings";
 import { RUN_HEADERS, RunInfo, logTime, runColumns } from "../../voice-workstream-builder/src/runLog";

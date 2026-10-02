@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { analyze } from "../src/analyze";
 import { DEMO_IDS, demoSource } from "../src/demoData";
 import { CHECKS, CheckId } from "../src/model";

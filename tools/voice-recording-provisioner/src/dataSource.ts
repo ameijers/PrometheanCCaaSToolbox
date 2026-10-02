@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ChannelRow } from "./model";
 
 // What the provisioner needs from an environment. dataverse.ts implements it against the live org;

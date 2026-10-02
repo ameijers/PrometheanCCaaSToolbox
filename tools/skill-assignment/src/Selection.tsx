@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import * as React from "react";
 import { useMemo, useState } from "react";
 import { Plan } from "../../shared/src/model";

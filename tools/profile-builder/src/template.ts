@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { toCsv } from "../../voice-workstream-builder/src/csv";
 import { PRESENCES } from "../../voice-workstream-builder/src/voiceSchema";
 

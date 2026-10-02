@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { CHECKS, CheckId, Confidence, EdgeSpec, Finding, RecordRow, RelatedRecord, Snapshot, TableData, extractIds, lookupValueKey, normalizeId, recordKey } from "./model";
 import { isSubjectTable, tableLabel } from "./referenceMap";
 

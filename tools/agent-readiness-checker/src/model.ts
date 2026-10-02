@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // A single, uniform way to represent "we tried to read this from Dataverse and either got a real
 // value or couldn't" — every field on AgentRecord that comes from a table/column this tool isn't
 // 100% sure exists in every environment is wrapped in this, so check functions never have to guess

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { bulkToCsv, bulkToMarkdown, detailToCsv, detailToMarkdown } from "../src/export";
 import { AgentReadiness, CheckResult } from "../src/model";
 

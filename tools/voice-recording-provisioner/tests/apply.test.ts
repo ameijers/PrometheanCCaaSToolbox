@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { applyChanges, columnsFor, revertPlan } from "../src/apply";
 import { planChanges } from "../src/change";
 import { ProvisionerSource } from "../src/dataSource";

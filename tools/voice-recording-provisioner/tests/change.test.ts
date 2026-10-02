@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { DEFAULT_RECORDING_SETTINGS, RecordingSettings } from "../../voice-workstream-builder/src/recordingSettings";
 import { describeChange, describeFieldChange, isEmptyChange, planChanges } from "../src/change";
 import { ChannelRow } from "../src/model";

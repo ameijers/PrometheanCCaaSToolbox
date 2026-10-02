@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { EMPTY_FILTER, FindingFilter, SortKey, filterFindings, sortFindings, summarize } from "./aggregate";

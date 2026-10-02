@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // How this tool knows a table or relationship exists in the shape it reads:
 // - verified:   confirmed against a live environment by one of the toolbox's other tools (see README).
 // - standard:   standard Dataverse platform schema, well documented, but not yet read live by this toolbox.

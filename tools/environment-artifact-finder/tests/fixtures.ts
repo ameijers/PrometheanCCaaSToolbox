@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { CURATED_EDGES, TABLES } from "../src/referenceMap";
 import { EdgeSpec, RecordRow, Snapshot, TableData, TableSpec, TableStatus, isActive, normalizeId } from "../src/model";
 

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 export type VariableType = "text" | "number" | "boolean" | "entityReference";
 export type VariableOrigin = "ivr" | "queueState";
 export type Outcome = "Agent" | "Voicemail" | "Callback" | "Scheduled Callback" | "End Call" | "Transfer to Phone" | "Queue Transfer" | "Remain In Queue";

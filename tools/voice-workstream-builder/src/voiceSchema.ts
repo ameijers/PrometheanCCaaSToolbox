@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // Every table, column, navigation property and option value this tool writes, in one place. All of
 // it was read from the live academyexperiment environment's metadata and from the voice workstreams
 // and channels the Copilot Service admin center had created there (see IMPLEMENTATION_STATUS.md,

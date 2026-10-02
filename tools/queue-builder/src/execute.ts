@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { QueueSource } from "./dataSource";
 import { QueueOutcome, QueueResult, ResolvedPlan, StepResult } from "./model";
 import { queuePayload } from "./payload";

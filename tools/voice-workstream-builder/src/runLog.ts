@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // The part of a run log both writing tools share: every row says which tool wrote what, where, as whom
 // and when, so a log file still makes sense on its own after it's been forwarded or archived.
 

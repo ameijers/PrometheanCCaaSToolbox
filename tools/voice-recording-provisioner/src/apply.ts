@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { RecordingField, RecordingSettings, recordingColumns } from "../../voice-workstream-builder/src/recordingSettings";
 import { ProvisionerSource } from "./dataSource";
 import { ApplyResult, ChannelChange, ChannelRow } from "./model";

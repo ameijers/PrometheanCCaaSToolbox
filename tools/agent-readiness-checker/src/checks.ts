@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { getActiveAgentRoleNames, hasRequiredRole, PRESENCE_STALE_THRESHOLD_DAYS } from "./config";
 import { ACCESS_MODE_LABELS, AgentRecord, CapacityProfileAssignment, CheckResult, RequiredSkillInfo, AgentSkillInfo } from "./model";
 

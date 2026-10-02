@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { AgentRecord, QueueMembershipInfo, QueueSkillRequirement, known, unknownField } from "./model";
 
 // A realistic-looking sample environment: two active-voice-reachable queues with skill

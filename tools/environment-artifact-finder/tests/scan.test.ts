@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { DataSource, DescribeResult, ReadRequest, ReadResult, DataAccessError, TableMetadata } from "../src/dataSource";
 import { TableSpec } from "../src/model";
 import { discoverEdges, scanEnvironment } from "../src/scan";

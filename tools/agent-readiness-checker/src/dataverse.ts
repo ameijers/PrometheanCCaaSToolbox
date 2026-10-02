@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // Reuses the pure, dependency-free unified-routing decision-XML parser Visual Routing Tester
 // already verified against a live environment, rather than re-deriving XML parsing from scratch.
 // This is a read-only import of a pure function (no Xrm, no shared runtime state) — it does not

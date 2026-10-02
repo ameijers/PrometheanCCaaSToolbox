@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { housekeepingFindings, normalizeFetchXml } from "../src/housekeeping";
 import { id, makeSnapshot } from "./fixtures";
 

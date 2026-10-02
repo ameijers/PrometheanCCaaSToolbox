@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { NamedRecord, ResolvedChannel, ResolvedWorkstream } from "./model";
 import { recordingColumns } from "./recordingSettings";
 import {

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { DataAccessError } from "../src/dataSource";
 import { classifyError, dataverseSource, recordUrl } from "../src/dataverse";
 

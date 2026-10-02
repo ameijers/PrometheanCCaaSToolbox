@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { AccessFailure, DataAccessError, DataSource, DescribeResult, LookupMetadata, ReadRequest, ReadResult } from "./dataSource";
 
 declare const Xrm: any;

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { Catalog, Issue, NamedRecord, ParsedPlan, ResolvedChannel, ResolvedPlan, ResolvedWorkstream } from "./model";
 import { DEFAULT_CAPACITY_PROFILE } from "./voiceSchema";
 

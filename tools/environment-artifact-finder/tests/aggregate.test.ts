@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { EMPTY_FILTER, filterFindings, sortFindings, summarize } from "../src/aggregate";
 import { TableCoverage } from "../src/analyze";
 import { CHECKS, CheckId, Finding } from "../src/model";

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ToolSource } from "../../shared/src/ProvisioningApp";
 import { TeamCatalog } from "./model";
 import { TeamWriter } from "./plan";

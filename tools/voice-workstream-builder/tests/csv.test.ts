@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { parseCsv, toCsv } from "../src/csv";
 
 describe("parseCsv", () => {

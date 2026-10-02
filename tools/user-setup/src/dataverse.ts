@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ToolSource } from "../../shared/src/ProvisioningApp";
 import { GUID } from "../../shared/src/columns";
 import { cleanId, clientUrl, currentUser, environmentLabel, readAll, recordUrl, str, xrmOrThrow } from "../../shared/src/xrm";

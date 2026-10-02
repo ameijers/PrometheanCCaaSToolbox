@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 // A small RFC 4180 CSV reader/writer. The delimiter is detected from the header line, because Excel
 // saves "CSV" with a semicolon in locales that use a decimal comma (Dutch, German, …) and a tab when
 // saved as text.

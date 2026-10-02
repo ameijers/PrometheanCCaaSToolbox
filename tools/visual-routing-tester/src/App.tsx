@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import * as React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ruleSummary, simulate, validateValues } from "./evaluator";

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { runAllChecks } from "./checks";
 import { AgentRecord, AgentReadiness, CheckCategory, CheckResult, OverallStatus, ReadinessSummary } from "./model";
 

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import * as React from "react";
 import { ProvisioningApp, ToolConfig } from "../../shared/src/ProvisioningApp";
 import { isDataverseAvailable } from "../../shared/src/xrm";

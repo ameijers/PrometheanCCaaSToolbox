@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 const path = require("path");
 
 // One entry per toolbox tool. Each builds to dist/webresource/<name>/bundle.js — add one line

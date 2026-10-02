@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Alexander Meijers
+// SPDX-License-Identifier: MIT
+
 import { ParsedCsv } from "../../voice-workstream-builder/src/csv";
 import { Catalog, ExistingUnit, Issue, Plan, PlannedUnit } from "./model";
 import { COLUMNS, COLUMN_BY_HEADER, normalizeHeader } from "./template";
