@@ -40,8 +40,8 @@ The platform's own `msdyn_CreateQueue` custom API describes its assignment param
 
 ## Open questions (proceeding with the stated assumption)
 
-1. **Is a plain create enough for the platform to finish setting up the queue?** *Assumption:* yes, via the registered plug-ins (see Step 0). The tool checks the assignment contract after each queue. **First thing to verify live:** create one queue, open it in the admin center, and route a test conversation to it.
-2. **Membership through the standard relationship.** *Assumption:* the admin center's private `msdyn_AddUserToQueue` does the same Associate, plus possibly extra bookkeeping. Verify live that added members show in the admin center and receive work.
+1. **Is a plain create enough for the platform to finish setting up the queue?** *Assumption:* yes, via the registered plug-ins (see Step 0). The tool checks the assignment contract after each queue. **Worth checking in a new environment:** create one queue, open it in the admin center, and route a test conversation to it.
+2. **Membership through the standard relationship.** *Assumption:* the admin center's private `msdyn_AddUserToQueue` does the same Associate, plus possibly extra bookkeeping. Check that added members show in the admin center and receive work.
 3. **Record queues.** *Assumption:* the same columns apply. The reference environment's only record queues are the platform's own defaults.
 
 ## Complete
@@ -52,10 +52,12 @@ The platform's own `msdyn_CreateQueue` custom API describes its assignment param
 - Demo mode with sample users (one disabled) and operating hours; it remembers created queues.
 - Tests: 37 (`plan`, `execute` incl. the example file and run log, `dataverse` with mocked `Xrm.WebApi` and `fetch`, `writeScope`). Driven end to end in headless Chrome against the demo build.
 
-## Not yet verified
+## Testing
 
-- **Nothing has been written to a live environment yet.** See open questions 1 and 2 for the first live run.
-- Deployed to `academyexperiment`; in the packaged solution from 1.0.0.4.
+Tested against the live reference environment (`academyexperiment`). Still needed: testing in **other environments** — other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes.
+
+- Deployed to `academyexperiment` and in the packaged solution from 1.0.0.4.
+- Worth checking in a new environment: a created queue in the admin center, a test conversation routed to it, and its members receiving work (open questions 1 and 2).
 
 ## Site Map subarea
 

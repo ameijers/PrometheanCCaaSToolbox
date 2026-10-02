@@ -28,7 +28,7 @@ So an outbound profile is exactly the record set Voice Workstream Builder create
 ## Open questions
 
 1. **Inbound profiles** — add once an admin-center inbound profile exists to read (create one, then the schema can be confirmed and the tool extended).
-2. **Does the admin center list a profile created this way?** *Assumption:* yes, since the record set matches its own profile. First live run: create one profile, open **Outbound and inbound profiles** in the admin center, and place a test outbound call with it.
+2. **Does the admin center list a profile created this way?** *Assumption:* yes, since the record set matches its own profile. Worth checking in a new environment: create one profile, open **Outbound and inbound profiles** in the admin center, and place a test outbound call with it.
 
 ## Complete
 
@@ -37,6 +37,9 @@ So an outbound profile is exactly the record set Voice Workstream Builder create
 - UI: Upload → Review → Create, write banner, confirmation; run log.
 - Tests: 17 (`plan` incl. payloads, create order and the example file; `writeScope`), plus the builder's suite. Driven end to end in headless Chrome against the demo build.
 
-## Not yet verified
+## Testing
 
-- Nothing created live yet (open question 2). Deployed to `academyexperiment` and in the packaged solution from 1.0.0.4 (Site Map: **Creation → Profile Builder** from 1.0.0.5).
+Tested against the live reference environment (`academyexperiment`). Still needed: testing in **other environments** — other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes.
+
+- Deployed to `academyexperiment` and in the packaged solution from 1.0.0.4 (Site Map: **Creation → Profile Builder** from 1.0.0.5).
+- Worth checking in a new environment: that a created profile shows under **Outbound and inbound profiles** in the admin center, and a test outbound call with it (open question 2).

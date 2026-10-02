@@ -37,10 +37,12 @@ Part of the [Promethean CCaaS Toolbox](../../Readme.md); see [README.md](README.
 - Demo mode: 15 channels in every state (including recording without transcript and a manual start), one deactivated, one that rejects updates.
 - Tests: 33 — `change`, `apply` (minimal updates, the four capture columns together, failure isolation, read-back mismatch, unchanged never written, exact revert, run log), `dataverse` (mocked `Xrm.WebApi`, column allowlist), `writeScope`. Also driven end to end in headless Chrome against the demo build: select all, preview, Transcript with manual start, apply with one failure, download log, revert back to the exact original states, download the revert log, and no horizontal scroll at 390px.
 
-## Not yet verified
+## Testing
 
-- **No update has been run against a live environment yet.** Suggested first live run: one test channel, switch it from its current setting to another and back, and check both in the admin center and on a test call.
-- Deploy not run; config follows the other tools.
+Tested against the live reference environment (`academyexperiment`). Still needed: testing in **other environments** — other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes.
+
+- Deployed to `academyexperiment` and in the packaged solution from 1.0.0.4.
+- Worth checking in a new environment: one test channel switched from its current setting to another and back, checked in the admin center and on a test call.
 
 ## Site Map subarea
 

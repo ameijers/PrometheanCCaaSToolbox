@@ -81,13 +81,11 @@ The Recording & Transcription Provisioner works on a selection instead of a file
 
 ### Live status
 
-All tools have been built against schema read from a live environment (`academyexperiment`) and run end to end in a browser against sample data. What has also been confirmed by creating or changing records live:
+All tools have been built against schema read from a live environment (`academyexperiment`), run end to end in a browser against sample data, and tested against that live environment. They still need more testing in **other environments** — for example other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes. If a tool behaves differently in your environment, please report it.
 
-| Tool | Confirmed live |
-| --- | --- |
-| Diagnostic tools | In use against the live environment; see each tool's *Live findings*. |
-| Voice Workstream Builder | Workstreams and channels without a phone number are created and completed by the platform. Routing rules are **not** created automatically: set them up in the admin center (the tool says so per workstream). |
-| Queue Builder, Profile Builder, Business Unit Builder, Recording & Transcription Provisioner, Team Builder, User Setup, Queue Membership, Skill Assignment | Deployed; not yet confirmed with a live run. Each tool's `IMPLEMENTATION_STATUS.md` lists what to check on the first run. |
+Worth knowing from the live tests: in **Voice Workstream Builder**, workstreams and channels without a phone number are created and completed by the platform, but routing rules are **not** created automatically — set them up in the admin center (the tool says so per workstream).
+
+Each tool's `IMPLEMENTATION_STATUS.md` has its schema checks, decisions and live findings.
 
 ## Getting the toolbox into your environment
 

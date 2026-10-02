@@ -26,9 +26,11 @@ There are plug-ins on Create/Update of `bookableresourcecharacteristic` (Omnicha
 - `tests/skillAssignment.test.ts` — CSV and selection plans, all checks, run and re-run (nothing to do), rating parsing, payloads, catalog read and the Dataverse writer.
 - `tools/shared/tests/writeScopes.test.ts` — the only `createRecord` is on `bookableresourcecharacteristic`; the only `updateRecord` is on the same table and sets only `RatingValue@odata.bind`; no deletes or other writes; writes only in `dataverse.ts`.
 
-## Not yet verified live
+## Testing
 
-- A first live run: assign a skill with a rating, then change the rating, and check the assignment on the bookable resource (and the Omnichannel skill sync).
+Tested against the live reference environment (`academyexperiment`). Still needed: testing in **other environments** — other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes.
+
+- Worth checking in a new environment: assign a skill with a rating, then change the rating, and check the assignment on the bookable resource (and the Omnichannel skill sync).
 
 ## Packaging
 

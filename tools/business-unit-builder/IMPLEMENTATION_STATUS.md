@@ -35,10 +35,12 @@ Creating a business unit through the Web API is the documented, supported operat
 - UI: Upload → Review hierarchy (tree of existing and new units, creation order) → Create, write banner, confirmation; demo mode with a disabled unit.
 - Tests: 30 (`plan` incl. execution, example file and log; `dataverse` with mocked `Xrm.WebApi`; `writeScope`). Driven end to end in headless Chrome against the demo build.
 
-## Not yet verified
+## Testing
+
+Tested against the live reference environment (`academyexperiment`). Still needed: testing in **other environments** — other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes.
 
 - Deployed to `academyexperiment` and in the packaged solution from 1.0.0.5.
-- **Nothing created live yet.** Suggested first run: one business unit under the root and one under it, then check both in the Power Platform admin center (Settings → Users + permissions → Business units), including the default team and security roles.
+- Worth checking in a new environment: one business unit under the root and one under it, then both in the Power Platform admin center (Settings → Users + permissions → Business units), including the default team and security roles.
 
 ## Site Map subarea
 

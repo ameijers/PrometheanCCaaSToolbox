@@ -32,15 +32,17 @@ Read live from `academyexperiment` with read-only GETs (metadata, existing rows,
 - Team Builder, User Setup, Queue Membership: CSV columns with defaults, validation, resolution against the environment, "in place" detection, payloads, run with dependency skipping, run log; example CSVs (in each tool's `examples/`, kept identical by tests); manuals with screenshots.
 - Tests: 73 for the three tools and the shared kit (plans, payloads, data layers with mocked `Xrm.WebApi` and `fetch`, write scopes, examples, run-twice). Each tool driven end to end in headless Chrome against its demo build, including a second run showing everything in place.
 
-## Not yet verified live
+## Testing
 
-Deployed to `academyexperiment` and in the packaged solution from 1.0.0.6. Nothing has been written to a live environment by these tools yet. Suggested first runs, in order:
+Tested against the live reference environment (`academyexperiment`). Still needed: testing in **other environments** — other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes.
+
+Deployed to `academyexperiment` and in the packaged solution from 1.0.0.6. Worth checking in a new environment, in order:
 
 1. **Team Builder**: one Owner team with Basic User, and — if you have a test group — one Entra ID security group team. Check them in the Power Platform admin center (Teams), including roles.
 2. **User Setup**: one synced test user, through the new owner team; check the team membership, the bookable resource (Resources) and its capacity profiles; then sign in as the user.
 3. **Queue Membership**: the same user into one queue; check the queue's members in the Copilot Service admin center, and route a test conversation.
 
-Open questions for that run: whether the platform accepts an Entra ID group team for a group that has never been synced (it should; members sync on sign-in), and whether a bookable resource created this way shows as an agent in the Copilot Service admin center's user list without further fields.
+Points to watch: whether the platform accepts an Entra ID group team for a group that has never been synced (it should; members sync on sign-in), and whether a bookable resource created this way shows as an agent in the Copilot Service admin center's user list without further fields.
 
 ## Site Map subareas
 

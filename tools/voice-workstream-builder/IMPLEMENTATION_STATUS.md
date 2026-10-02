@@ -88,10 +88,11 @@ The Artifact Finder treats `msdyn_ocvoice` as the voice channel (`referenceMap.t
 - Demo mode over an in-memory sample environment (it remembers what it created, so a second run shows the duplicate check).
 - Tests: 69 (`csv`, `validate`, `resolve`, `payload`, `execute`, `dataverse` with mocked `Xrm.WebApi`, `writeScope`, `example` incl. the run log). Also driven end to end in headless Chrome against the demo build: example download, a broken copy showing errors, the example saved semicolon-separated, create, results, and the downloaded log file.
 
-## Not yet verified
+## Testing
 
-- **Creating a channel with a phone number** hasn't been tried live yet (open question 1).
-- A test call through a builder-created workstream, once its routing rules are set up.
+Tested against the live reference environment (`academyexperiment`). Still needed: testing in **other environments** — other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes.
+
+- Worth checking in a new environment: a channel created **with** a phone number (open question 1), and a test call through a builder-created workstream once its routing rules are set up.
 
 ## Site Map subarea
 
