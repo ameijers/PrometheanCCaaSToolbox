@@ -1,0 +1,5 @@
+user,security_roles,teams,capacity_profiles,time_zone
+anna@contoso.com,Basic User|Omnichannel agent,,,
+bram@contoso.com,,Sales Agents,Default voice inbound,
+chris@contoso.com,Basic User,Sales Agents,,W. Europe Standard Time
+dana.smit@contoso.com,,Service Agents,Default voice inbound|Escalation profile,110
