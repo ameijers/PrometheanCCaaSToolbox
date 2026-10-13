@@ -4,7 +4,7 @@ Part of the [Promethean CCaaS Toolbox](../../Readme.md). A **provisioning tool**
 
 A custom assignment method belongs to one queue, and the platform has no shared or template methods, so the admin center makes you rebuild the rules on every queue. [Queue Builder](../queue-builder/README.md) creates queues with one of the three built-in methods; this tool is how a custom method gets onto them.
 
-> **Tested live in one environment so far** (copy only, copy and use, editing a copy). Routing through a copied method and **Switch queues back** haven't been tested live; see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md#live-findings-2026-10-13). In a new environment, start with **Copy only** on one test queue.
+> **Tested live in one environment so far** (copy only, copy and use, switch back, editing a copy). Routing a conversation through a copied method hasn't been tested live; see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md#live-findings-2026-10-13). In a new environment, start with **Copy only** on one test queue.
 
 See the [manual](manual.md) for a walkthrough with screenshots.
 

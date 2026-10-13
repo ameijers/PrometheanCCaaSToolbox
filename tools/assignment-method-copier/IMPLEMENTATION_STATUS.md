@@ -2,7 +2,7 @@
 
 Part of the [Promethean CCaaS Toolbox](../../Readme.md); see [README.md](README.md) for the tool overview.
 
-**Status: deployed to `academyexperiment` and tested live there on 2026-10-13: copy only, copy and use, and editing a copy in the admin center.** Routing a conversation through a copied method and **Switch queues back** have not been tested live. See [Live findings](#live-findings-2026-10-13).
+**Status: deployed to `academyexperiment` and tested live there on 2026-10-13: copy only, copy and use, switch back, and editing a copy in the admin center.** Routing a conversation through a copied method has not been tested live. See [Live findings](#live-findings-2026-10-13).
 
 ## Step 0 — schema discovery (2026-10-13)
 
@@ -72,13 +72,13 @@ Tested in `academyexperiment` from the deployed tool, with *Contoso Flags Retail
 - **A copy is editable in the admin center.** A change to the copied prioritization rule saved normally.
 - **"Invalid condition" is the admin center's, not the copy's.** Changing *User Languages* to *Does not contain* is refused on a copy and on the original alike.
 - **Use it on the queue** on *Contoso Flags Technical*: after the copy, the method reads active and the queue reads *Custom Assignment Configuration*. So setting `msdyn_isactiveconfiguration` on the method and `msdyn_assignmentstrategy` on the queue is enough to switch.
+- **Switch queues back** on *Contoso Flags Technical*: the queue reads *Longest Idle* (Least active) again and the copy is still on the queue, switched off. So going back to a built-in method takes only `msdyn_assignmentstrategy` on the queue and the method's active switch.
 
 ### Still to test
 
 1. **Routing.** A test conversation on a queue switched to a copy is assigned by the copied rules.
-2. **Switch queues back**, including back to a built-in method by setting `msdyn_assignmentstrategy` alone.
-3. **A queue that already uses another custom method**: that the tool switching the old one off is what the platform expects. How the admin center itself switches between two methods was not observed.
-4. **Other environments**: other Contact Center versions, messaging and record queues, larger numbers of queues.
+2. **A queue that already uses another custom method**: that the tool switching the old one off is what the platform expects, and that **Switch queues back** restores it. How the admin center itself switches between two methods was not observed.
+3. **Other environments**: other Contact Center versions, messaging and record queues, larger numbers of queues.
 
 ## Complete
 
