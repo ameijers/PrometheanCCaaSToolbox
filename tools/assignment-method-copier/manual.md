@@ -6,7 +6,7 @@ Before you start: build the custom assignment method on one queue in the admin c
 
 ## 1. Choose the method to copy
 
-Open **Assignment Method Copier** from the Promethean CCaaS Toolbox app. The topbar shows which environment it changes.
+Open **Queue Assignment Method Copier** (under **Creation**) from the Promethean CCaaS Toolbox app. The topbar shows which environment it changes.
 
 On the left, under **Copy from**, choose the queue that holds the method. Only queues with a custom method are offered. If the queue holds more than one, choose the method too.
 

@@ -87,7 +87,10 @@ Tested in `academyexperiment` from the deployed tool, with *Contoso Flags Retail
 - Demo mode: 12 queues, two source methods, a queue of another type, a queue without a contract, and a queue whose rulesets are rejected.
 - Tests: 45 — `plan`, `apply` (write order, copy only, switch off not remove, part-way failure, blocked queues never written, read-back mismatches, switch back, run log), `dataverse` (mocked `Xrm.WebApi` reads and Web API writes, table and column limits, error reporting), `writeScope`. Also driven end to end in headless Chrome against the demo build: choose a source, select all, preview, copy with one part-way failure, switch back, and no horizontal scroll at 390px.
 
+## Site Map subarea
+
+Included in the packaged solution from **1.0.0.9** onward (`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_9.zip`): **Creation → Queue Assignment Method Copier**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/assignmentmethodcopier/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
+
 ## Not done
 
-- Not in the packaged solution. Deployed to `academyexperiment` with the deploy script; the Site Map subarea is added by hand.
 - No overwrite or update of an existing copy: copying again adds another, numbered method.

@@ -80,4 +80,4 @@ pwsh ./scripts/deploy.ps1 -Tool assignmentmethodcopier -CreateIfMissing   # firs
 pwsh ./scripts/deploy.ps1 -Tool assignmentmethodcopier                    # afterwards
 ```
 
-Web resources: `pct_/tools/assignmentmethodcopier/{index.html,style.css,bundle.js}`. The tool isn't in the packaged solution or the app's Site Map yet; after deploying, add a subarea for `pct_/tools/assignmentmethodcopier/index.html` (see the [toolbox README](../../Readme.md#site-map-subareas)).
+Web resources: `pct_/tools/assignmentmethodcopier/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.9** (Site Map: **Creation → Queue Assignment Method Copier**). For an environment on an older solution version, add a subarea for `pct_/tools/assignmentmethodcopier/index.html` by hand (see the [toolbox README](../../Readme.md#site-map-subareas)).
