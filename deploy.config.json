@@ -162,6 +162,18 @@
         { "name": "pct_/tools/skillassignment/style.css", "path": "dist/webresource/skillassignment/style.css", "type": 2, "displayName": "Skill Assignment - style.css" },
         { "name": "pct_/tools/skillassignment/bundle.js", "path": "dist/webresource/skillassignment/bundle.js", "type": 3, "displayName": "Skill Assignment - bundle.js" }
       ]
+    },
+    "assignmentmethodcopier": {
+      "displayName": "Assignment Method Copier",
+      "stage": [
+        { "from": "tools/assignment-method-copier/webresource/assignmentmethodcopier.html", "to": "dist/webresource/assignmentmethodcopier/index.html" },
+        { "from": "tools/assignment-method-copier/css/assignmentMethodCopier.css", "to": "dist/webresource/assignmentmethodcopier/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/assignmentmethodcopier/index.html", "path": "dist/webresource/assignmentmethodcopier/index.html", "type": 1, "displayName": "Assignment Method Copier - index.html", "cacheBust": true },
+        { "name": "pct_/tools/assignmentmethodcopier/style.css", "path": "dist/webresource/assignmentmethodcopier/style.css", "type": 2, "displayName": "Assignment Method Copier - style.css" },
+        { "name": "pct_/tools/assignmentmethodcopier/bundle.js", "path": "dist/webresource/assignmentmethodcopier/bundle.js", "type": 3, "displayName": "Assignment Method Copier - bundle.js" }
+      ]
     }
   }
 }

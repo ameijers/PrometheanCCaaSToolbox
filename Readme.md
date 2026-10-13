@@ -27,6 +27,7 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 | [Profile Builder](tools/profile-builder/README.md) | Creates **outbound** profiles in bulk from a CSV file: name, phone number (required), outbound queue, caller ID and behaviors. Inbound profiles aren't supported yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_liveworkstream` (outbound), `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes, and never changes the default profile. |
 | [Business Unit Builder](tools/business-unit-builder/README.md) (*Business Units Builder* in the app) | Creates business units in bulk from a CSV file — whole hierarchies in one file, in any row order: a parent can be an existing business unit or another row. Shows the resulting hierarchy as a tree before anything is created, and creates parents first. | Creates only: `businessunit`. Never updates, disables or deletes. |
 | [Recording & Transcription Provisioner](tools/voice-recording-provisioner/README.md) (*Recording & Transcription* in the app) | Sets transcript and recording on a selection of voice channels at once — None, Transcript, or Transcript and Recording — with a per-channel preview, a read-back check afterwards, and a one-click revert. | Updates only the recording/transcription columns of `msdyn_ocvoicechannelsetting`. Never creates or deletes. |
+| [Assignment Method Copier](tools/assignment-method-copier/README.md) (*Queue Assignment Method Copier* in the app) | Copies one queue's custom assignment method (its prioritization and assignment rulesets) to a selection of other queues, with a per-queue preview, a read-back check and a switch back. | Creates `msdyn_assignmentconfiguration`, `msdyn_assignmentconfigurationstep` and `msdyn_decisionruleset`; updates only `msdyn_isactiveconfiguration` on a method and `msdyn_assignmentstrategy` on a `queue`. Never deletes. |
 
 ### Onboarding agents (provisioning tools)
 
@@ -64,7 +65,7 @@ Users themselves come from Microsoft Entra ID: a user is in the environment once
 </tr>
 </table>
 
-Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Skill Assignment](tools/skill-assignment/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md).
+Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Skill Assignment](tools/skill-assignment/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md), [Assignment Method Copier](tools/assignment-method-copier/manual.md).
 
 ### How the creation tools work
 
@@ -93,9 +94,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_7.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_7.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_9.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_9.zip)
 >
-> **Version 1.0.0.7 contains all thirteen tools**, already in the app's Site Map in four groups: **Tools** (the four diagnostic tools), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.9 contains all fourteen tools**, already in the app's Site Map in four groups: **Tools** (the four diagnostic tools), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -105,7 +106,7 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_7.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_9.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
@@ -124,7 +125,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.7 already has all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.9 already has all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
@@ -135,6 +136,7 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Creation | Voice Workstream Builder | `pct_/tools/voicebuilder/index.html` |
 | Creation | Queue Builder | `pct_/tools/queuebuilder/index.html` |
 | Creation | Profile Builder | `pct_/tools/profilebuilder/index.html` |
+| Creation | Queue Assignment Method Copier | `pct_/tools/assignmentmethodcopier/index.html` |
 | Provisioning | Recording & Transcription | `pct_/tools/recordingprovisioner/index.html` |
 | Provisioning | Queue Membership | `pct_/tools/queuemembership/index.html` |
 | Provisioning | Skill Assignment | `pct_/tools/skillassignment/index.html` |
@@ -180,6 +182,7 @@ tools/
   skill-assignment/            # Onboarding step 4 (skills and ratings; CSV or selection)
   shared/                      # Kit shared by the onboarding tools: CSV columns, plan/run engine, page, stylesheet
   voice-recording-provisioner/ # Provisioning
+  assignment-method-copier/    # Provisioning (under Creation in the app)
 power_platform_solution/       # Packaged unmanaged solution zip (see Option A above)
 webpack.config.js              # One build entry per tool
 deploy.config.json             # Per-environment / per-tool deploy configuration
@@ -215,6 +218,7 @@ Each tool can be run locally in its offline demo mode:
 | User Setup | `usersetup` | `npm run demo:usersetup` → http://localhost:5442/index.html |
 | Queue Membership | `queuemembership` | `npm run demo:queuemembership` → http://localhost:5443/index.html |
 | Skill Assignment | `skillassignment` | `npm run demo:skillassignment` → http://localhost:5444/index.html |
+| Assignment Method Copier | `assignmentmethodcopier` | `npm run demo:assignmentmethodcopier` → http://localhost:5445/index.html |
 
 ## Deployment
 
