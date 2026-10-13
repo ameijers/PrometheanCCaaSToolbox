@@ -27,6 +27,7 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 | [Profile Builder](tools/profile-builder/README.md) | Creates **outbound** profiles in bulk from a CSV file: name, phone number (required), outbound queue, caller ID and behaviors. Inbound profiles aren't supported yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_liveworkstream` (outbound), `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes, and never changes the default profile. |
 | [Business Unit Builder](tools/business-unit-builder/README.md) (*Business Units Builder* in the app) | Creates business units in bulk from a CSV file — whole hierarchies in one file, in any row order: a parent can be an existing business unit or another row. Shows the resulting hierarchy as a tree before anything is created, and creates parents first. | Creates only: `businessunit`. Never updates, disables or deletes. |
 | [Recording & Transcription Provisioner](tools/voice-recording-provisioner/README.md) (*Recording & Transcription* in the app) | Sets transcript and recording on a selection of voice channels at once — None, Transcript, or Transcript and Recording — with a per-channel preview, a read-back check afterwards, and a one-click revert. | Updates only the recording/transcription columns of `msdyn_ocvoicechannelsetting`. Never creates or deletes. |
+| [Assignment Method Copier](tools/assignment-method-copier/README.md) | Copies one queue's custom assignment method (its prioritization and assignment rulesets) to a selection of other queues, with a per-queue preview, a read-back check and a switch back. **Tested live in one environment; not yet in the packaged solution.** | Creates `msdyn_assignmentconfiguration`, `msdyn_assignmentconfigurationstep` and `msdyn_decisionruleset`; updates only `msdyn_isactiveconfiguration` on a method and `msdyn_assignmentstrategy` on a `queue`. Never deletes. |
 
 ### Onboarding agents (provisioning tools)
 
@@ -180,6 +181,7 @@ tools/
   skill-assignment/            # Onboarding step 4 (skills and ratings; CSV or selection)
   shared/                      # Kit shared by the onboarding tools: CSV columns, plan/run engine, page, stylesheet
   voice-recording-provisioner/ # Provisioning
+  assignment-method-copier/    # Provisioning (not yet in the packaged solution)
 power_platform_solution/       # Packaged unmanaged solution zip (see Option A above)
 webpack.config.js              # One build entry per tool
 deploy.config.json             # Per-environment / per-tool deploy configuration
@@ -215,6 +217,7 @@ Each tool can be run locally in its offline demo mode:
 | User Setup | `usersetup` | `npm run demo:usersetup` → http://localhost:5442/index.html |
 | Queue Membership | `queuemembership` | `npm run demo:queuemembership` → http://localhost:5443/index.html |
 | Skill Assignment | `skillassignment` | `npm run demo:skillassignment` → http://localhost:5444/index.html |
+| Assignment Method Copier | `assignmentmethodcopier` | `npm run demo:assignmentmethodcopier` → http://localhost:5445/index.html |
 
 ## Deployment
 
