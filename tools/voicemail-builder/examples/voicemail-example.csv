@@ -1,0 +1,4 @@
+queue_name,calls_waiting,estimated_wait_minutes,out_of_hours,wait_time_seconds,voicemail_workstream_name,voicemail_queue_name,members
+Sales – Voice,10,,Yes,120,,,anna@contoso.com|bram@contoso.com
+Support – Voice,,5,,180,,,chris@contoso.com
+Billing – Voice,5,,,,Billing voicemail,Billing voicemail,dana@contoso.com

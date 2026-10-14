@@ -186,6 +186,18 @@
         { "name": "pct_/tools/routetoqueuebuilder/style.css", "path": "dist/webresource/routetoqueuebuilder/style.css", "type": 2, "displayName": "Route-to-Queue Builder - style.css" },
         { "name": "pct_/tools/routetoqueuebuilder/bundle.js", "path": "dist/webresource/routetoqueuebuilder/bundle.js", "type": 3, "displayName": "Route-to-Queue Builder - bundle.js" }
       ]
+    },
+    "voicemailbuilder": {
+      "displayName": "Voicemail Builder",
+      "stage": [
+        { "from": "tools/voicemail-builder/webresource/voicemailbuilder.html", "to": "dist/webresource/voicemailbuilder/index.html" },
+        { "from": "tools/voicemail-builder/css/voicemailBuilder.css", "to": "dist/webresource/voicemailbuilder/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/voicemailbuilder/index.html", "path": "dist/webresource/voicemailbuilder/index.html", "type": 1, "displayName": "Voicemail Builder - index.html", "cacheBust": true },
+        { "name": "pct_/tools/voicemailbuilder/style.css", "path": "dist/webresource/voicemailbuilder/style.css", "type": 2, "displayName": "Voicemail Builder - style.css" },
+        { "name": "pct_/tools/voicemailbuilder/bundle.js", "path": "dist/webresource/voicemailbuilder/bundle.js", "type": 3, "displayName": "Voicemail Builder - bundle.js" }
+      ]
     }
   }
 }

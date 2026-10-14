@@ -26,6 +26,7 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 | [Queue Builder](tools/queue-builder/README.md) | Creates advanced (unified routing) queues in bulk from a CSV file: type, assignment method, priority, visibility, operating hours and members. | Creates only: `queue` (advanced queues), and adds members through `queuemembership_association`. Never updates or deletes. |
 | [Profile Builder](tools/profile-builder/README.md) | Creates **outbound** profiles in bulk from a CSV file: name, phone number (required), outbound queue, caller ID and behaviors. Inbound profiles aren't supported yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_liveworkstream` (outbound), `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes, and never changes the default profile. |
 | [Route-to-Queue Builder](tools/route-to-queue-builder/README.md) | Adds route-to-queue rules to workstreams in bulk from a CSV file: each rule routes to a queue when a context variable (e.g. the IVR menu choice, name entered on the page) equals a value. Creates the context variable, ruleset and routing where missing; adds after existing rules. | Creates `msdyn_ocliveworkstreamcontextvariable`, `msdyn_routingconfiguration`, `msdyn_decisionruleset` and `msdyn_routingconfigurationstep`; updates only `msdyn_rulesetdefinition` to add rules. Never deletes or changes existing rules. |
+| [Voicemail Builder](tools/voicemail-builder/README.md) | Sets up voicemail for voice queues in bulk from a CSV file, each with its own voicemail location: overflow to voicemail on the queue (added or updated; existing rules with another action overwritten or skipped, as chosen), a voicemail Record queue with members, a voicemail workstream, and the intake rule that routes the queue's voicemails there. | Creates `queue` (Record), `msdyn_liveworkstream` (voicemail workstreams) and `msdyn_decisionruleset` (overflow); adds queue members; updates only overflow and voicemail intake rules and a queue's overflow links. Never deletes. |
 | [Business Unit Builder](tools/business-unit-builder/README.md) (*Business Units Builder* in the app) | Creates business units in bulk from a CSV file — whole hierarchies in one file, in any row order: a parent can be an existing business unit or another row. Shows the resulting hierarchy as a tree before anything is created, and creates parents first. | Creates only: `businessunit`. Never updates, disables or deletes. |
 | [Recording & Transcription Provisioner](tools/voice-recording-provisioner/README.md) (*Recording & Transcription* in the app) | Sets transcript and recording on a selection of voice channels at once — None, Transcript, or Transcript and Recording — with a per-channel preview, a read-back check afterwards, and a one-click revert. | Updates only the recording/transcription columns of `msdyn_ocvoicechannelsetting`. Never creates or deletes. |
 | [Assignment Method Copier](tools/assignment-method-copier/README.md) (*Queue Assignment Method Copier* in the app) | Copies one queue's custom assignment method (its prioritization and assignment rulesets) to a selection of other queues, with a per-queue preview, a read-back check and a switch back. | Creates `msdyn_assignmentconfiguration`, `msdyn_assignmentconfigurationstep` and `msdyn_decisionruleset`; updates only `msdyn_isactiveconfiguration` on a method and `msdyn_assignmentstrategy` on a `queue`. Never deletes. |
@@ -66,7 +67,7 @@ Users themselves come from Microsoft Entra ID: a user is in the environment once
 </tr>
 </table>
 
-Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Skill Assignment](tools/skill-assignment/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md), [Assignment Method Copier](tools/assignment-method-copier/manual.md), [Route-to-Queue Builder](tools/route-to-queue-builder/manual.md).
+Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Skill Assignment](tools/skill-assignment/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md), [Assignment Method Copier](tools/assignment-method-copier/manual.md), [Route-to-Queue Builder](tools/route-to-queue-builder/manual.md), [Voicemail Builder](tools/voicemail-builder/manual.md).
 
 ### How the creation tools work
 
@@ -95,9 +96,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_10.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_10.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_11.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_11.zip)
 >
-> **Version 1.0.0.10 contains all fifteen tools**, already in the app's Site Map in four groups: **Tools** (the four diagnostic tools), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.11 contains all sixteen tools**, already in the app's Site Map in four groups: **Tools** (the four diagnostic tools), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -107,7 +108,7 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_10.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_11.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
@@ -126,7 +127,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.10 already has all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.11 already has all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
@@ -139,6 +140,7 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Creation | Profile Builder | `pct_/tools/profilebuilder/index.html` |
 | Creation | Queue Assignment Method Copier | `pct_/tools/assignmentmethodcopier/index.html` |
 | Creation | Route-to-Queue Builder | `pct_/tools/routetoqueuebuilder/index.html` |
+| Creation | Voicemail Builder | `pct_/tools/voicemailbuilder/index.html` |
 | Provisioning | Recording & Transcription | `pct_/tools/recordingprovisioner/index.html` |
 | Provisioning | Queue Membership | `pct_/tools/queuemembership/index.html` |
 | Provisioning | Skill Assignment | `pct_/tools/skillassignment/index.html` |
@@ -178,6 +180,7 @@ tools/
   queue-builder/               # Creation
   profile-builder/             # Creation (outbound profiles)
   route-to-queue-builder/      # Creation (route-to-queue rules by context variable)
+  voicemail-builder/           # Creation (voicemail per voice queue)
   business-unit-builder/       # Creation (business units)
   team-builder/                # Onboarding step 1 (teams)
   user-setup/                  # Onboarding step 2 (users, bookable resources)
@@ -223,6 +226,7 @@ Each tool can be run locally in its offline demo mode:
 | Skill Assignment | `skillassignment` | `npm run demo:skillassignment` → http://localhost:5444/index.html |
 | Assignment Method Copier | `assignmentmethodcopier` | `npm run demo:assignmentmethodcopier` → http://localhost:5445/index.html |
 | Route-to-Queue Builder | `routetoqueuebuilder` | `npm run demo:routetoqueuebuilder` → http://localhost:5446/index.html |
+| Voicemail Builder | `voicemailbuilder` | `npm run demo:voicemailbuilder` → http://localhost:5447/index.html |
 
 ## Deployment
 
