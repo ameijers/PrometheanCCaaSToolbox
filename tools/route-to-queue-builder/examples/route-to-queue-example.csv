@@ -1,0 +1,6 @@
+workstream_name,rule_name,menu_value,queue_name
+Sales – Voice,Route to new sales,NewOrder,Sales – NL
+Sales – Voice,Route to order status,OrderStatus,Sales – Orders
+Support – Voice,Route to returns,Returns,Support – Returns
+Support – Voice,Route to technical support,Technical,Support – Technical
+Billing – Voice,Route to invoices,Invoice,Billing

@@ -174,6 +174,18 @@
         { "name": "pct_/tools/assignmentmethodcopier/style.css", "path": "dist/webresource/assignmentmethodcopier/style.css", "type": 2, "displayName": "Assignment Method Copier - style.css" },
         { "name": "pct_/tools/assignmentmethodcopier/bundle.js", "path": "dist/webresource/assignmentmethodcopier/bundle.js", "type": 3, "displayName": "Assignment Method Copier - bundle.js" }
       ]
+    },
+    "routetoqueuebuilder": {
+      "displayName": "Route-to-Queue Builder",
+      "stage": [
+        { "from": "tools/route-to-queue-builder/webresource/routetoqueuebuilder.html", "to": "dist/webresource/routetoqueuebuilder/index.html" },
+        { "from": "tools/route-to-queue-builder/css/routeToQueueBuilder.css", "to": "dist/webresource/routetoqueuebuilder/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/routetoqueuebuilder/index.html", "path": "dist/webresource/routetoqueuebuilder/index.html", "type": 1, "displayName": "Route-to-Queue Builder - index.html", "cacheBust": true },
+        { "name": "pct_/tools/routetoqueuebuilder/style.css", "path": "dist/webresource/routetoqueuebuilder/style.css", "type": 2, "displayName": "Route-to-Queue Builder - style.css" },
+        { "name": "pct_/tools/routetoqueuebuilder/bundle.js", "path": "dist/webresource/routetoqueuebuilder/bundle.js", "type": 3, "displayName": "Route-to-Queue Builder - bundle.js" }
+      ]
     }
   }
 }
