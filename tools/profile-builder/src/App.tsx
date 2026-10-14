@@ -112,7 +112,7 @@ function UploadStep({ busy, fileInput, onFile }: { busy: boolean; fileInput: Rea
     <div className="panel">
       <p className="eyebrow">Step 1</p>
       <h2>Upload the outbound profiles to create</h2>
-      <p className="muted">One row per outbound profile. Every profile needs a <code>phone_number</code> that's enabled for outbound calling, and an <code>outbound_queue</code>. Empty cells take the default shown in the column reference.</p>
+      <p className="muted">One row per outbound profile. Every profile needs an <code>outbound_queue</code>. A <code>phone_number</code> must be enabled for outbound calling; leave it empty to create the profile without a number and assign one later. Empty cells take the default shown in the column reference.</p>
       <div className="template-actions">
         <button className="button secondary" onClick={() => downloadCsv(EXAMPLE_FILE_NAME, exampleCsv())}>⇩ Download example CSV</button>
         <button className="button ghost" onClick={() => downloadCsv("outbound-profiles.csv", emptyTemplateCsv())}>Empty template (headers only)</button>

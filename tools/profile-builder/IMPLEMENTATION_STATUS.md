@@ -17,7 +17,7 @@ So an outbound profile is exactly the record set Voice Workstream Builder create
 | Decision | Why |
 | --- | --- |
 | **Outbound only** | Product owner decision (2026-10-01). The environment has no inbound profile, so how one is stored (presumably `msdyn_direction` 2 "Direct Inbound") couldn't be verified. A CSV row with `profile_type` Inbound is an error that says so. |
-| **Phone number required** | Product owner decision (2026-10-01): a profile without a number can't place calls. The number must also be enabled for outbound calling; that's an error here (a warning in the builder). |
+| **Phone number optional** (was required until 2026-10-13) | Product owner decision (2026-10-13), replacing the one of 2026-10-01: profiles are often set up before their numbers are available. An empty `phone_number` is a warning, and the profile is created without a number or caller ID number, as Voice Workstream Builder does for channels. A number that is given must be enabled for outbound calling; that's an error here (a warning in the builder). Tested live on 2026-10-13: "Sales – Outbound" was created without a number, with its workstream and voice channel, and shows in the admin center as an outbound profile. |
 | Caller ID defaults to the profile's number | As on the admin center's profile. |
 | Never set `msdyn_isdefault` | There's one default outbound profile; a bulk tool must not move it. |
 | Region allow-list not exposed | Empty on every channel in the environment, so its format is unknown. |
@@ -32,7 +32,7 @@ So an outbound profile is exactly the record set Voice Workstream Builder create
 
 ## Complete
 
-- CSV columns with defaults (from the admin center's outbound profile), validation (required number and queue, E.164, caller ID, anonymity, Inbound rejected), resolution through the builder plus stricter outbound-number checks.
+- CSV columns with defaults (from the admin center's outbound profile), validation (required queue, optional number, E.164, caller ID, anonymity, Inbound rejected), resolution through the builder plus stricter outbound-number checks.
 - Shared builder extensions: caller ID number/name/anonymity on channels (model, resolve, payload); routing-rules note only for inbound.
 - UI: Upload → Review → Create, write banner, confirmation; run log.
 - Tests: 17 (`plan` incl. payloads, create order and the example file; `writeScope`), plus the builder's suite. Driven end to end in headless Chrome against the demo build.

@@ -15,15 +15,15 @@ See the [manual](manual.md) for a walkthrough with screenshots.
 
 ## The CSV
 
-One row per outbound profile. A **phone number is required**: an outbound profile can't place calls without one.
+One row per outbound profile. The **phone number is optional**: a profile can be created before its number is available, but it can't place calls until one is assigned in the admin center.
 
 | Column | Empty means | Notes |
 | --- | --- | --- |
 | `profile_name` | **Required** | Must be unique in the file and new in the environment. |
 | `profile_type` | Outbound | Only Outbound is supported; Inbound is reported as an error. |
-| `phone_number` | **Required** | E.164. Must exist, be active and be **enabled for outbound calling**. |
+| `phone_number` | No number | E.164. Must exist, be active and be **enabled for outbound calling**. Empty creates the profile without a number (a warning). |
 | `outbound_queue` | **Required** | The queue outbound calls are placed in, by name. |
-| `caller_id_number` | The profile's `phone_number` | The number the customer sees. Must be one of your own numbers. |
+| `caller_id_number` | The profile's `phone_number`, if any | The number the customer sees. Must be one of your own numbers. |
 | `caller_id_name` | No name sent | |
 | `anonymous_caller_id` | No | Yes hides the caller ID (name and number). |
 | `capacity_profile` | Default voice outbound | Name or unique name. |
@@ -43,7 +43,8 @@ Defaults follow the outbound profile the admin center created in the reference e
 | Check | Severity |
 | --- | --- |
 | Missing `profile_name` column, empty file, a column listed twice | Error |
-| Empty `profile_name`, `phone_number` or `outbound_queue`; duplicate name in the file | Error |
+| Empty `profile_name` or `outbound_queue`; duplicate name in the file | Error |
+| Empty `phone_number` | Warning: the profile is created without a number |
 | Profile (or any workstream) name already exists | Error |
 | `profile_type` Inbound or another value; invalid choice or presence | Error |
 | Phone number not E.164, not found, deactivated, or **not enabled for outbound calling** | Error |

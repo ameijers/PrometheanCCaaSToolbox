@@ -11,7 +11,7 @@ Open **Profile Builder** from the Promethean CCaaS Toolbox app. The topbar shows
 Click **Download example CSV** and open it in Excel. It creates 4 outbound profiles and uses every column, so it doubles as a reference. (**Empty template** gives just the column headers.) Each row is one outbound profile:
 
 - `profile_name` is the name of the new profile. It must not exist yet.
-- `phone_number` is the profile's number, e.g. `+31201234567`. It's **required**: the number must already be in the environment and be enabled for outbound calling.
+- `phone_number` is the profile's number, e.g. `+31201234567`. The number must already be in the environment and be enabled for outbound calling. Leave it empty to create the profile without a number: you get a warning, and the profile can't place calls until you assign a number in the admin center.
 - `outbound_queue` is the queue the outbound calls are placed in. **Required.**
 - `caller_id_number` and `caller_id_name` are what the customer sees. `anonymous_caller_id` set to Yes hides them.
 - The behavior columns (`transcript_recording`, `request_recording_consent`, …) work the same as in Voice Workstream Builder. `transcript_recording` is **None**, **Transcript**, or **Transcript and Recording**.
@@ -22,14 +22,15 @@ Only **outbound** profiles can be created for now. Create inbound profiles in th
 
 A column you leave out of the file entirely counts as empty in every row. Only `profile_name` must be present as a column.
 
-**Required — an empty cell is an error:** `profile_name`, `phone_number`, `outbound_queue`.
+**Required — an empty cell is an error:** `profile_name`, `outbound_queue`.
 
 **The tool uses its default.** These match the outbound profile the admin center created in the reference environment, except where marked.
 
 | Column | Empty means |
 | --- | --- |
 | `profile_type` | Outbound |
-| `caller_id_number` | The profile's own `phone_number` |
+| `phone_number` | No number; assign one in the admin center later |
+| `caller_id_number` | The profile's own `phone_number`, if it has one |
 | `anonymous_caller_id` | No: the caller ID is shown |
 | `capacity_profile` | Default voice outbound |
 | `allowed_presences` | Available and Busy |
