@@ -12,8 +12,8 @@ import { COLUMN_BY_HEADER, normalizeHeader } from "./template";
 // An outbound profile is stored exactly like an outbound voice workstream with one voice channel
 // (see IMPLEMENTATION_STATUS.md). So each CSV row becomes one WorkstreamSpec with one ChannelSpec,
 // and Voice Workstream Builder's verified resolution, payloads and create engine do the rest. This
-// file only adds what's specific to profiles: the CSV columns, the required number and queue, the
-// caller ID, and stricter number checks.
+// file only adds what's specific to profiles: the CSV columns, the required queue, the caller ID,
+// and stricter number checks.
 
 const CAPTURE_BY_LABEL: Record<string, Capture> = { "none": "none", "transcript": "transcript", "transcript and recording": "transcriptAndRecording" };
 const PHONE_PATTERN = /^\+[1-9]\d{6,14}$/;
@@ -56,15 +56,17 @@ export function validateProfiles(csv: ParsedCsv): ParsedPlan {
     if (type && type.toLowerCase() === "inbound") error("profile_type", "Inbound profiles aren't supported yet. Create them in the admin center for now.");
     else choice("profile_type");
 
-    const number = (h: string, required: boolean): string | undefined => {
+    const number = (h: string): string | undefined => {
       const raw = cell(h);
-      if (!raw) { if (required) error(h, `${h} is required. Every profile needs a phone number.`); return undefined; }
+      if (!raw) return undefined;
       const n = normalizePhoneNumber(raw);
       if (!PHONE_PATTERN.test(n)) { error(h, `"${raw}" isn't an E.164 phone number (+ country code and number, e.g. +31201234567).`); return undefined; }
       return n;
     };
-    const phoneNumber = number("phone_number", true);
-    const callerIdNumber = number("caller_id_number", false) ?? phoneNumber;
+    // A profile can be created before its number is available; it just can't place calls yet.
+    const phoneNumber = number("phone_number");
+    if (!cell("phone_number")) warning("phone_number", "No phone_number, so this profile is created without a number. It can't place calls until you assign one in the admin center.");
+    const callerIdNumber = number("caller_id_number") ?? phoneNumber;
 
     const outboundQueue = cell("outbound_queue");
     if (!outboundQueue) error("outbound_queue", "outbound_queue is required: it's the queue outbound calls from this profile are placed in.");

@@ -24,10 +24,10 @@ export const COLUMNS: ColumnDef[] = [
   // --- profile -----------------------------------------------------------------------------------
   { header: "profile_name", required: true, description: "Name of the outbound profile. Must not exist in the environment yet (as a profile or any other workstream)." },
   { header: "profile_type", choices: PROFILE_TYPES, defaultValue: "Outbound", description: "Outbound. Inbound profiles aren't supported yet." },
-  { header: "phone_number", required: true, description: "The profile's phone number in E.164 format, e.g. +31201234567. Must exist in the environment and be enabled for outbound calling." },
+  { header: "phone_number", description: "The profile's phone number in E.164 format, e.g. +31201234567. Must exist in the environment and be enabled for outbound calling. Empty creates the profile without a number, to assign in the admin center later." },
   // --- outbound information ------------------------------------------------------------------------
   { header: "outbound_queue", required: true, description: "Queue the outbound calls are placed in, by name." },
-  { header: "caller_id_number", description: "Number the customer sees. Empty uses the profile's phone_number. Must be one of your own numbers." },
+  { header: "caller_id_number", description: "Number the customer sees. Empty uses the profile's phone_number, if it has one. Must be one of your own numbers." },
   { header: "caller_id_name", description: "Name the customer sees, where the carrier shows names. Empty sends no name." },
   { header: "anonymous_caller_id", choices: YES_NO, defaultValue: "No", description: "Yes hides the caller ID from the customer." },
   { header: "capacity_profile", description: "Capacity profile name or unique name. Empty uses the admin center default: Default voice outbound." },

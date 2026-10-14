@@ -48,10 +48,31 @@ describe("outbound profiles: validation and resolution", () => {
     expect(ws.channels[0].refs.callerIdNumber).toBe(ws.channels[0].refs.phoneNumber);
   });
 
-  test("phone number and outbound queue are required", () => {
+  test("the outbound queue is required", () => {
     const p = plan([HEAD, "P,,", "Q,+31 20 123 45 67,"]);
-    expect(errors(p).map((e) => `${e.line}:${e.column}`)).toEqual(["2:phone_number", "2:outbound_queue", "3:outbound_queue"]);
-    expect(errors(p)[0].message).toMatch(/Every profile needs a phone number/);
+    expect(errors(p).map((e) => `${e.line}:${e.column}`)).toEqual(["2:outbound_queue", "3:outbound_queue"]);
+  });
+
+  test("a profile without a phone number is accepted, with a warning, and gets no number or caller ID number", () => {
+    const p = plan([HEAD, "P,,Callbacks"]);
+    expect(errors(p)).toEqual([]);
+    const warnings = p.issues.filter((i) => i.severity === "warning");
+    expect(warnings.map((w) => `${w.line}:${w.column}`)).toEqual(["2:phone_number"]);
+    expect(warnings[0].message).toMatch(/created without a number.*can't place calls until you assign one/);
+    const channel = p.workstreams[0].channels[0];
+    expect(channel.phoneNumber).toBeUndefined();
+    expect(channel.outbound).toEqual({ callerIdNumber: undefined, callerIdName: undefined, anonymousCallerId: false });
+    expect(channel.refs.phoneNumber).toBeUndefined();
+    expect(channel.refs.callerIdNumber).toBeUndefined();
+  });
+
+  test("a profile without a phone number can still have its own caller ID number", () => {
+    const p = plan(["profile_name,phone_number,outbound_queue,caller_id_number", "P,,Callbacks,+31201234567"]);
+    expect(errors(p)).toEqual([]);
+    const channel = p.workstreams[0].channels[0];
+    expect(channel.phoneNumber).toBeUndefined();
+    expect(channel.outbound?.callerIdNumber).toBe("+31201234567");
+    expect(channel.refs.callerIdNumber).toBeDefined();
   });
 
   test("the number must be enabled for outbound calling, and must exist", () => {
