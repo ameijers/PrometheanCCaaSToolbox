@@ -69,8 +69,8 @@ export interface Ride {
 
 // Ride speed in scene units per second, and how far behind and above the point the camera rides.
 const RIDE_SPEED = 30;
-const RIDE_BEHIND = 16;
-const RIDE_ABOVE = 5;
+const RIDE_BEHIND = 32;
+const RIDE_ABOVE = 10;
 
 export interface SceneHandle {
   view(): { position: Vec3; target: Vec3 };
@@ -368,7 +368,7 @@ function CameraRig({ mode, goal, handle, ride }: { mode: Mode; goal?: CameraGoal
       if (target && target.distanceTo(r.point) > 0.01) r.heading.lerp(target.clone().sub(r.point).normalize(), 1 - Math.exp(-step * 1.8)).normalize();
       const desired = r.point.clone().addScaledVector(r.heading, -RIDE_BEHIND).add(new THREE.Vector3(0, RIDE_ABOVE, 0));
       camera.position.lerp(desired, 1 - Math.exp(-step * (r.boarded ? 2.2 : 2.8)));
-      r.look.lerp(r.point.clone().addScaledVector(r.heading, 14), 1 - Math.exp(-step * 2.5));
+      r.look.lerp(r.point.clone().addScaledVector(r.heading, 20), 1 - Math.exp(-step * 2.5));
       camera.lookAt(r.look);
       look.current.setFromQuaternion(camera.quaternion, "YXZ");
       if (call.current) { call.current.position.copy(r.point); call.current.scale.setScalar(1 + 0.25 * Math.sin(performance.now() / 180)); }

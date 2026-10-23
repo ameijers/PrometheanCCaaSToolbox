@@ -72,7 +72,7 @@ The [README](README.md#health-overlay) lists every check. If a table couldn't be
 These are under the mode buttons in the left panel.
 
 - **Follow the call from …** rides along the lines a call takes, starting at the selected record. With nothing selected it starts at the first phone number. A bright point (the call) travels from the phone number to its channel, workstream, routing rule, queue and agent, and the camera rides behind it, looking ahead.
-  - Only the route and the next choices are shown. Tick **Show everything** in the ride bar to see the rest around it.
+  - The route and the next choices are lit and everything else is dimmed. Tick **Show only the route** in the ride bar to hide the rest.
   - Where there's only one way, the call goes on by itself. At a fork (a workstream with several rules, a queue with several agents) it slows down, and the ride bar asks **Where does the call go next?** Click a choice to go on.
   - The ride bar shows the route so far. **Pause** stops the call where it is, **Start again** rides the route again from the start, and **×** (or Esc) stops following the call.
 - **Size by connections** makes a record bigger the more links it has: a queue with many members and rules routing to it, a workstream with many channels and rules.

@@ -76,7 +76,7 @@ export function App(): React.ReactElement {
   const [showHealth, setShowHealth] = useState(urlOptions.health);
   const [problemsOnly, setProblemsOnly] = useState(false);
   const [sizeByConnections, setSizeByConnections] = useState(false);
-  const [ride, setRide] = useState<{ id: number; path: string[]; options: RideOption[]; playing: boolean; showAll: boolean } | undefined>(undefined);
+  const [ride, setRide] = useState<{ id: number; path: string[]; options: RideOption[]; playing: boolean; routeOnly: boolean } | undefined>(undefined);
   const [views, setViews] = useState<SavedView[]>(() => loadViews(environment));
   const [viewName, setViewName] = useState("");
   const sceneHandle = useRef<SceneHandle | null>(null);
@@ -113,10 +113,10 @@ export function App(): React.ReactElement {
 
   const rideKeys = useMemo(() => (ride ? new Set([...ride.path, ...ride.options.map((o) => o.key)]) : undefined), [ride]);
   const visibleNodes = useMemo(
-    () => (graph?.nodes ?? []).filter((n) => rideKeys && !ride?.showAll
+    () => (graph?.nodes ?? []).filter((n) => rideKeys && ride?.routeOnly
       ? rideKeys.has(n.key)
       : !hiddenKinds.has(n.kind) && (!chainOnly || !lit || lit.has(n.key)) && (!showHealth || !problemsOnly || issueContext.has(n.key))),
-    [graph, hiddenKinds, chainOnly, lit, showHealth, problemsOnly, issueContext, rideKeys, ride?.showAll]
+    [graph, hiddenKinds, chainOnly, lit, showHealth, problemsOnly, issueContext, rideKeys, ride?.routeOnly]
   );
   const visibleEdges = useMemo(() => {
     const visible = new Set(visibleNodes.map((n) => n.key));
@@ -160,7 +160,7 @@ export function App(): React.ReactElement {
     const start = from ?? selected ?? (graph ? defaultRideStart(graph) : undefined);
     if (!graph || !start) return;
     setHovered(undefined);
-    setRide({ id: Date.now(), ...extendRide(graph, [start]), playing: true, showAll: false });
+    setRide({ id: Date.now(), ...extendRide(graph, [start]), playing: true, routeOnly: false });
   };
   const stopRide = useCallback(() => setRide(undefined), []);
   const choose = (option: RideOption) => {
@@ -412,7 +412,7 @@ export function App(): React.ReactElement {
           <div className="ride-controls">
             <button onClick={() => setRide((r) => (r ? { ...r, playing: !r.playing } : r))}>{ride.playing ? "❚❚ Pause" : "▶ Go on"}</button>
             <button onClick={() => startRide(ride.path[0])}>↺ Start again</button>
-            <label className="toggle"><input type="checkbox" checked={ride.showAll} onChange={(e) => setRide((r) => (r ? { ...r, showAll: e.target.checked } : r))} /> Show everything</label>
+            <label className="toggle"><input type="checkbox" checked={ride.routeOnly} onChange={(e) => setRide((r) => (r ? { ...r, routeOnly: e.target.checked } : r))} /> Show only the route</label>
             <button onClick={stopRide} aria-label="Stop following the call">✕</button>
           </div>
         </div>
