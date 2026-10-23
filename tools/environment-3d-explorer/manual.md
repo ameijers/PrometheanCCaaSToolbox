@@ -81,10 +81,23 @@ These are under the mode buttons in the left panel.
 
 ![Following a call: the route so far and the choice at the workstream](images/05-ride.png)
 
-## 6. Reading the environment again
+## 6. Watching live activity
+
+Tick **Live activity** in the left panel. A green dot next to it pulses while it's on; it turns amber if a read fails (the reason is shown, and the last picture stays). The panel shows when it was last updated; it reads again every 15 seconds.
+
+- Agents are coloured by presence: green available, red busy, dark red do not disturb, amber away, grey offline or signed out.
+- Open conversations circle where they are: yellow ones wait in a queue, cyan ones are with an agent, violet ones are in wrap-up.
+- A queue with waiting conversations grows and its label shows how many, for example "Billing · 3 waiting".
+- A new conversation shoots from its workstream to its queue.
+- The counts in the panel: conversations by status, how many were created in the last 24 hours, and agents by presence.
+- Select a queue or workstream to see waiting now, with an agent now and the last 24 hours in its details; select an agent to see their presence and conversations.
+
+![Live activity in the sample environment](images/06-live.png)
+
+## 7. Reading the environment again
 
 The scene shows the environment as it was when the page loaded. After you change something in the admin center, click **Read the environment again**.
 
-## 7. Opening the tool from a link
+## 8. Opening the tool from a link
 
-Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on, and `ride=1` to start following the call as soon as the page opens (together with `focus`, from that record). In a Site Map subarea, put them in the **data** parameter, for example `focus=Customer Service&ride=1`.
+Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on, `live=1` for live activity, and `ride=1` to start following the call as soon as the page opens (together with `focus`, from that record). In a Site Map subarea, put them in the **data** parameter, for example `focus=Customer Service&ride=1`.

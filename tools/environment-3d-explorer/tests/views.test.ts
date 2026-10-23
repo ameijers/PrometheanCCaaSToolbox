@@ -10,18 +10,19 @@ import { loadViews, nextViewName, storeViews } from "../src/views";
 
 describe("readUrlOptions", () => {
   test("reads focus, health and ride from the address", () => {
-    expect(readUrlOptions("?focus=Sales&health=1&ride=yes")).toEqual({ focus: "Sales", health: true, ride: true });
-    expect(readUrlOptions("")).toEqual({ focus: undefined, health: false, ride: false });
-    expect(readUrlOptions("?health=0&ride=false")).toEqual({ focus: undefined, health: false, ride: false });
+    expect(readUrlOptions("?focus=Sales&health=1&ride=yes")).toEqual({ focus: "Sales", health: true, ride: true, live: false });
+    expect(readUrlOptions("")).toEqual({ focus: undefined, health: false, ride: false, live: false });
+    expect(readUrlOptions("?health=0&ride=false")).toEqual({ focus: undefined, health: false, ride: false, live: false });
   });
 
   test("reads them from Dataverse's single data parameter too", () => {
-    expect(readUrlOptions("?data=focus%3DCustomer%20Service%26health%3D1")).toEqual({ focus: "Customer Service", health: true, ride: false });
-    expect(readUrlOptions("?data=health%3D1")).toEqual({ focus: undefined, health: true, ride: false });
+    expect(readUrlOptions("?data=focus%3DCustomer%20Service%26health%3D1")).toEqual({ focus: "Customer Service", health: true, ride: false, live: false });
+    expect(readUrlOptions("?data=live%3D1")).toEqual({ focus: undefined, health: false, ride: false, live: true });
+    expect(readUrlOptions("?data=health%3D1")).toEqual({ focus: undefined, health: true, ride: false, live: false });
   });
 
   test("a plain data value is a record name", () => {
-    expect(readUrlOptions("?data=Billing")).toEqual({ focus: "Billing", health: false, ride: false });
+    expect(readUrlOptions("?data=Billing")).toEqual({ focus: "Billing", health: false, ride: false, live: false });
   });
 });
 

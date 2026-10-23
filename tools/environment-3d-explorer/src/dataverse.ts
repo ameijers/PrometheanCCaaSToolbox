@@ -3,6 +3,7 @@
 
 import { cleanId, readAll, str } from "../../shared/src/xrm";
 import { RawEnvironment, QUEUE_IDENTIFICATION, buildGraph } from "./graph";
+import { LiveRows } from "./live";
 import { Graph, Unread } from "./model";
 
 // The only file that talks to Dataverse, and it only reads (Xrm.WebApi.retrieveMultipleRecords
@@ -60,4 +61,17 @@ export async function loadRaw(): Promise<RawEnvironment> {
 
 export async function loadGraph(): Promise<Graph> {
   return buildGraph(await loadRaw());
+}
+
+// Live activity: agents' current presence (msdyn_agentstatus, as Agent Readiness Checker reads it) and
+// conversations open now or created since `since`. Columns confirmed live (academyexperiment, 2026-10-23):
+// _msdyn_cdsqueueid_value is the queue (_msdyn_queueid_value is the older omnichannel queue table),
+// _msdyn_activeagentid_value the agent.
+export async function loadLiveRows(graph: Graph, since: string): Promise<LiveRows> {
+  const agentIds = graph.nodes.filter((n) => n.kind === "agent" && n.recordId).map((n) => n.recordId!);
+  const [agentStatuses, conversations] = await Promise.all([
+    readByIds("msdyn_agentstatus", "_msdyn_agentid_value", "$select=_msdyn_agentid_value,msdyn_isagentloggedin&$expand=msdyn_currentpresenceid($select=msdyn_name,msdyn_basepresencestatus)", agentIds),
+    readAll("msdyn_ocliveworkitem", `?$select=msdyn_ocliveworkitemid,statecode,statuscode,createdon,_msdyn_cdsqueueid_value,_msdyn_activeagentid_value,_msdyn_liveworkstreamid_value&$filter=statecode eq 0 or createdon ge ${since}`)
+  ]);
+  return { agentStatuses, conversations, since };
 }

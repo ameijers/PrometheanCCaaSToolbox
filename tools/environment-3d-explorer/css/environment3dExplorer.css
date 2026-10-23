@@ -127,3 +127,15 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .ride-choices small { color: #7f98a8; font-weight: 500; font-size: 10.5px; }
 .ride-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ride-controls button:last-child { margin-left: auto; }
+
+/* Live activity. */
+.live { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(140, 170, 200, .18); display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.live .toggle span:first-of-type { flex: 1; }
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); animation: pulse 1.6s infinite; }
+.pulse.error { background: #f59e0b; animation: none; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); } 70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+.live-counts { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-size: 12px; }
+.live-counts li { display: flex; align-items: center; gap: 6px; }
+.error-text { color: #f0a14a; }
+.node-label .suffix { color: #fde047; font-weight: 700; }
+.live-counts li.muted { grid-column: 1 / -1; }

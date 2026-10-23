@@ -32,7 +32,7 @@ A faint ring marks each layer. Within a layer, a record sits near the records it
 - **Size by connections** makes each record's size show how many links it has, so busy queues and big workstreams stand out.
 - **Save view** keeps the current camera position under a name; click a saved view to fly back to it. Saved views stay in this browser, per environment.
 - **Screenshot** downloads the current view as a PNG (without the name labels, which are HTML on top of the scene).
-- The page address can ask for `focus=<name>`, `health=1` and `ride=1` (start following the call when the page opens, from the focused record if there is one). On a Site Map subarea, put them in the web resource's data parameter, for example `focus=Sales&ride=1`; a plain data value is read as a record name.
+- The page address can ask for `focus=<name>`, `health=1`, `live=1` and `ride=1` (start following the call when the page opens, from the focused record if there is one). On a Site Map subarea, put them in the web resource's data parameter, for example `focus=Sales&ride=1`; a plain data value is read as a record name.
 
 ![A workstream in focus](images/01-workstream-focus.png)
 
@@ -58,18 +58,30 @@ The checks use only the data the scene already has, so the overlay reads nothing
 
 ![Health overlay](images/03-health.png)
 
+## Live activity
+
+**Live activity** (left panel) puts what's happening now on top of the configuration, read again every 15 seconds:
+
+- **Agents** take the colour of their presence: available (green), busy (red), do not disturb (dark red), away (amber), offline or signed out (grey).
+- **Conversations** open now are small points: yellow ones **waiting** circle their queue, cyan ones **with an agent** and violet ones **in wrap-up** circle that agent.
+- **Queues** with conversations waiting grow and get a label, for example "Billing · 3 waiting".
+- A conversation that's new since the previous read **shoots from its workstream to its queue** as a comet.
+- The panel counts conversations by status, the conversations created in the last 24 hours, and agents by presence. A selected queue or workstream shows waiting now, with an agent now and the last 24 hours; a selected agent shows their presence and conversations.
+
+The last 24 hours are there because a test environment often has nothing open. If a read fails, the panel says so and the last picture stays. `live=1` in the page address turns it on when the page opens. In the sample environment the activity is simulated and moves every 5 seconds.
+
 ## How it works
 
 - `src/dataverse.ts` reads the tables below with `Xrm.WebApi.retrieveMultipleRecords` (through `shared/src/xrm.ts`). Phone numbers, voice channels and skills are optional: if one of them can't be read, the rest still shows and the page says what's missing.
 - `src/graph.ts` turns the rows into nodes and edges, with edges pointing downstream. It reuses Visual Routing Tester's decision-XML parser for the route-to-queue rules.
-- `src/health.ts` runs the health checks on the graph.
+- `src/health.ts` runs the health checks on the graph, and `src/live.ts` maps live presence and conversations onto it (`src/demoLive.ts` simulates them for the demo).
 - `src/ride.ts` works out the route for "follow the call", `src/views.ts` keeps the saved views and `src/urlOptions.ts` reads the page address.
 - `src/layout.ts` places the nodes deterministically, so the same environment always gives the same picture.
 - `src/Scene.tsx` draws them with [Three.js](https://threejs.org) through React Three Fiber and drei. Each record type is one instanced mesh, and all the lines are one geometry, so thousands of records stay smooth.
 
 ### Tables read
 
-`msdyn_ocphonenumber`, `msdyn_ocvoicechannelsetting`, `msdyn_liveworkstream` (active), `msdyn_routingconfiguration`, `msdyn_routingconfigurationstep`, `msdyn_decisionruleset` (the route-to-queue rulesets only), `queue` (active omnichannel queues, not `<CDS System>`), `queuemembership`, `systemuser` (interactive users), `bookableresource`, `bookableresourcecharacteristic` (with its characteristic and rating).
+`msdyn_ocphonenumber`, `msdyn_ocvoicechannelsetting`, `msdyn_liveworkstream` (active), `msdyn_routingconfiguration`, `msdyn_routingconfigurationstep`, `msdyn_decisionruleset` (the route-to-queue rulesets only), `queue` (active omnichannel queues, not `<CDS System>`), `queuemembership`, `systemuser` (interactive users), `bookableresource`, `bookableresourcecharacteristic` (with its characteristic and rating). With live activity on, also `msdyn_agentstatus` (with `msdyn_presence`) for the agents, and `msdyn_ocliveworkitem` for conversations open now or created in the last 24 hours.
 
 Agents are the users who are a member of at least one omnichannel queue.
 
