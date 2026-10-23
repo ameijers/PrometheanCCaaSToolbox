@@ -4,8 +4,10 @@
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { environmentLabel, isDataverseAvailable, recordUrl } from "../../shared/src/xrm";
-import { loadGraph } from "./dataverse";
+import { loadGraph, loadLiveRows } from "./dataverse";
 import { demoRaw } from "./demoData";
+import { demoLiveSource } from "./demoLive";
+import { buildLive, CONVERSATION_COLORS, CONVERSATION_LABELS, Live, LiveRows, liveDetails, newArrivals, Presence, PRESENCE_COLORS, PRESENCE_LABELS, waitingByQueue } from "./live";
 import { buildGraph, chainOf } from "./graph";
 import { findIssues, SEVERITY_LABELS, worstByKey } from "./health";
 import { computeLayout, connectionScales } from "./layout";
@@ -14,6 +16,11 @@ import { CameraGoal, Mode, Ride, SEVERITY_COLORS, START_POSITION, Scene, SceneHa
 import { defaultRideStart, extendRide, RideOption } from "./ride";
 import { readUrlOptions } from "./urlOptions";
 import { loadViews, nextViewName, SavedView, storeViews } from "./views";
+
+// Live activity is read again this often; the demo moves faster so there's something to see.
+const LIVE_REFRESH_MS = 15000;
+const DEMO_REFRESH_MS = 5000;
+const LIVE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // Choices shown at a fork in the ride; the rest are counted.
 const MAX_RIDE_CHOICES = 8;
@@ -80,6 +87,10 @@ export function App(): React.ReactElement {
   const [views, setViews] = useState<SavedView[]>(() => loadViews(environment));
   const [viewName, setViewName] = useState("");
   const sceneHandle = useRef<SceneHandle | null>(null);
+  const [liveOn, setLiveOn] = useState(urlOptions.live);
+  const [activity, setActivity] = useState<Live | undefined>(undefined);
+  const [liveError, setLiveError] = useState("");
+  const [arrivals, setArrivals] = useState<{ id: string; from: CameraGoal["position"]; to: CameraGoal["position"] }[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,8 +107,54 @@ export function App(): React.ReactElement {
   useEffect(() => { void load(); }, [load]);
 
   const positions = useMemo(() => (graph ? computeLayout(graph) : new Map()), [graph]);
+
+  // Live activity: read now and then every so often while it's on. A failed read keeps the last picture.
+  useEffect(() => {
+    if (!liveOn || !graph) { setActivity(undefined); setArrivals([]); return; }
+    let cancelled = false;
+    let previous: Live | undefined;
+    const demo = !isDataverseAvailable() ? demoLiveSource(graph) : undefined;
+    const readRows = (since: string): Promise<LiveRows> => (demo ? Promise.resolve(demo(since)) : loadLiveRows(graph, since));
+    const read = async () => {
+      try {
+        const since = new Date(Date.now() - LIVE_WINDOW_MS).toISOString();
+        const next = buildLive(graph, await readRows(since), new Date().toISOString());
+        if (cancelled) return;
+        const arriving = newArrivals(previous, next)
+          .map((c) => ({ id: `${c.id}:${next.readAt}`, from: positions.get(c.workstreamKey ?? ""), to: positions.get(c.queueKey ?? c.agentKey ?? "") }))
+          .filter((a): a is { id: string; from: CameraGoal["position"]; to: CameraGoal["position"] } => !!a.from && !!a.to);
+        previous = next;
+        setActivity(next);
+        setArrivals(arriving);
+        setLiveError("");
+      } catch (e) {
+        if (!cancelled) setLiveError(e instanceof Error ? e.message : String(e));
+      }
+    };
+    void read();
+    const timer = setInterval(() => void read(), demo ? DEMO_REFRESH_MS : LIVE_REFRESH_MS);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [liveOn, graph, positions]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const liveColors = useMemo(() => (activity ? new Map([...activity.presence.entries()].map(([k, p]) => [k, PRESENCE_COLORS[p.presence]])) : undefined), [activity]);
+  const waiting = useMemo(() => (activity ? waitingByQueue(activity) : new Map<string, number>()), [activity]);
+  const liveSuffix = useMemo(() => (activity ? new Map([...waiting.entries()].map(([k, n]) => [k, `${n} waiting`])) : undefined), [activity, waiting]);
+  const liveConversations = useMemo(() => (activity ? activity.open
+    .map((c) => ({ id: c.id, status: c.status, anchor: (c.status === "waiting" ? c.queueKey : c.agentKey ?? c.queueKey) ?? "" }))
+    .filter((c) => positions.has(c.anchor)) : undefined), [activity, positions]);
+  const presenceCounts = useMemo(() => {
+    const counts = new Map<Presence, number>();
+    activity?.presence.forEach((p) => counts.set(p.presence, (counts.get(p.presence) ?? 0) + 1));
+    return counts;
+  }, [activity]);
   const nodeByKey = useMemo(() => new Map((graph?.nodes ?? []).map((n) => [n.key, n])), [graph]);
-  const scales = useMemo(() => (graph && sizeByConnections ? connectionScales(graph) : undefined), [graph, sizeByConnections]);
+  const connectionSizes = useMemo(() => (graph && sizeByConnections ? connectionScales(graph) : undefined), [graph, sizeByConnections]);
+  const scales = useMemo(() => {
+    if (!waiting.size) return connectionSizes;
+    const merged = new Map(connectionSizes ?? []);
+    waiting.forEach((n, k) => merged.set(k, (connectionSizes?.get(k) ?? 1) * (1 + Math.min(1.5, Math.sqrt(n) * 0.35))));
+    return merged;
+  }, [connectionSizes, waiting]);
   const lit = useMemo(() => (graph && selected ? chainOf(graph, selected) : undefined), [graph, selected]);
 
   const issues = useMemo(() => (graph ? findIssues(graph) : []), [graph]);
@@ -229,6 +286,7 @@ export function App(): React.ReactElement {
           nodes={visibleNodes} edges={visibleEdges} positions={positions} lit={rideKeys ?? lit}
           selected={selected} hovered={hovered} mode={mode} goal={goal} issues={showHealth ? worst : undefined}
           scales={scales} handle={sceneHandle} ride={sceneRide} labelKeys={rideKeys ? [...rideKeys] : undefined}
+          colors={liveColors} labelSuffix={liveSuffix} conversations={liveConversations} arrivals={arrivals}
           onHover={setHovered} onSelect={select}
         />
       )}
@@ -318,6 +376,39 @@ export function App(): React.ReactElement {
         )}
 
         {graph && (
+          <div className="live">
+            <label className="toggle">
+              <input type="checkbox" checked={liveOn} onChange={(e) => setLiveOn(e.target.checked)} />
+              <span>Live activity</span>
+              {liveOn && <span className={`pulse${liveError ? " error" : ""}`} />}
+            </label>
+            {liveOn && (
+              <>
+                {activity ? (
+                  <>
+                    <p className="muted small">
+                      Updated {new Date(activity.readAt).toLocaleTimeString()}, every {(isDataverseAvailable() ? LIVE_REFRESH_MS : DEMO_REFRESH_MS) / 1000} seconds.
+                    </p>
+                    <ul className="live-counts">
+                      {(["waiting", "with-agent", "wrap-up"] as const).map((status) => (
+                        <li key={status}><span className="dot" style={{ background: CONVERSATION_COLORS[status] }} />{activity.open.filter((c) => c.status === status).length} {CONVERSATION_LABELS[status]}</li>
+                      ))}
+                      <li className="muted">{[...activity.recent.entries()].filter(([k]) => k.startsWith("workstream:")).reduce((n, [, c]) => n + c, 0)} in the last 24 hours</li>
+                    </ul>
+                    <ul className="live-counts">
+                      {(Object.keys(PRESENCE_LABELS) as Presence[]).map((p) => (
+                        <li key={p}><span className="dot" style={{ background: PRESENCE_COLORS[p] }} />{presenceCounts.get(p) ?? 0} {PRESENCE_LABELS[p].toLowerCase()}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : !liveError && <p className="muted small">Reading live activity…</p>}
+                {liveError && <p className="muted small error-text">Couldn't read live activity: {liveError}</p>}
+              </>
+            )}
+          </div>
+        )}
+
+        {graph && (
           <div className="health">
             <label className="toggle">
               <input type="checkbox" checked={showHealth} onChange={(e) => setShowHealth(e.target.checked)} />
@@ -363,7 +454,7 @@ export function App(): React.ReactElement {
           <h2>{selectedNode.name}</h2>
           {selectedNode.details.length > 0 && (
             <dl className="details">
-              {selectedNode.details.map(([label, value]) => <React.Fragment key={label}><dt>{label}</dt><dd>{value || "—"}</dd></React.Fragment>)}
+              {[...selectedNode.details, ...(activity ? liveDetails(selectedNode.key, activity) : [])].map(([label, value]) => <React.Fragment key={label}><dt>{label}</dt><dd>{value || "—"}</dd></React.Fragment>)}
             </dl>
           )}
           {selectedIssues.map((i) => (

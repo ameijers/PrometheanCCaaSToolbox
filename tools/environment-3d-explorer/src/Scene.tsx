@@ -6,8 +6,9 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrbitControls, Stars } from "@react-three/drei";
-import { LAYER_SPACING, Vec3 } from "./layout";
+import { hash, LAYER_SPACING, Vec3 } from "./layout";
 import { Severity } from "./health";
+import { CONVERSATION_COLORS, ConversationStatus } from "./live";
 import { GraphEdge, GraphNode, KIND_ORDER, KINDS, NodeKind } from "./model";
 
 // The 3D view. One instanced mesh per kind keeps thousands of nodes cheap; all edges are one
@@ -59,6 +60,12 @@ interface SceneProps {
   ride?: Ride;
   // Names to label instead of the selected record and its links (the ride labels its route).
   labelKeys?: string[];
+  // Live activity: colours that replace a record's own (agents by presence), extra text after a
+  // record's label ("3 waiting"), conversations circling their queue or agent, and new ones arriving.
+  colors?: Map<string, string>;
+  labelSuffix?: Map<string, string>;
+  conversations?: { id: string; anchor: string; status: ConversationStatus }[];
+  arrivals?: { id: string; from: Vec3; to: Vec3 }[];
 }
 
 export interface Ride {
@@ -82,8 +89,8 @@ const ONE = new THREE.Vector3(1, 1, 1);
 const place = (matrix: THREE.Matrix4, [x, y, z]: Vec3, scale = 1) =>
   matrix.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(), ONE.clone().multiplyScalar(scale));
 
-function KindMesh({ kind, nodes, positions, scales, lit, onHover, onSelect }: {
-  kind: NodeKind; nodes: GraphNode[]; positions: Map<string, Vec3>; scales?: Map<string, number>; lit?: Set<string>;
+function KindMesh({ kind, nodes, positions, scales, colors, lit, onHover, onSelect }: {
+  kind: NodeKind; nodes: GraphNode[]; positions: Map<string, Vec3>; scales?: Map<string, number>; colors?: Map<string, string>; lit?: Set<string>;
   onHover(key: string | undefined): void; onSelect(key: string): void;
 }) {
   const ref = useRef<THREE.InstancedMesh>(null);
@@ -94,17 +101,19 @@ function KindMesh({ kind, nodes, positions, scales, lit, onHover, onSelect }: {
     const mesh = ref.current;
     if (!mesh) return;
     const matrix = new THREE.Matrix4();
-    const base = new THREE.Color(KINDS[kind].color);
-    const dim = base.clone().lerp(BG, 0.85);
+    const own = new THREE.Color(KINDS[kind].color);
+    const color = new THREE.Color();
     nodes.forEach((n, i) => {
       place(matrix, positions.get(n.key) ?? [0, 0, 0], scales?.get(n.key) ?? 1);
       mesh.setMatrixAt(i, matrix);
-      mesh.setColorAt(i, !lit || lit.has(n.key) ? base : dim);
+      const override = colors?.get(n.key);
+      if (override) color.set(override); else color.copy(own);
+      mesh.setColorAt(i, !lit || lit.has(n.key) ? color : color.lerp(BG, 0.85));
     });
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [kind, nodes, positions, scales, lit]);
+  }, [kind, nodes, positions, scales, colors, lit]);
 
   const keyOf = (e: ThreeEvent<PointerEvent | MouseEvent>) => (e.instanceId !== undefined ? nodes[e.instanceId]?.key : undefined);
   return (
@@ -210,6 +219,68 @@ function IssueMarkers({ severity, keys, positions, scales }: { severity: Severit
     <instancedMesh key={keys.length} ref={ref} args={[geometry, undefined, keys.length]} raycast={() => null}>
       <meshBasicMaterial ref={material} color={SEVERITY_COLORS[severity]} transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
     </instancedMesh>
+  );
+}
+
+// Open conversations: small points circling the queue they wait in, or the agent who has them.
+function ConversationParticles({ conversations, positions }: { conversations: { id: string; anchor: string; status: ConversationStatus }[]; positions: Map<string, Vec3> }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const geometry = useMemo(() => new THREE.SphereGeometry(0.55, 10, 8), []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  // Each conversation gets its own orbit: radius, tilt, speed and phase from its id.
+  const orbits = useMemo(() => conversations.map((c) => {
+    const p = positions.get(c.anchor) ?? [0, 0, 0];
+    return { centre: new THREE.Vector3(...p), radius: (c.status === "waiting" ? 4.5 : 3) + hash(c.id, 11) * 1.2, tilt: hash(c.id, 12) * 1.2, speed: 0.8 + hash(c.id, 13) * 0.4, phase: hash(c.id, 14) * Math.PI };
+  }), [conversations, positions]);
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const color = new THREE.Color();
+    conversations.forEach((c, i) => mesh.setColorAt(i, color.set(CONVERSATION_COLORS[c.status])));
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  }, [conversations]);
+  useFrame(({ clock }) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const t = clock.getElapsedTime();
+    const matrix = new THREE.Matrix4();
+    orbits.forEach((o, i) => {
+      const a = t * o.speed + o.phase;
+      matrix.makeTranslation(o.centre.x + Math.cos(a) * o.radius, o.centre.y + Math.sin(a) * o.radius * Math.cos(o.tilt), o.centre.z + Math.sin(a) * o.radius * Math.sin(o.tilt));
+      mesh.setMatrixAt(i, matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+  if (!conversations.length) return null;
+  return (
+    <instancedMesh key={conversations.length} ref={ref} args={[geometry, undefined, conversations.length]} raycast={() => null} frustumCulled={false}>
+      <meshBasicMaterial fog={false} />
+    </instancedMesh>
+  );
+}
+
+// A new conversation shoots from its workstream to its queue as a comet, then fades.
+const ARRIVAL_SECONDS = 2.4;
+function Arrival({ from, to }: { from: Vec3; to: Vec3 }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const start = useRef<number | undefined>(undefined);
+  const a = useMemo(() => new THREE.Vector3(...from), [from]);
+  const b = useMemo(() => new THREE.Vector3(...to), [to]);
+  useFrame(({ clock }) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    if (start.current === undefined) start.current = clock.getElapsedTime();
+    const t = Math.min(1, (clock.getElapsedTime() - start.current) / ARRIVAL_SECONDS);
+    const eased = 1 - Math.pow(1 - t, 3);
+    mesh.position.copy(a).lerp(b, eased);
+    mesh.visible = t < 1;
+    (mesh.material as THREE.MeshBasicMaterial).opacity = t < 0.85 ? 1 : (1 - t) / 0.15;
+  });
+  return (
+    <mesh ref={ref} raycast={() => null}>
+      <sphereGeometry args={[1.1, 12, 10]} />
+      <meshBasicMaterial color="#fef08a" transparent fog={false} />
+    </mesh>
   );
 }
 
@@ -414,7 +485,7 @@ function CameraRig({ mode, goal, handle, ride }: { mode: Mode; goal?: CameraGoal
   ) : null;
 }
 
-export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, ride, labelKeys, onHover, onSelect }: SceneProps): React.ReactElement {
+export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, ride, labelKeys, colors, labelSuffix, conversations, arrivals, onHover, onSelect }: SceneProps): React.ReactElement {
   const byKind = useMemo(() => KIND_ORDER.map((kind) => ({ kind, nodes: nodes.filter((n) => n.kind === kind) })).filter((g) => g.nodes.length), [nodes]);
   const nodeByKey = useMemo(() => new Map(nodes.map((n) => [n.key, n])), [nodes]);
 
@@ -427,8 +498,9 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
       edges.forEach((e) => { if (e.from === selected) keys.add(e.to); if (e.to === selected) keys.add(e.from); });
     }
     if (hovered) keys.add(hovered);
-    return [...keys].slice(0, 40).map((k) => nodeByKey.get(k)).filter((n): n is GraphNode => !!n);
-  }, [edges, selected, hovered, nodeByKey, labelKeys]);
+    labelSuffix?.forEach((_, k) => keys.add(k));
+    return [...keys].slice(0, 60).map((k) => nodeByKey.get(k)).filter((n): n is GraphNode => !!n);
+  }, [edges, selected, hovered, nodeByKey, labelKeys, labelSuffix]);
 
   const selectedPosition = selected ? positions.get(selected) : undefined;
   const markers = useMemo(() => {
@@ -449,16 +521,18 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
       <LayerRings nodes={nodes} positions={positions} />
       <Edges nodes={nodes} edges={edges} positions={positions} lit={lit} />
       {byKind.map((g) => (
-        <KindMesh key={g.kind} kind={g.kind} nodes={g.nodes} positions={positions} scales={scales} lit={lit} onHover={onHover} onSelect={onSelect} />
+        <KindMesh key={g.kind} kind={g.kind} nodes={g.nodes} positions={positions} scales={scales} colors={colors} lit={lit} onHover={onHover} onSelect={onSelect} />
       ))}
       {selectedPosition && <SelectionMarker position={selectedPosition} scale={(selected && scales?.get(selected)) || 1} />}
+      {conversations && <ConversationParticles conversations={conversations} positions={positions} />}
+      {arrivals?.map((a) => <Arrival key={a.id} from={a.from} to={a.to} />)}
       <IssueMarkers severity="problem" keys={markers.problem} positions={positions} scales={scales} />
       <IssueMarkers severity="warning" keys={markers.warning} positions={positions} scales={scales} />
 
       {labelled.map((n) => (
         <Html key={n.key} position={positions.get(n.key)} center zIndexRange={[20, 10]} style={{ pointerEvents: "none" }}>
           <div className={`node-label${n.key === selected ? " selected" : ""}${n.key === hovered ? " hovered" : ""}`} style={{ borderColor: KINDS[n.kind].color }}>
-            {n.name}
+            {n.name}{labelSuffix?.get(n.key) && <span className="suffix"> · {labelSuffix.get(n.key)}</span>}
           </div>
         </Html>
       ))}

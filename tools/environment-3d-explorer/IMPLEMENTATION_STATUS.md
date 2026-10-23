@@ -47,6 +47,17 @@ Follow the call, size by connections, saved views, screenshot and the `ride` pag
 - Dataverse passes a Site Map subarea's parameters as one `data` value, so `data=focus=…&health=1&ride=1` is read as well as plain `?focus=…`.
 - Not built yet, each needing a decision first: **VR** (WebXR needs the page outside the app's frame, where it has no Dataverse session) and **comparing environments or snapshots** (needs a snapshot format and somewhere to keep it).
 
+## Live activity (2026-10-23)
+
+Presence, open conversations and the last 24 hours, read every 15 seconds while it's on. Checked on the simulated sample activity; not yet seen with real traffic.
+
+Schema, read-only and checked live on academyexperiment (2026-10-23):
+
+- `msdyn_agentstatus`: `_msdyn_agentid_value`, `msdyn_isagentloggedin`, `msdyn_currentpresenceid` (as Agent Readiness Checker reads it), expanded to `msdyn_presence`'s `msdyn_name` and `msdyn_basepresencestatus` (192360000 Available, …001 Busy, …002 Busy - DND, …003 Away, …004 Offline). Signed out counts as offline whatever presence was last set.
+- `msdyn_ocliveworkitem`: `statuscode` 1 Open, 2 Active, 3 Waiting, 4 Closed, 5 Wrap-up, 6 Resolved, 7 Scheduled. `_msdyn_cdsqueueid_value` is the `queue`; `_msdyn_queueid_value` points at the older `msdyn_omnichannelqueue` table and was empty on every recent conversation. `_msdyn_activeagentid_value` is the `systemuser`.
+- "Waiting" is Open with no agent; Active, Waiting and Open-with-an-agent count as "with an agent". This is a reading of the status names, to check against real traffic.
+- At the time of writing academyexperiment had no open conversations and no signed-in agents, which is why the last 24 hours are counted too.
+
 ## Open questions / next ideas
 
 - Live test: data volumes, load time, frame rate with a few thousand agents.
