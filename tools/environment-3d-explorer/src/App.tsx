@@ -7,9 +7,20 @@ import { environmentLabel, isDataverseAvailable, recordUrl } from "../../shared/
 import { loadGraph } from "./dataverse";
 import { demoRaw } from "./demoData";
 import { buildGraph, chainOf } from "./graph";
+import { findIssues, SEVERITY_LABELS, worstByKey } from "./health";
 import { computeLayout } from "./layout";
 import { EDGE_LABELS, Graph, GraphEdge, GraphNode, KIND_ORDER, KINDS, NodeKind } from "./model";
-import { CameraGoal, Mode, START_POSITION, Scene } from "./Scene";
+import { CameraGoal, Mode, SEVERITY_COLORS, START_POSITION, Scene } from "./Scene";
+
+const MAX_ISSUES_LISTED = 60;
+
+// Checks that were skipped because a table couldn't be read.
+const SKIPPED_CHECKS: Record<string, string> = {
+  phoneNumbers: "voice channels without a number",
+  channels: "voice workstreams without a channel, and unused numbers",
+  resources: "agents without a bookable resource",
+  skills: ""
+};
 
 const MAX_CONNECTIONS = 40;
 
@@ -55,6 +66,9 @@ export function App(): React.ReactElement {
   const [goal, setGoal] = useState<CameraGoal | undefined>(undefined);
   const [search, setSearch] = useState("");
   const [showWarnings, setShowWarnings] = useState(false);
+  // ?health=1 opens with the overlay on.
+  const [showHealth, setShowHealth] = useState(() => new URLSearchParams(window.location.search).has("health"));
+  const [problemsOnly, setProblemsOnly] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,9 +88,20 @@ export function App(): React.ReactElement {
   const nodeByKey = useMemo(() => new Map((graph?.nodes ?? []).map((n) => [n.key, n])), [graph]);
   const lit = useMemo(() => (graph && selected ? chainOf(graph, selected) : undefined), [graph, selected]);
 
+  const issues = useMemo(() => (graph ? findIssues(graph) : []), [graph]);
+  const worst = useMemo(() => worstByKey(issues), [issues]);
+  // "Only records with an issue" keeps their direct links too, so you still see where they sit.
+  const issueContext = useMemo(() => {
+    const keys = new Set(worst.keys());
+    (graph?.edges ?? []).forEach((e) => { if (worst.has(e.from)) keys.add(e.to); if (worst.has(e.to)) keys.add(e.from); });
+    return keys;
+  }, [graph, worst]);
+  const problemCount = issues.filter((i) => i.severity === "problem").length;
+  const skipped = (graph?.unread ?? []).map((u) => SKIPPED_CHECKS[u]).filter(Boolean);
+
   const visibleNodes = useMemo(
-    () => (graph?.nodes ?? []).filter((n) => !hiddenKinds.has(n.kind) && (!chainOnly || !lit || lit.has(n.key))),
-    [graph, hiddenKinds, chainOnly, lit]
+    () => (graph?.nodes ?? []).filter((n) => !hiddenKinds.has(n.kind) && (!chainOnly || !lit || lit.has(n.key)) && (!showHealth || !problemsOnly || issueContext.has(n.key))),
+    [graph, hiddenKinds, chainOnly, lit, showHealth, problemsOnly, issueContext]
   );
   const visibleEdges = useMemo(() => {
     const visible = new Set(visibleNodes.map((n) => n.key));
@@ -127,6 +152,8 @@ export function App(): React.ReactElement {
 
   const selectedNode = selected ? nodeByKey.get(selected) : undefined;
   const hoveredNode = hovered ? nodeByKey.get(hovered) : undefined;
+  const selectedIssues = selectedNode ? issues.filter((i) => i.key === selectedNode.key) : [];
+  const hoveredIssue = hoveredNode ? issues.find((i) => i.key === hoveredNode.key) : undefined;
   const upstream = selectedNode ? (graph?.edges ?? []).filter((e) => e.to === selectedNode.key) : [];
   const downstream = selectedNode ? (graph?.edges ?? []).filter((e) => e.from === selectedNode.key) : [];
   const openUrl = live && selectedNode?.recordId && KINDS[selectedNode.kind].table ? recordUrl(KINDS[selectedNode.kind].table!, selectedNode.recordId) : undefined;
@@ -136,7 +163,7 @@ export function App(): React.ReactElement {
       {graph && !error && (
         <Scene
           nodes={visibleNodes} edges={visibleEdges} positions={positions} lit={lit}
-          selected={selected} hovered={hovered} mode={mode} goal={goal}
+          selected={selected} hovered={hovered} mode={mode} goal={goal} issues={showHealth ? worst : undefined}
           onHover={setHovered} onSelect={select}
         />
       )}
@@ -203,6 +230,37 @@ export function App(): React.ReactElement {
           <dt>Esc</dt><dd>clear focus</dd>
         </dl>
 
+        {graph && (
+          <div className="health">
+            <label className="toggle">
+              <input type="checkbox" checked={showHealth} onChange={(e) => setShowHealth(e.target.checked)} />
+              <span>Show problems</span>
+              <span className="badge problem" title="Problems">{problemCount}</span>
+              <span className="badge warning" title="Warnings">{issues.length - problemCount}</span>
+            </label>
+            {showHealth && (
+              <>
+                <label className="toggle"><input type="checkbox" checked={problemsOnly} onChange={(e) => setProblemsOnly(e.target.checked)} /> Only records with an issue</label>
+                {issues.length === 0 ? <p className="muted small">No problems found.</p> : (
+                  <ul className="issue-list">
+                    {issues.slice(0, MAX_ISSUES_LISTED).map((i) => (
+                      <li key={`${i.key}:${i.check}`}>
+                        <button onClick={() => select(i.key)}>
+                          <span className="dot" style={{ background: SEVERITY_COLORS[i.severity] }} />
+                          <span className="name">{nodeByKey.get(i.key)?.name}</span>
+                          <span className="relation">{i.title}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {issues.length > MAX_ISSUES_LISTED && <p className="muted small">and {issues.length - MAX_ISSUES_LISTED} more</p>}
+                {skipped.length > 0 && <p className="muted small">Not checked, because a table couldn't be read: {skipped.join("; ")}.</p>}
+              </>
+            )}
+          </div>
+        )}
+
         {graph && graph.warnings.length > 0 && (
           <div className="warnings">
             <button onClick={() => setShowWarnings((s) => !s)}>{graph.warnings.length} thing{graph.warnings.length === 1 ? "" : "s"} couldn't be read</button>
@@ -221,6 +279,13 @@ export function App(): React.ReactElement {
               {selectedNode.details.map(([label, value]) => <React.Fragment key={label}><dt>{label}</dt><dd>{value || "—"}</dd></React.Fragment>)}
             </dl>
           )}
+          {selectedIssues.map((i) => (
+            <div key={i.check} className={`finding ${i.severity}`}>
+              <strong>{SEVERITY_LABELS[i.severity]}: {i.title}</strong>
+              <p>{i.detail}</p>
+              <p className="fix">{i.fix}</p>
+            </div>
+          ))}
           <div className="actions">
             <label className="toggle"><input type="checkbox" checked={chainOnly} onChange={(e) => setChainOnly(e.target.checked)} /> Show only this chain</label>
             {openUrl && <a href={openUrl} target="_blank" rel="noreferrer">Open record ↗</a>}
@@ -232,7 +297,7 @@ export function App(): React.ReactElement {
       )}
 
       {hoveredNode && hoveredNode.key !== selected && (
-        <div className="hover-hint"><span className="dot" style={{ background: KINDS[hoveredNode.kind].color }} />{KINDS[hoveredNode.kind].label}: <strong>{hoveredNode.name}</strong></div>
+        <div className="hover-hint"><span className="dot" style={{ background: KINDS[hoveredNode.kind].color }} />{KINDS[hoveredNode.kind].label}: <strong>{hoveredNode.name}</strong>{hoveredIssue && <span style={{ color: SEVERITY_COLORS[hoveredIssue.severity] }}> · {hoveredIssue.title}</span>}</div>
       )}
 
       {(loading || error) && (

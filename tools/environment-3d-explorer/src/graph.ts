@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { parseDecisionXml } from "../../visual-routing-tester/src/ruleXml";
-import { Graph, GraphEdge, GraphNode, NodeKind } from "./model";
+import { Graph, GraphEdge, GraphNode, NodeKind, Unread } from "./model";
 
 // Turns the rows dataverse.ts (or demoData.ts) read into the graph the scene draws. Pure: no Xrm.
 
@@ -21,12 +21,14 @@ export interface RawEnvironment {
   resources: Row[];
   resourceSkills: Row[];
   warnings: string[];
+  unread: Unread[];
 }
 
 // msdyn_routingconfigurationstep.msdyn_type for the "Route to queue" step.
 export const QUEUE_IDENTIFICATION = 192350002;
 // The platform's own queues carry this name; they're left out.
 export const SYSTEM_QUEUE_NAME = "<CDS System>";
+export const VOICE_STREAM = 192440000;
 
 const STREAM_LABELS: Record<number, string> = { 192440000: "Voice", 192350000: "Record" };
 const QUEUE_TYPE_LABELS: Record<number, string> = { 192350002: "Voice", 192350000: "Messaging", 192350001: "Record" };
@@ -65,11 +67,12 @@ export function buildGraph(raw: RawEnvironment): Graph {
   raw.workstreams.forEach((w) => {
     const wsId = id(w.msdyn_liveworkstreamid);
     if (!wsId) return;
+    const defaultQueue = id(w._msdyn_defaultqueue_value);
     add({
       key: key("workstream", wsId), kind: "workstream", name: str(w.msdyn_name) || "(unnamed workstream)", recordId: wsId,
-      details: [["Channel", STREAM_LABELS[w.msdyn_streamsource] ?? `Other (${w.msdyn_streamsource ?? "unknown"})`]]
+      details: [["Channel", STREAM_LABELS[w.msdyn_streamsource] ?? `Other (${w.msdyn_streamsource ?? "unknown"})`]],
+      facts: { voice: w.msdyn_streamsource === VOICE_STREAM, missingQueues: defaultQueue && !queueIds.has(defaultQueue) ? 1 : 0 }
     });
-    const defaultQueue = id(w._msdyn_defaultqueue_value);
     if (defaultQueue) link(key("workstream", wsId), key("queue", defaultQueue), "default");
   });
 
@@ -116,21 +119,22 @@ export function buildGraph(raw: RawEnvironment): Graph {
         }
         const disabled = str(ruleset.msdyn_disabledrules);
         decision.rules.forEach((rule, index) => {
-          const ruleKey = add({
-            key: `rule:${rulesetId}:${rule.id}`, kind: "rule", name: rule.name, recordId: rulesetId,
-            details: [
-              ["Workstream", str(w.msdyn_name)], ["Order", String(index + 1)],
-              ["Condition", describeConditions(rule.conditions, rule.conditionLogic)],
-              ["Enabled", disabled.includes(rule.id) ? "No" : "Yes"]
-            ]
-          });
-          link(key("workstream", wsId), ruleKey, "routes");
           const targets = rule.distributionRecords.length
             ? rule.distributionRecords.map((record) => ({
               queueId: id(record.find((sa) => sa.lhs === "queuedetails.queueid")?.rhs),
               weight: record.find((sa) => sa.lhs === "queuedetails.percentage")?.rhs
             }))
             : [{ queueId: id(rule.setAttributes.find((sa) => sa.lhs === "assign_to.queue")?.rhs), weight: undefined }];
+          const ruleKey = add({
+            key: `rule:${rulesetId}:${rule.id}`, kind: "rule", name: rule.name, recordId: rulesetId,
+            details: [
+              ["Workstream", str(w.msdyn_name)], ["Order", String(index + 1)],
+              ["Condition", describeConditions(rule.conditions, rule.conditionLogic)],
+              ["Enabled", disabled.includes(rule.id) ? "No" : "Yes"]
+            ],
+            facts: { disabled: disabled.includes(rule.id), missingQueues: targets.filter((t) => t.queueId && !queueIds.has(t.queueId)).length }
+          });
+          link(key("workstream", wsId), ruleKey, "routes");
           targets.forEach((t) => {
             if (t.queueId) link(ruleKey, key("queue", t.queueId), "routes", t.weight ? `${t.weight}%` : undefined);
           });
@@ -140,6 +144,7 @@ export function buildGraph(raw: RawEnvironment): Graph {
 
   // Queue -> agent. Only users who are a member of an omnichannel queue are agents here.
   const usersById = new Map(raw.users.map((u) => [id(u.systemuserid), u]));
+  const usersWithResource = new Set(raw.resources.map((r) => id(r._userid_value)));
   raw.memberships.forEach((m) => {
     const queueId = id(m.queueid);
     const userId = id(m.systemuserid);
@@ -147,7 +152,8 @@ export function buildGraph(raw: RawEnvironment): Graph {
     if (!queueId || !userId || !user || !queueIds.has(queueId)) return;
     const agentKey = add({
       key: key("agent", userId), kind: "agent", name: str(user.fullname) || str(user.domainname) || "(unnamed user)", recordId: userId,
-      details: [["Sign-in", str(user.domainname)], ["Disabled", yesNo(user.isdisabled)]]
+      details: [["Sign-in", str(user.domainname)], ["Disabled", yesNo(user.isdisabled)]],
+      facts: { disabled: user.isdisabled === true, hasResource: usersWithResource.has(userId) }
     });
     link(key("queue", queueId), agentKey, "member");
   });
@@ -165,7 +171,7 @@ export function buildGraph(raw: RawEnvironment): Graph {
     link(key("agent", userId), skillKey, "skill", str(rs.RatingValue?.name) || undefined);
   });
 
-  return { nodes: [...nodes.values()], edges, warnings };
+  return { nodes: [...nodes.values()], edges, warnings, unread: [...raw.unread] };
 }
 
 // Everything upstream of a node (walking edges backwards) and everything downstream (walking

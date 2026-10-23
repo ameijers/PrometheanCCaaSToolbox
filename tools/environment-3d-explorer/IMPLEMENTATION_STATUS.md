@@ -26,6 +26,15 @@ No new schema was needed: every table and column is one another toolbox tool alr
 - **Labels**: only the selected record, its direct links and the hovered record get one. Labelling the whole chain piled them on top of each other.
 - **Layout**: a back layer is stretched out to at least the workstreams' spread. Without that, queues fed by many workstreams all landed in the middle.
 
+## Health overlay (2026-10-23)
+
+Structural checks on the graph, in `src/health.ts`: see the [README](README.md#health-overlay) for the list. Checked on the sample environment, which has a few problems on purpose (an empty queue that's routed to, a rule to a deleted queue, a workstream that routes nowhere, a channel without a number, an unused number, a disabled agent, an agent without a bookable resource).
+
+- The checks are written for the explorer instead of reusing Artifact Finder's or Agent Readiness Checker's code. Those tools work on their own, larger models (around 30 tables), and here the checks only need the links the scene already has.
+- "No bookable resource" is a warning, not a problem: without one, an agent can't have capacity profiles or skills, but this tool doesn't confirm that routing skips them.
+- A default queue that's gone is reported once (default queue not found), not also as "routes nowhere".
+- Open question for the live test: how many warnings a real environment has, and whether any check is too noisy.
+
 ## Open questions / next ideas
 
 - Live test: data volumes, load time, frame rate with a few thousand agents.

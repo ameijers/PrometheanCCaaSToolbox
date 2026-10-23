@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrbitControls, Stars } from "@react-three/drei";
 import { LAYER_SPACING, Vec3 } from "./layout";
+import { Severity } from "./health";
 import { GraphEdge, GraphNode, KIND_ORDER, KINDS, NodeKind } from "./model";
 
 // The 3D view. One instanced mesh per kind keeps thousands of nodes cheap; all edges are one
@@ -46,6 +47,8 @@ interface SceneProps {
   hovered?: string;
   mode: Mode;
   goal?: CameraGoal;
+  // Records with a health issue, when the overlay is on.
+  issues?: Map<string, Severity>;
   onHover(key: string | undefined): void;
   onSelect(key: string): void;
 }
@@ -152,6 +155,33 @@ function LayerRings({ nodes, positions }: { nodes: GraphNode[]; positions: Map<s
         </group>
       ))}
     </>
+  );
+}
+
+export const SEVERITY_COLORS: Record<Severity, string> = { problem: "#ff4d4f", warning: "#ffa62b" };
+
+// A pulsing glow around every record with an issue: red for a problem, orange for a warning.
+function IssueMarkers({ severity, keys, positions }: { severity: Severity; keys: string[]; positions: Map<string, Vec3> }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const material = useRef<THREE.MeshBasicMaterial>(null);
+  const geometry = useMemo(() => new THREE.SphereGeometry(5.5, 24, 16), []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const matrix = new THREE.Matrix4();
+    keys.forEach((k, i) => { const [x, y, z] = positions.get(k) ?? [0, 0, 0]; mesh.setMatrixAt(i, matrix.makeTranslation(x, y, z)); });
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [keys, positions]);
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime() * (severity === "problem" ? 3 : 1.8);
+    if (material.current) material.current.opacity = 0.34 + 0.18 * Math.sin(t);
+  });
+  if (!keys.length) return null;
+  return (
+    <instancedMesh key={keys.length} ref={ref} args={[geometry, undefined, keys.length]} raycast={() => null}>
+      <meshBasicMaterial ref={material} color={SEVERITY_COLORS[severity]} transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
+    </instancedMesh>
   );
 }
 
@@ -282,7 +312,7 @@ function CameraRig({ mode, goal }: { mode: Mode; goal?: CameraGoal }) {
   return null;
 }
 
-export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, onHover, onSelect }: SceneProps): React.ReactElement {
+export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, issues, onHover, onSelect }: SceneProps): React.ReactElement {
   const byKind = useMemo(() => KIND_ORDER.map((kind) => ({ kind, nodes: nodes.filter((n) => n.kind === kind) })).filter((g) => g.nodes.length), [nodes]);
   const nodeByKey = useMemo(() => new Map(nodes.map((n) => [n.key, n])), [nodes]);
 
@@ -299,6 +329,11 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
   }, [edges, selected, hovered, nodeByKey]);
 
   const selectedPosition = selected ? positions.get(selected) : undefined;
+  const markers = useMemo(() => {
+    const visible = new Set(nodes.map((n) => n.key));
+    const of = (severity: Severity) => [...(issues ?? new Map<string, Severity>()).entries()].filter(([k, s]) => s === severity && visible.has(k)).map(([k]) => k);
+    return { problem: of("problem"), warning: of("warning") };
+  }, [issues, nodes]);
 
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true }} camera={{ position: START_POSITION, fov: 55, near: 0.5, far: 4000 }} onCreated={({ camera }) => camera.lookAt(0, 0, 0)}>
@@ -315,6 +350,8 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
         <KindMesh key={g.kind} kind={g.kind} nodes={g.nodes} positions={positions} lit={lit} onHover={onHover} onSelect={onSelect} />
       ))}
       {selectedPosition && <SelectionMarker position={selectedPosition} />}
+      <IssueMarkers severity="problem" keys={markers.problem} positions={positions} />
+      <IssueMarkers severity="warning" keys={markers.warning} positions={positions} />
 
       {labelled.map((n) => (
         <Html key={n.key} position={positions.get(n.key)} center zIndexRange={[20, 10]} style={{ pointerEvents: "none" }}>

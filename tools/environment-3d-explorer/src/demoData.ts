@@ -44,7 +44,7 @@ function rulesetXml(rules: { id: string; name: string; value: string; queueIds: 
 export function demoRaw(): RawEnvironment {
   const raw: RawEnvironment = {
     phoneNumbers: [], channels: [], workstreams: [], routingConfigurations: [], routingSteps: [], rulesets: [],
-    queues: [], memberships: [], users: [], resources: [], resourceSkills: [], warnings: []
+    queues: [], memberships: [], users: [], resources: [], resourceSkills: [], warnings: [], unread: []
   };
   const queueId = new Map(QUEUES.map(([name], i) => [name, guid("a1", i + 1)]));
   QUEUES.forEach(([name, voice]) => raw.queues.push({ queueid: queueId.get(name), name, msdyn_queuetype: voice ? VOICE_QUEUE : MESSAGING_QUEUE }));
@@ -90,5 +90,35 @@ export function demoRaw(): RawEnvironment {
         raw.resourceSkills.push({ _resource_value: resourceId, Characteristic: { characteristicid: skillId.get(skill), name: skill }, RatingValue: { name: ["Beginner", "Intermediate", "Expert"][(i + s) % 3] } }));
     }
   });
+
+  addProblems(raw, queueId);
   return raw;
+}
+
+// A few things that are wrong, so the health overlay has something to show.
+function addProblems(raw: RawEnvironment, queueId: Map<string, string>): void {
+  // A queue nobody routes to and nobody is in.
+  raw.queues.push({ queueid: guid("a1", 90), name: "Social Media", msdyn_queuetype: MESSAGING_QUEUE });
+  // A voice workstream still being set up: its channel has no number, one rule routes to an empty
+  // queue and one to a queue that was deleted.
+  const partnerDesk = guid("a1", 91);
+  raw.queues.push({ queueid: partnerDesk, name: "Partner Desk", msdyn_queuetype: VOICE_QUEUE });
+  const wsId = guid("b1", 90), configId = guid("e1", 90), rulesetId = guid("f1", 90);
+  raw.workstreams.push({ msdyn_liveworkstreamid: wsId, msdyn_name: "Partner Line – Voice", msdyn_streamsource: VOICE, _msdyn_defaultqueue_value: queueId.get("Overflow") });
+  raw.channels.push({ msdyn_ocvoicechannelsettingid: guid("c1", 90), msdyn_name: "Partner Line channel", _msdyn_liveworkstreamid_value: wsId, _msdyn_phonenumberid_value: null });
+  raw.routingConfigurations.push({ msdyn_routingconfigurationid: configId, msdyn_isactiveconfiguration: true, _msdyn_liveworkstreamid_value: wsId });
+  raw.routingSteps.push({ msdyn_type: QUEUE_IDENTIFICATION, _msdyn_routingconfigurationid_value: configId, _msdyn_rulesetid_value: rulesetId });
+  raw.rulesets.push({
+    msdyn_decisionrulesetid: rulesetId, msdyn_name: "Partner Line route to queue",
+    msdyn_rulesetdefinition: rulesetXml([
+      { id: "p1", name: "Partners", value: "Partner", queueIds: [partnerDesk] },
+      { id: "p2", name: "Resellers", value: "Reseller", queueIds: [guid("a1", 99)] }
+    ])
+  });
+  // A workstream with no routing at all, and a number nothing uses.
+  raw.workstreams.push({ msdyn_liveworkstreamid: guid("b1", 91), msdyn_name: "Legacy Email", msdyn_streamsource: 192350000, _msdyn_defaultqueue_value: null });
+  raw.phoneNumbers.push({ msdyn_ocphonenumberid: guid("d1", 90), msdyn_phonenumber: "+31 20 555 9999", statecode: 0, msdyn_phoneinboundenabled: true, msdyn_phoneoutboundenabled: false });
+  // A disabled agent still in a queue, and an agent without a bookable resource.
+  raw.users[3].isdisabled = true;
+  raw.resources.splice(7, 1);
 }

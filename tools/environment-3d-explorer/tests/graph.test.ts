@@ -6,7 +6,7 @@ import { demoRaw } from "../src/demoData";
 
 const empty = (): RawEnvironment => ({
   phoneNumbers: [], channels: [], workstreams: [], routingConfigurations: [], routingSteps: [], rulesets: [],
-  queues: [], memberships: [], users: [], resources: [], resourceSkills: [], warnings: []
+  queues: [], memberships: [], users: [], resources: [], resourceSkills: [], warnings: [], unread: []
 });
 
 const Q1 = "11111111-0000-4000-8000-000000000001";

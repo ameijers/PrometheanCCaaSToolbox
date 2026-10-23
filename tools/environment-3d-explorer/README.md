@@ -28,14 +28,37 @@ A faint ring marks each layer. Within a layer, a record sits near the records it
 - **Walk mode**: drag to look around. You turn the view by dragging, without pointer lock, so walk mode also works inside the model-driven app's frame.
 - **Both modes**: W A S D or the arrow keys move, E/Q go up and down, Shift moves faster. M switches mode, Esc clears the focus.
 - The checkboxes in the legend hide or show a layer.
-- `?focus=<name>` in the page URL (or Dataverse's `?data=<name>`) opens the explorer focused on that record.
+- `?focus=<name>` in the page URL (or Dataverse's `?data=<name>`) opens the explorer focused on that record. `?health=1` opens it with the health overlay on.
 
 ![A workstream in focus](images/01-workstream-focus.png)
+
+## Health overlay
+
+**Show problems** (left panel) puts a pulsing glow around every record with an issue: red for a **problem** (conversations can get stuck or lost there), orange for a **warning** (worth a look, but it can be on purpose). The panel lists them, problems first. Click one to fly to it with its chain lit. **Only records with an issue** shows just those records and their direct links. A selected record's findings, with a suggested fix, are always in the details panel.
+
+| Record | Check | Severity |
+| --- | --- | --- |
+| Workstream | Default queue isn't an active omnichannel queue | Problem |
+| Workstream | No route-to-queue rules and no default queue ("routes nowhere") | Problem |
+| Workstream | No route-to-queue rules, so everything goes to the default queue | Warning |
+| Workstream | Voice workstream without a voice channel | Warning |
+| Voice channel | No phone number | Warning |
+| Phone number | Not used by any voice channel | Warning |
+| Routing rule | Routes to a queue that isn't an active omnichannel queue | Problem |
+| Queue | No members (or only disabled members): a problem when something routes to it, a warning otherwise | Problem / Warning |
+| Queue | Nothing routes to it (no rule, not a default queue) | Warning |
+| Agent | Disabled user still in a queue | Warning |
+| Agent | Queue member without a bookable resource | Warning |
+
+The checks use only the data the scene already has, so the overlay reads nothing extra. A check that needs a table that couldn't be read is skipped, and the panel says which. For a full clean-up review, use the Environment Artifact Finder; for one agent in depth, the Agent Readiness Checker.
+
+![Health overlay](images/03-health.png)
 
 ## How it works
 
 - `src/dataverse.ts` reads the tables below with `Xrm.WebApi.retrieveMultipleRecords` (through `shared/src/xrm.ts`). Phone numbers, voice channels and skills are optional: if one of them can't be read, the rest still shows and the page says what's missing.
 - `src/graph.ts` turns the rows into nodes and edges, with edges pointing downstream. It reuses Visual Routing Tester's decision-XML parser for the route-to-queue rules.
+- `src/health.ts` runs the health checks on the graph.
 - `src/layout.ts` places the nodes deterministically, so the same environment always gives the same picture.
 - `src/Scene.tsx` draws them with [Three.js](https://threejs.org) through React Three Fiber and drei. Each record type is one instanced mesh, and all the lines are one geometry, so thousands of records stay smooth.
 

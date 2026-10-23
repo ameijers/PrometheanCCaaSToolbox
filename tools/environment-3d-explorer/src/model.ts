@@ -39,7 +39,20 @@ export interface GraphNode {
   recordId?: string;
   // Shown in the details panel, in this order.
   details: [string, string][];
+  // What health.ts checks, beyond the links themselves.
+  facts?: NodeFacts;
 }
+
+export interface NodeFacts {
+  voice?: boolean;
+  disabled?: boolean;
+  // Queues a rule (or a workstream as its default) points at that aren't among the active omnichannel queues.
+  missingQueues?: number;
+  hasResource?: boolean;
+}
+
+// Optional reads that failed: checks that depend on them are skipped rather than reported.
+export type Unread = "phoneNumbers" | "channels" | "resources" | "skills";
 
 export type EdgeKind = "number" | "channel" | "routes" | "default" | "member" | "skill";
 
@@ -55,6 +68,7 @@ export interface Graph {
   edges: GraphEdge[];
   // Things that couldn't be read; the scene still shows the rest.
   warnings: string[];
+  unread: Unread[];
 }
 
 export const EDGE_LABELS: Record<EdgeKind, string> = {

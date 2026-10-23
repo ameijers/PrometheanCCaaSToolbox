@@ -52,10 +52,25 @@ Click a record, or type part of its name in the search box and pick it from the 
 
 ![A queue in focus: the routing rule and workstream that feed it, and its members behind it](images/02-queue-focus.png)
 
-## 4. Reading the environment again
+## 4. Finding problems
+
+Tick **Show problems** in the left panel. The two counters next to it show how many problems (red) and warnings (orange) were found.
+
+- Every record with an issue gets a pulsing glow: red for a problem (conversations can get stuck or lost there), orange for a warning (worth a look, but it may be on purpose).
+- The list under it shows every issue, problems first. Click one to fly to that record with its chain lit, so you see what it affects: for example, which workstreams route to an empty queue.
+- **Only records with an issue** hides everything else except their direct links.
+- When you select a record, its findings and a suggested fix appear in the details panel, also when the overlay is off.
+
+![Problems in the sample environment](images/03-health.png)
+
+![A workstream whose rules route to an empty queue and to a deleted one](images/04-health-focus.png)
+
+The [README](README.md#health-overlay) lists every check. If a table couldn't be read, the checks that need it are skipped and the panel says so.
+
+## 5. Reading the environment again
 
 The scene shows the environment as it was when the page loaded. After you change something in the admin center, click **Read the environment again**.
 
-## 5. Opening the tool focused on a record
+## 6. Opening the tool focused on a record
 
-Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter.
+Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on.

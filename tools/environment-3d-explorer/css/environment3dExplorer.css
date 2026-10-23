@@ -83,3 +83,20 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
   .panel.left { width: calc(100% - 28px); max-height: 45vh; }
   .panel.right { top: auto; bottom: 14px; left: 14px; right: 14px; width: auto; max-height: 40vh; }
 }
+
+/* Health overlay. */
+.health { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(140, 170, 200, .18); display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.health .toggle span:first-of-type { flex: 1; }
+.badge { min-width: 22px; padding: 1px 6px; border-radius: 10px; text-align: center; font: 600 11px 'DM Mono', Consolas, monospace; color: #0b0f17; }
+.badge.problem { background: #ff4d4f; }
+.badge.warning { background: #ffa62b; }
+.issue-list { margin: 0; padding: 0; list-style: none; max-height: 260px; overflow-y: auto; }
+.issue-list button { width: 100%; display: flex; align-items: center; gap: 8px; padding: 5px 6px; background: transparent; border: 0; border-radius: 3px; text-align: left; font-size: 12px; }
+.issue-list button:hover { background: rgba(255, 166, 43, .1); }
+.finding { margin-top: 12px; padding: 10px 12px; border-left: 3px solid; border-radius: 3px; font-size: 12.5px; line-height: 1.45; }
+.finding.problem { border-color: #ff4d4f; background: rgba(255, 77, 79, .1); }
+.finding.warning { border-color: #ffa62b; background: rgba(255, 166, 43, .1); }
+.finding strong { display: block; margin-bottom: 4px; }
+.finding p { margin: 0 0 4px; color: #c9d8e2; }
+.finding .fix { color: #9fd8b5; }
+.finding .fix::before { content: "Fix: "; font-weight: 700; }
