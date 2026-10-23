@@ -52,10 +52,39 @@ Click a record, or type part of its name in the search box and pick it from the 
 
 ![A queue in focus: the routing rule and workstream that feed it, and its members behind it](images/02-queue-focus.png)
 
-## 4. Reading the environment again
+## 4. Finding problems
+
+Tick **Show problems** in the left panel. The two counters next to it show how many problems (red) and warnings (orange) were found.
+
+- Every record with an issue gets a pulsing glow: red for a problem (conversations can get stuck or lost there), orange for a warning (worth a look, but it may be on purpose).
+- The list under it shows every issue, problems first. Click one to fly to that record with its chain lit, so you see what it affects: for example, which workstreams route to an empty queue.
+- **Only records with an issue** hides everything else except their direct links.
+- When you select a record, its findings and a suggested fix appear in the details panel, also when the overlay is off.
+
+![Problems in the sample environment](images/03-health.png)
+
+![A workstream whose rules route to an empty queue and to a deleted one](images/04-health-focus.png)
+
+The [README](README.md#health-overlay) lists every check. If a table couldn't be read, the checks that need it are skipped and the panel says so.
+
+## 5. Following a call, views and screenshots
+
+These are under the mode buttons in the left panel.
+
+- **Follow the call from …** rides along the lines a call takes, starting at the selected record. With nothing selected it starts at the first phone number. A bright point (the call) travels from the phone number to its channel, workstream, routing rule, queue and agent, and the camera rides behind it, looking ahead.
+  - The route and the next choices are lit and everything else is dimmed. Tick **Show only the route** in the ride bar to hide the rest.
+  - Where there's only one way, the call goes on by itself. At a fork (a workstream with several rules, a queue with several agents) it slows down, and the ride bar asks **Where does the call go next?** Click a choice to go on.
+  - The ride bar shows the route so far. **Pause** stops the call where it is, **Start again** rides the route again from the start, and **×** (or Esc) stops following the call.
+- **Size by connections** makes a record bigger the more links it has: a queue with many members and rules routing to it, a workstream with many channels and rules.
+- **Save view** keeps the current camera position. Type a name first, or leave it empty for "View 1", "View 2" and so on. Click a saved view to fly back to it, and × to delete it. Saved views stay in this browser, for this environment only.
+- **Screenshot** downloads what you see as a PNG. The name labels aren't in the picture.
+
+![Following a call: the route so far and the choice at the workstream](images/05-ride.png)
+
+## 6. Reading the environment again
 
 The scene shows the environment as it was when the page loaded. After you change something in the admin center, click **Read the environment again**.
 
-## 5. Opening the tool focused on a record
+## 7. Opening the tool from a link
 
-Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter.
+Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on, and `ride=1` to start following the call as soon as the page opens (together with `focus`, from that record). In a Site Map subarea, put them in the **data** parameter, for example `focus=Customer Service&ride=1`.

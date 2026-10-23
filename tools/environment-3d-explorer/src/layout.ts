@@ -49,6 +49,14 @@ function separate(points: [number, number][], iterations: number): void {
   }
 }
 
+// "Size by connections": a record grows with the number of links it has (a queue's members and the
+// rules routing to it, a workstream's channels and rules), by the square root so big ones don't swamp the rest.
+export function connectionScales(graph: Graph): Map<string, number> {
+  const degree = new Map<string, number>();
+  graph.edges.forEach((e) => { degree.set(e.from, (degree.get(e.from) ?? 0) + 1); degree.set(e.to, (degree.get(e.to) ?? 0) + 1); });
+  return new Map(graph.nodes.map((n) => [n.key, 0.7 + Math.min(2.5, Math.sqrt(degree.get(n.key) ?? 0) * 0.4)]));
+}
+
 export function computeLayout(graph: Graph): Map<string, Vec3> {
   const xy = new Map<string, [number, number]>();
   const byKind = (kind: NodeKind) => graph.nodes.filter((n) => n.kind === kind);

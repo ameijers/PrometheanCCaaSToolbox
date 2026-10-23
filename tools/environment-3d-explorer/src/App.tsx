@@ -2,14 +2,31 @@
 // SPDX-License-Identifier: MIT
 
 import * as React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { environmentLabel, isDataverseAvailable, recordUrl } from "../../shared/src/xrm";
 import { loadGraph } from "./dataverse";
 import { demoRaw } from "./demoData";
 import { buildGraph, chainOf } from "./graph";
-import { computeLayout } from "./layout";
+import { findIssues, SEVERITY_LABELS, worstByKey } from "./health";
+import { computeLayout, connectionScales } from "./layout";
 import { EDGE_LABELS, Graph, GraphEdge, GraphNode, KIND_ORDER, KINDS, NodeKind } from "./model";
-import { CameraGoal, Mode, START_POSITION, Scene } from "./Scene";
+import { CameraGoal, Mode, Ride, SEVERITY_COLORS, START_POSITION, Scene, SceneHandle } from "./Scene";
+import { defaultRideStart, extendRide, RideOption } from "./ride";
+import { readUrlOptions } from "./urlOptions";
+import { loadViews, nextViewName, SavedView, storeViews } from "./views";
+
+// Choices shown at a fork in the ride; the rest are counted.
+const MAX_RIDE_CHOICES = 8;
+
+const MAX_ISSUES_LISTED = 60;
+
+// Checks that were skipped because a table couldn't be read.
+const SKIPPED_CHECKS: Record<string, string> = {
+  phoneNumbers: "voice channels without a number",
+  channels: "voice workstreams without a channel, and unused numbers",
+  resources: "agents without a bookable resource",
+  skills: ""
+};
 
 const MAX_CONNECTIONS = 40;
 
@@ -55,6 +72,14 @@ export function App(): React.ReactElement {
   const [goal, setGoal] = useState<CameraGoal | undefined>(undefined);
   const [search, setSearch] = useState("");
   const [showWarnings, setShowWarnings] = useState(false);
+  const urlOptions = useMemo(() => readUrlOptions(window.location.search), []);
+  const [showHealth, setShowHealth] = useState(urlOptions.health);
+  const [problemsOnly, setProblemsOnly] = useState(false);
+  const [sizeByConnections, setSizeByConnections] = useState(false);
+  const [ride, setRide] = useState<{ id: number; path: string[]; options: RideOption[]; playing: boolean; routeOnly: boolean } | undefined>(undefined);
+  const [views, setViews] = useState<SavedView[]>(() => loadViews(environment));
+  const [viewName, setViewName] = useState("");
+  const sceneHandle = useRef<SceneHandle | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,11 +97,26 @@ export function App(): React.ReactElement {
 
   const positions = useMemo(() => (graph ? computeLayout(graph) : new Map()), [graph]);
   const nodeByKey = useMemo(() => new Map((graph?.nodes ?? []).map((n) => [n.key, n])), [graph]);
+  const scales = useMemo(() => (graph && sizeByConnections ? connectionScales(graph) : undefined), [graph, sizeByConnections]);
   const lit = useMemo(() => (graph && selected ? chainOf(graph, selected) : undefined), [graph, selected]);
 
+  const issues = useMemo(() => (graph ? findIssues(graph) : []), [graph]);
+  const worst = useMemo(() => worstByKey(issues), [issues]);
+  // "Only records with an issue" keeps their direct links too, so you still see where they sit.
+  const issueContext = useMemo(() => {
+    const keys = new Set(worst.keys());
+    (graph?.edges ?? []).forEach((e) => { if (worst.has(e.from)) keys.add(e.to); if (worst.has(e.to)) keys.add(e.from); });
+    return keys;
+  }, [graph, worst]);
+  const problemCount = issues.filter((i) => i.severity === "problem").length;
+  const skipped = (graph?.unread ?? []).map((u) => SKIPPED_CHECKS[u]).filter(Boolean);
+
+  const rideKeys = useMemo(() => (ride ? new Set([...ride.path, ...ride.options.map((o) => o.key)]) : undefined), [ride]);
   const visibleNodes = useMemo(
-    () => (graph?.nodes ?? []).filter((n) => !hiddenKinds.has(n.kind) && (!chainOnly || !lit || lit.has(n.key))),
-    [graph, hiddenKinds, chainOnly, lit]
+    () => (graph?.nodes ?? []).filter((n) => rideKeys && ride?.routeOnly
+      ? rideKeys.has(n.key)
+      : !hiddenKinds.has(n.kind) && (!chainOnly || !lit || lit.has(n.key)) && (!showHealth || !problemsOnly || issueContext.has(n.key))),
+    [graph, hiddenKinds, chainOnly, lit, showHealth, problemsOnly, issueContext, rideKeys, ride?.routeOnly]
   );
   const visibleEdges = useMemo(() => {
     const visible = new Set(visibleNodes.map((n) => n.key));
@@ -103,30 +143,81 @@ export function App(): React.ReactElement {
     if (p) setGoal((g) => ({ position: [p[0] + 26, p[1] + 14, p[2] + 42], target: p, serial: (g?.serial ?? 0) + 1 }));
   }, [positions]);
 
-  // ?focus=<name> (or Dataverse's ?data=<name>) opens the explorer focused on that record.
+  // ?focus=<name> (see urlOptions.ts) opens the explorer focused on that record.
   useEffect(() => {
     if (!graph) return;
-    const params = new URLSearchParams(window.location.search);
-    const wanted = (params.get("focus") ?? params.get("data") ?? "").trim().toLowerCase();
+    const wanted = (urlOptions.focus ?? "").toLowerCase();
     const match = wanted ? graph.nodes.find((n) => n.name.toLowerCase() === wanted) ?? graph.nodes.find((n) => n.name.toLowerCase().includes(wanted)) : undefined;
     if (match) select(match.key);
   }, [graph]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const clear = useCallback(() => { setSelected(undefined); setChainOnly(false); }, []);
-  const resetView = () => setGoal((g) => ({ position: START_POSITION, target: [0, 0, 0], serial: (g?.serial ?? 0) + 1 }));
+  const flyTo = (position: CameraGoal["position"], target: CameraGoal["target"]) => setGoal((g) => ({ position, target, serial: (g?.serial ?? 0) + 1 }));
+  const resetView = () => flyTo(START_POSITION, [0, 0, 0]);
+
+  // "Follow the call": ride from the selected record (or the first phone number) along the route.
+  const startRide = (from?: string) => {
+    const start = from ?? selected ?? (graph ? defaultRideStart(graph) : undefined);
+    if (!graph || !start) return;
+    setHovered(undefined);
+    setRide({ id: Date.now(), ...extendRide(graph, [start]), playing: true, routeOnly: false });
+  };
+  const stopRide = useCallback(() => setRide(undefined), []);
+  const choose = (option: RideOption) => {
+    if (graph) setRide((r) => (r ? { ...r, ...extendRide(graph, [...r.path, option.key]), playing: true } : r));
+  };
+  const scenePositions = positions;
+  const sceneRide = useMemo<Ride | undefined>(
+    () => (ride ? { id: ride.id, playing: ride.playing, points: ride.path.map((k) => scenePositions.get(k)).filter((p): p is CameraGoal["position"] => !!p) } : undefined),
+    [ride, scenePositions]
+  );
+  // ?ride=1 starts following the call once the environment is read (from the record in ?focus=, if any).
+  const rideStarted = useRef(false);
+  useEffect(() => {
+    if (rideStarted.current || !urlOptions.ride || !graph || (urlOptions.focus && !selected)) return;
+    rideStarted.current = true;
+    startRide(selected);
+  }, [graph, selected]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveView = () => {
+    const view = sceneHandle.current?.view();
+    if (!view) return;
+    const name = viewName.trim() || nextViewName(views);
+    const next = [...views.filter((v) => v.name !== name), { name, ...view }];
+    setViews(next);
+    storeViews(environment, next);
+    setViewName("");
+  };
+  const deleteView = (name: string) => {
+    const next = views.filter((v) => v.name !== name);
+    setViews(next);
+    storeViews(environment, next);
+  };
+  const screenshot = () => {
+    const url = sceneHandle.current?.capture();
+    if (!url) return;
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `3d-explorer-${environment.replace(/[^a-z0-9]+/gi, "-")}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
 
   useEffect(() => {
     const keydown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) { if (e.key === "Escape") (e.target as HTMLInputElement).blur(); return; }
-      if (e.key === "Escape") clear();
+      if (e.key === "Escape") { clear(); stopRide(); }
       if (e.key === "m" || e.key === "M") { setMode((m) => (m === "orbit" ? "walk" : "orbit")); }
     };
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
-  }, [clear]);
+  }, [clear, stopRide]);
 
   const selectedNode = selected ? nodeByKey.get(selected) : undefined;
   const hoveredNode = hovered ? nodeByKey.get(hovered) : undefined;
+  const selectedIssues = selectedNode ? issues.filter((i) => i.key === selectedNode.key) : [];
+  const hoveredIssue = hoveredNode ? issues.find((i) => i.key === hoveredNode.key) : undefined;
   const upstream = selectedNode ? (graph?.edges ?? []).filter((e) => e.to === selectedNode.key) : [];
   const downstream = selectedNode ? (graph?.edges ?? []).filter((e) => e.from === selectedNode.key) : [];
   const openUrl = live && selectedNode?.recordId && KINDS[selectedNode.kind].table ? recordUrl(KINDS[selectedNode.kind].table!, selectedNode.recordId) : undefined;
@@ -135,8 +226,9 @@ export function App(): React.ReactElement {
     <div className="explorer">
       {graph && !error && (
         <Scene
-          nodes={visibleNodes} edges={visibleEdges} positions={positions} lit={lit}
-          selected={selected} hovered={hovered} mode={mode} goal={goal}
+          nodes={visibleNodes} edges={visibleEdges} positions={positions} lit={rideKeys ?? lit}
+          selected={selected} hovered={hovered} mode={mode} goal={goal} issues={showHealth ? worst : undefined}
+          scales={scales} handle={sceneHandle} ride={sceneRide} labelKeys={rideKeys ? [...rideKeys] : undefined}
           onHover={setHovered} onSelect={select}
         />
       )}
@@ -203,6 +295,59 @@ export function App(): React.ReactElement {
           <dt>Esc</dt><dd>clear focus</dd>
         </dl>
 
+        {graph && (
+          <div className="views">
+            <button className="wide" onClick={() => startRide()} disabled={!graph.nodes.length}>▶ Follow the call {selectedNode ? `from ${selectedNode.name}` : "from a phone number"}</button>
+            <label className="toggle"><input type="checkbox" checked={sizeByConnections} onChange={(e) => setSizeByConnections(e.target.checked)} /> Size by connections</label>
+            <div className="save-view">
+              <input value={viewName} onChange={(e) => setViewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveView(); }} placeholder={nextViewName(views)} aria-label="View name" />
+              <button onClick={saveView}>Save view</button>
+              <button onClick={screenshot} title="Download the current view as a PNG">Screenshot</button>
+            </div>
+            {views.length > 0 && (
+              <ul className="view-list">
+                {views.map((v) => (
+                  <li key={v.name}>
+                    <button className="name" onClick={() => flyTo(v.position, v.target)}>{v.name}</button>
+                    <button className="remove" onClick={() => deleteView(v.name)} aria-label={`Delete view ${v.name}`}>×</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {graph && (
+          <div className="health">
+            <label className="toggle">
+              <input type="checkbox" checked={showHealth} onChange={(e) => setShowHealth(e.target.checked)} />
+              <span>Show problems</span>
+              <span className="badge problem" title="Problems">{problemCount}</span>
+              <span className="badge warning" title="Warnings">{issues.length - problemCount}</span>
+            </label>
+            {showHealth && (
+              <>
+                <label className="toggle"><input type="checkbox" checked={problemsOnly} onChange={(e) => setProblemsOnly(e.target.checked)} /> Only records with an issue</label>
+                {issues.length === 0 ? <p className="muted small">No problems found.</p> : (
+                  <ul className="issue-list">
+                    {issues.slice(0, MAX_ISSUES_LISTED).map((i) => (
+                      <li key={`${i.key}:${i.check}`}>
+                        <button onClick={() => select(i.key)}>
+                          <span className="dot" style={{ background: SEVERITY_COLORS[i.severity] }} />
+                          <span className="name">{nodeByKey.get(i.key)?.name}</span>
+                          <span className="relation">{i.title}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {issues.length > MAX_ISSUES_LISTED && <p className="muted small">and {issues.length - MAX_ISSUES_LISTED} more</p>}
+                {skipped.length > 0 && <p className="muted small">Not checked, because a table couldn't be read: {skipped.join("; ")}.</p>}
+              </>
+            )}
+          </div>
+        )}
+
         {graph && graph.warnings.length > 0 && (
           <div className="warnings">
             <button onClick={() => setShowWarnings((s) => !s)}>{graph.warnings.length} thing{graph.warnings.length === 1 ? "" : "s"} couldn't be read</button>
@@ -221,6 +366,13 @@ export function App(): React.ReactElement {
               {selectedNode.details.map(([label, value]) => <React.Fragment key={label}><dt>{label}</dt><dd>{value || "—"}</dd></React.Fragment>)}
             </dl>
           )}
+          {selectedIssues.map((i) => (
+            <div key={i.check} className={`finding ${i.severity}`}>
+              <strong>{SEVERITY_LABELS[i.severity]}: {i.title}</strong>
+              <p>{i.detail}</p>
+              <p className="fix">{i.fix}</p>
+            </div>
+          ))}
           <div className="actions">
             <label className="toggle"><input type="checkbox" checked={chainOnly} onChange={(e) => setChainOnly(e.target.checked)} /> Show only this chain</label>
             {openUrl && <a href={openUrl} target="_blank" rel="noreferrer">Open record ↗</a>}
@@ -231,8 +383,43 @@ export function App(): React.ReactElement {
         </aside>
       )}
 
+      {ride && (
+        <div className="ride">
+          <div className="ride-route">
+            {ride.path.map((k, i) => {
+              const n = nodeByKey.get(k);
+              return n ? (
+                <React.Fragment key={k}>
+                  {i > 0 && <span className="arrow">›</span>}
+                  <span className="stop"><span className="dot" style={{ background: KINDS[n.kind].color }} />{n.name}</span>
+                </React.Fragment>
+              ) : null;
+            })}
+          </div>
+          {ride.options.length > 0 ? (
+            <div className="ride-choices">
+              <span className="question">Where does the call go next?</span>
+              {ride.options.slice(0, MAX_RIDE_CHOICES).map((o) => (
+                <button key={o.key} onClick={() => choose(o)}>
+                  <span className="dot" style={{ background: KINDS[o.kind].color }} />{o.name}<small>{o.relation}</small>
+                </button>
+              ))}
+              {ride.options.length > MAX_RIDE_CHOICES && <span className="muted small">and {ride.options.length - MAX_RIDE_CHOICES} more</span>}
+            </div>
+          ) : (
+            <div className="ride-choices"><span className="question">End of the line.</span></div>
+          )}
+          <div className="ride-controls">
+            <button onClick={() => setRide((r) => (r ? { ...r, playing: !r.playing } : r))}>{ride.playing ? "❚❚ Pause" : "▶ Go on"}</button>
+            <button onClick={() => startRide(ride.path[0])}>↺ Start again</button>
+            <label className="toggle"><input type="checkbox" checked={ride.routeOnly} onChange={(e) => setRide((r) => (r ? { ...r, routeOnly: e.target.checked } : r))} /> Show only the route</label>
+            <button onClick={stopRide} aria-label="Stop following the call">✕</button>
+          </div>
+        </div>
+      )}
+
       {hoveredNode && hoveredNode.key !== selected && (
-        <div className="hover-hint"><span className="dot" style={{ background: KINDS[hoveredNode.kind].color }} />{KINDS[hoveredNode.kind].label}: <strong>{hoveredNode.name}</strong></div>
+        <div className="hover-hint"><span className="dot" style={{ background: KINDS[hoveredNode.kind].color }} />{KINDS[hoveredNode.kind].label}: <strong>{hoveredNode.name}</strong>{hoveredIssue && <span style={{ color: SEVERITY_COLORS[hoveredIssue.severity] }}> · {hoveredIssue.title}</span>}</div>
       )}
 
       {(loading || error) && (

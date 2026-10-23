@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrbitControls, Stars } from "@react-three/drei";
 import { LAYER_SPACING, Vec3 } from "./layout";
+import { Severity } from "./health";
 import { GraphEdge, GraphNode, KIND_ORDER, KINDS, NodeKind } from "./model";
 
 // The 3D view. One instanced mesh per kind keeps thousands of nodes cheap; all edges are one
@@ -46,12 +47,43 @@ interface SceneProps {
   hovered?: string;
   mode: Mode;
   goal?: CameraGoal;
+  // Records with a health issue, when the overlay is on.
+  issues?: Map<string, Severity>;
   onHover(key: string | undefined): void;
   onSelect(key: string): void;
+  // Per-record size ("size by connections"); 1 when missing.
+  scales?: Map<string, number>;
+  // Lets the page read the camera and take a screenshot.
+  handle?: React.MutableRefObject<SceneHandle | null>;
+  // "Follow the call": the camera rides along these points. A new id starts a new ride.
+  ride?: Ride;
+  // Names to label instead of the selected record and its links (the ride labels its route).
+  labelKeys?: string[];
 }
 
-function KindMesh({ kind, nodes, positions, lit, onHover, onSelect }: {
-  kind: NodeKind; nodes: GraphNode[]; positions: Map<string, Vec3>; lit?: Set<string>;
+export interface Ride {
+  id: number;
+  points: Vec3[];
+  playing: boolean;
+}
+
+// Ride speed in scene units per second, and how far behind and above the point the camera rides.
+const RIDE_SPEED = 30;
+const RIDE_BEHIND = 32;
+const RIDE_ABOVE = 10;
+
+export interface SceneHandle {
+  view(): { position: Vec3; target: Vec3 };
+  // The current view as a PNG data URL.
+  capture(): string;
+}
+
+const ONE = new THREE.Vector3(1, 1, 1);
+const place = (matrix: THREE.Matrix4, [x, y, z]: Vec3, scale = 1) =>
+  matrix.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(), ONE.clone().multiplyScalar(scale));
+
+function KindMesh({ kind, nodes, positions, scales, lit, onHover, onSelect }: {
+  kind: NodeKind; nodes: GraphNode[]; positions: Map<string, Vec3>; scales?: Map<string, number>; lit?: Set<string>;
   onHover(key: string | undefined): void; onSelect(key: string): void;
 }) {
   const ref = useRef<THREE.InstancedMesh>(null);
@@ -65,15 +97,14 @@ function KindMesh({ kind, nodes, positions, lit, onHover, onSelect }: {
     const base = new THREE.Color(KINDS[kind].color);
     const dim = base.clone().lerp(BG, 0.85);
     nodes.forEach((n, i) => {
-      const [x, y, z] = positions.get(n.key) ?? [0, 0, 0];
-      matrix.makeTranslation(x, y, z);
+      place(matrix, positions.get(n.key) ?? [0, 0, 0], scales?.get(n.key) ?? 1);
       mesh.setMatrixAt(i, matrix);
       mesh.setColorAt(i, !lit || lit.has(n.key) ? base : dim);
     });
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [kind, nodes, positions, lit]);
+  }, [kind, nodes, positions, scales, lit]);
 
   const keyOf = (e: ThreeEvent<PointerEvent | MouseEvent>) => (e.instanceId !== undefined ? nodes[e.instanceId]?.key : undefined);
   return (
@@ -155,11 +186,38 @@ function LayerRings({ nodes, positions }: { nodes: GraphNode[]; positions: Map<s
   );
 }
 
-function SelectionMarker({ position }: { position: Vec3 }) {
+export const SEVERITY_COLORS: Record<Severity, string> = { problem: "#ff4d4f", warning: "#ffa62b" };
+
+// A pulsing glow around every record with an issue: red for a problem, orange for a warning.
+function IssueMarkers({ severity, keys, positions, scales }: { severity: Severity; keys: string[]; positions: Map<string, Vec3>; scales?: Map<string, number> }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const material = useRef<THREE.MeshBasicMaterial>(null);
+  const geometry = useMemo(() => new THREE.SphereGeometry(5.5, 24, 16), []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const matrix = new THREE.Matrix4();
+    keys.forEach((k, i) => mesh.setMatrixAt(i, place(matrix, positions.get(k) ?? [0, 0, 0], scales?.get(k) ?? 1)));
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [keys, positions, scales]);
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime() * (severity === "problem" ? 3 : 1.8);
+    if (material.current) material.current.opacity = 0.34 + 0.18 * Math.sin(t);
+  });
+  if (!keys.length) return null;
+  return (
+    <instancedMesh key={keys.length} ref={ref} args={[geometry, undefined, keys.length]} raycast={() => null}>
+      <meshBasicMaterial ref={material} color={SEVERITY_COLORS[severity]} transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} fog={false} />
+    </instancedMesh>
+  );
+}
+
+function SelectionMarker({ position, scale = 1 }: { position: Vec3; scale?: number }) {
   const ref = useRef<THREE.Mesh>(null);
   useFrame((_, dt) => { if (ref.current) { ref.current.rotation.z += dt * 1.5; ref.current.rotation.x += dt * 0.6; } });
   return (
-    <mesh ref={ref} position={position} raycast={() => null}>
+    <mesh ref={ref} position={position} scale={scale} raycast={() => null}>
       <torusGeometry args={[4.2, 0.12, 8, 64]} />
       <meshBasicMaterial color="#ffffff" />
     </mesh>
@@ -175,14 +233,44 @@ const MOVE_KEYS: Record<string, [number, number, number]> = {
 // Moves the camera: flying to a goal, the keyboard (both modes), and mouse look in walk mode.
 // Walk mode turns the view by dragging, so it needs no pointer lock and works inside the
 // model-driven app's frame.
-function CameraRig({ mode, goal }: { mode: Mode; goal?: CameraGoal }) {
+function CameraRig({ mode, goal, handle, ride }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null>; ride?: Ride }) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
+  const scene = useThree((s) => s.scene);
+
+  useEffect(() => {
+    if (!handle) return;
+    handle.current = {
+      view: () => {
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction);
+        const target = controls ? controls.target.clone() : camera.position.clone().addScaledVector(direction, 60);
+        return { position: camera.position.toArray() as Vec3, target: target.toArray() as Vec3 };
+      },
+      // Rendering right before reading keeps the picture without preserveDrawingBuffer (which costs
+      // every frame). Labels are HTML, so they aren't in it.
+      capture: () => { gl.render(scene, camera); return gl.domElement.toDataURL("image/png"); }
+    };
+    return () => { handle.current = null; };
+  }, [handle, camera, controls, gl, scene]);
   const pressed = useRef(new Set<string>());
   const look = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
   const flight = useRef<{ position: THREE.Vector3; target: THREE.Vector3; current: THREE.Vector3 } | undefined>(undefined);
   const previousMode = useRef<Mode | undefined>(undefined);
+  const call = useRef<THREE.Mesh>(null);
+  // The ride: a point travels the route at a steady speed; the camera follows it on a spring, a little
+  // behind and above, looking ahead. The spring rounds the corners, so the route itself can be straight lines.
+  const rider = useRef<{ id: number; segment: number; along: number; point: THREE.Vector3; heading: THREE.Vector3; look: THREE.Vector3; speed: number; boarded: boolean } | undefined>(undefined);
+  useEffect(() => {
+    if (!ride || !ride.points.length) { rider.current = undefined; return; }
+    if (rider.current?.id === ride.id) return;
+    const start = new THREE.Vector3(...ride.points[0]);
+    const next = ride.points[1] ? new THREE.Vector3(...ride.points[1]) : start.clone().add(new THREE.Vector3(0, 0, -1));
+    const heading = next.clone().sub(start).normalize();
+    rider.current = { id: ride.id, segment: 0, along: 0, point: start, heading, look: camera.position.clone().add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(60)), speed: 0, boarded: false };
+    flight.current = undefined;
+  }, [ride?.id, ride?.points]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Start flying whenever a new goal comes in.
   useEffect(() => {
@@ -248,6 +336,44 @@ function CameraRig({ mode, goal }: { mode: Mode; goal?: CameraGoal }) {
 
   useFrame((_, dt) => {
     const step = Math.min(dt, 0.1);
+
+    const r = rider.current;
+    if (ride && r) {
+      const points = ride.points.map((p) => new THREE.Vector3(...p));
+      // Distance left to the end of the known route: the ride slows down towards it (a choice or the end).
+      let left = 0;
+      if (r.segment < points.length - 1) {
+        left = points[r.segment + 1].distanceTo(r.point);
+        for (let i = r.segment + 1; i < points.length - 1; i++) left += points[i].distanceTo(points[i + 1]);
+      }
+      // First the camera flies to its place behind the call; only then does the call set off.
+      const behind = r.point.clone().addScaledVector(r.heading, -RIDE_BEHIND).add(new THREE.Vector3(0, RIDE_ABOVE, 0));
+      if (!r.boarded && camera.position.distanceTo(behind) < 4) r.boarded = true;
+      const wanted = ride.playing && r.boarded ? Math.min(RIDE_SPEED, Math.max(4, left * 0.9)) : 0;
+      r.speed += (wanted - r.speed) * (1 - Math.exp(-step * 2.5));
+      let travel = r.speed * step;
+      while (travel > 0 && r.segment < points.length - 1) {
+        const from = points[r.segment];
+        const to = points[r.segment + 1];
+        const length = from.distanceTo(to);
+        const room = length - r.along;
+        if (travel < room) { r.along += travel; travel = 0; } else { travel -= room; r.segment++; r.along = 0; }
+        const a = points[r.segment];
+        const b = points[Math.min(r.segment + 1, points.length - 1)];
+        const segLength = a.distanceTo(b);
+        r.point.copy(segLength > 0 ? a.clone().lerp(b, r.along / segLength) : a);
+      }
+      // Head towards the next point (or keep the last heading at the end).
+      const target = r.segment < points.length - 1 ? points[r.segment + 1] : undefined;
+      if (target && target.distanceTo(r.point) > 0.01) r.heading.lerp(target.clone().sub(r.point).normalize(), 1 - Math.exp(-step * 1.8)).normalize();
+      const desired = r.point.clone().addScaledVector(r.heading, -RIDE_BEHIND).add(new THREE.Vector3(0, RIDE_ABOVE, 0));
+      camera.position.lerp(desired, 1 - Math.exp(-step * (r.boarded ? 2.2 : 2.8)));
+      r.look.lerp(r.point.clone().addScaledVector(r.heading, 20), 1 - Math.exp(-step * 2.5));
+      camera.lookAt(r.look);
+      look.current.setFromQuaternion(camera.quaternion, "YXZ");
+      if (call.current) { call.current.position.copy(r.point); call.current.scale.setScalar(1 + 0.25 * Math.sin(performance.now() / 180)); }
+      return;
+    }
     const f = flight.current;
     if (f) {
       const t = 1 - Math.exp(-step * 3.5);
@@ -279,26 +405,37 @@ function CameraRig({ mode, goal }: { mode: Mode; goal?: CameraGoal }) {
     if (mode === "orbit" && controls) { controls.target.add(delta); controls.update(); }
   });
 
-  return null;
+  // The call being followed: a bright point the camera rides behind.
+  return ride ? (
+    <mesh ref={call} raycast={() => null}>
+      <sphereGeometry args={[1.3, 16, 12]} />
+      <meshBasicMaterial color="#ffffff" fog={false} />
+    </mesh>
+  ) : null;
 }
 
-export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, onHover, onSelect }: SceneProps): React.ReactElement {
+export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, ride, labelKeys, onHover, onSelect }: SceneProps): React.ReactElement {
   const byKind = useMemo(() => KIND_ORDER.map((kind) => ({ kind, nodes: nodes.filter((n) => n.kind === kind) })).filter((g) => g.nodes.length), [nodes]);
   const nodeByKey = useMemo(() => new Map(nodes.map((n) => [n.key, n])), [nodes]);
 
   // Names float next to the hovered node, the selected node and what it's directly linked to;
   // the rest of the chain is lit but unlabelled, or the labels pile up.
   const labelled = useMemo(() => {
-    const keys = new Set<string>();
-    if (selected) {
+    const keys = new Set<string>(labelKeys ?? []);
+    if (selected && !labelKeys) {
       keys.add(selected);
       edges.forEach((e) => { if (e.from === selected) keys.add(e.to); if (e.to === selected) keys.add(e.from); });
     }
     if (hovered) keys.add(hovered);
     return [...keys].slice(0, 40).map((k) => nodeByKey.get(k)).filter((n): n is GraphNode => !!n);
-  }, [edges, selected, hovered, nodeByKey]);
+  }, [edges, selected, hovered, nodeByKey, labelKeys]);
 
   const selectedPosition = selected ? positions.get(selected) : undefined;
+  const markers = useMemo(() => {
+    const visible = new Set(nodes.map((n) => n.key));
+    const of = (severity: Severity) => [...(issues ?? new Map<string, Severity>()).entries()].filter(([k, s]) => s === severity && visible.has(k)).map(([k]) => k);
+    return { problem: of("problem"), warning: of("warning") };
+  }, [issues, nodes]);
 
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true }} camera={{ position: START_POSITION, fov: 55, near: 0.5, far: 4000 }} onCreated={({ camera }) => camera.lookAt(0, 0, 0)}>
@@ -312,9 +449,11 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
       <LayerRings nodes={nodes} positions={positions} />
       <Edges nodes={nodes} edges={edges} positions={positions} lit={lit} />
       {byKind.map((g) => (
-        <KindMesh key={g.kind} kind={g.kind} nodes={g.nodes} positions={positions} lit={lit} onHover={onHover} onSelect={onSelect} />
+        <KindMesh key={g.kind} kind={g.kind} nodes={g.nodes} positions={positions} scales={scales} lit={lit} onHover={onHover} onSelect={onSelect} />
       ))}
-      {selectedPosition && <SelectionMarker position={selectedPosition} />}
+      {selectedPosition && <SelectionMarker position={selectedPosition} scale={(selected && scales?.get(selected)) || 1} />}
+      <IssueMarkers severity="problem" keys={markers.problem} positions={positions} scales={scales} />
+      <IssueMarkers severity="warning" keys={markers.warning} positions={positions} scales={scales} />
 
       {labelled.map((n) => (
         <Html key={n.key} position={positions.get(n.key)} center zIndexRange={[20, 10]} style={{ pointerEvents: "none" }}>
@@ -324,8 +463,8 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
         </Html>
       ))}
 
-      {mode === "orbit" && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxDistance={1500} />}
-      <CameraRig mode={mode} goal={goal} />
+      {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxDistance={1500} />}
+      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} />
     </Canvas>
   );
 }
