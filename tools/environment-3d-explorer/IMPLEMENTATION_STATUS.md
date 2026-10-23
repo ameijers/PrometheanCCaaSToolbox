@@ -58,6 +58,20 @@ Schema, read-only and checked live on academyexperiment (2026-10-23):
 - "Waiting" is Open with no agent; Active, Waiting and Open-with-an-agent count as "with an agent". This is a reading of the status names, to check against real traffic.
 - At the time of writing academyexperiment had no open conversations and no signed-in agents, which is why the last 24 hours are counted too.
 
+## More of the configuration (2026-10-23)
+
+Bots, context variables, operating hours, overflow actions, capacity profiles, teams and business units. Checked on the sample environment.
+
+Schema, read-only and checked live on academyexperiment (2026-10-23), or already verified by another tool:
+
+- **Bots**: `msdyn_liveworkstream.msdyn_bot_user` points at the bot's `systemuser` (a non-interactive user, for example "Copilot Contoso Claims IVR (Microsoft Copilot Studio)"). Bot users are read by id, because the agents read is interactive users only. A bot is drawn once per workstream, so a bot shared by two workstreams doesn't join their routes; the channel then links to the bot and the bot to the workstream.
+- **Operating hours**: only on queues (`_msdyn_operatinghourid_value`); `msdyn_liveworkstream` has no operating hours column.
+- **Overflow**: the queue's `_msdyn_prequeueoverflowrulesetid_value` and `_msdyn_inqueueoverflowrulesetid_value` rulesets (Voicemail Builder), rules pointing at `msdyn_overflowactionconfig` through `overflowaction.msdyn_overflowactionconfig.msdyn_overflowactionconfigid` (Visual Routing Tester). `msdyn_overflowactiontype`: 192350000 Default (not drawn), …001 End Conversation, …002 Transfer to Phone, …003 Direct Callback, …004 Voicemail, …005 Queue Transfer (target queue in `msdyn_overflowactiondata`), …006 Remain In Queue, …007 Scheduled Callback. Trigger names come from Voicemail Builder's verified list ("Out of operating hours" and so on).
+- **Capacity profiles**: `msdyn_liveworkstreamcapacityprofile` (`_msdyn_workstream_id_value`, `_msdyn_capacityprofile_id_value`, checked live) and `msdyn_bookableresourcecapacityprofile` (Agent Readiness Checker).
+- **Context variables, teams, business units**: as Route-to-Queue Builder, Agent Readiness Checker and Skill Assignment read them. Default business-unit teams are left out, since every user is in one.
+- Health: a queue counts as reached through a rule, a default queue or another queue's overflow transfer, not through operating hours; a voice workstream with a bot counts the bot's channels.
+- Not yet: other channels (chat, SMS, WhatsApp) as their own channel records, and classification rules.
+
 ## Open questions / next ideas
 
 - Live test: data volumes, load time, frame rate with a few thousand agents.

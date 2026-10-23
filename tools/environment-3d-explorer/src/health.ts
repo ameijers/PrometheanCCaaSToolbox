@@ -29,6 +29,8 @@ export function findIssues(graph: Graph): Issue[] {
   const outgoing = new Map<string, string[]>();
   const kindOf = new Map(graph.nodes.map((n) => [n.key, n.kind]));
   const nodeByKey = new Map(graph.nodes.map((n) => [n.key, n]));
+  const incomingKinds = new Map<string, string[]>();
+  graph.edges.forEach((e) => incomingKinds.set(e.to, [...(incomingKinds.get(e.to) ?? []), e.kind]));
   graph.edges.forEach((e) => {
     incoming.set(e.to, [...(incoming.get(e.to) ?? []), e.from]);
     outgoing.set(e.from, [...(outgoing.get(e.from) ?? []), e.to]);
@@ -61,7 +63,9 @@ export function findIssues(graph: Graph): Issue[] {
             "The workstream has no route-to-queue rules in an active routing configuration, so every conversation goes to the default queue.",
             "If that's not the intent, add route-to-queue rules.");
         }
-        if (n.facts?.voice && read("channels") && !into(n, "channel").length) {
+        // Calls reach a workstream from its channels, directly or through its bot.
+        const channels = [...into(n, "channel"), ...into(n, "bot").flatMap((b) => into(nodeByKey.get(b)!, "channel"))];
+        if (n.facts?.voice && read("channels") && !channels.length) {
           add(n, "warning", "no-channel", "No voice channel",
             "This voice workstream has no voice channel, so no phone number leads to it and it can't receive calls.",
             "Add a voice channel with a phone number to the workstream, or remove the workstream if it's no longer used.");
@@ -90,7 +94,9 @@ export function findIssues(graph: Graph): Issue[] {
         }
         break;
       case "queue": {
-        const reached = into(n).length > 0;
+        // Reached through routing: a rule, a default queue or another queue's overflow transfer
+        // (not operating hours, which also point at the queue).
+        const reached = (incomingKinds.get(n.key) ?? []).some((k) => k === "routes" || k === "default" || k === "transfer");
         const members = out(n, "agent");
         if (!members.length) {
           add(n, reached ? "problem" : "warning", "no-members", "No members",

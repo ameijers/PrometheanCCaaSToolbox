@@ -97,12 +97,19 @@ export function computeLayout(graph: Graph): Map<string, Vec3> {
     separate(points, nodes.length > 1500 ? 8 : 40);
     nodes.forEach((n, i) => xy.set(n.key, points[i]));
   };
+  place("bot", "down");
   place("channel", "down");
   place("phone", "down");
+  place("variable", "up");
   place("rule", "up");
   place("queue", "up");
+  place("hours", "down");
+  place("overflow", "up");
   place("agent", "up");
+  place("capacity", "up");
   place("skill", "up");
+  place("team", "up");
+  place("businessunit", "up");
 
   const positions = new Map<string, Vec3>();
   graph.nodes.forEach((n) => {

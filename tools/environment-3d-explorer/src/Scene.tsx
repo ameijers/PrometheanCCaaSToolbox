@@ -35,7 +35,14 @@ const SHAPES: Record<NodeKind, () => THREE.BufferGeometry> = {
   rule: () => new THREE.TetrahedronGeometry(1.4),
   queue: () => new THREE.BoxGeometry(2.4, 2.4, 2.4),
   agent: () => new THREE.SphereGeometry(0.85, 12, 8),
-  skill: () => new THREE.DodecahedronGeometry(1.05)
+  skill: () => new THREE.DodecahedronGeometry(1.05),
+  bot: () => new THREE.TorusKnotGeometry(1.1, 0.35, 64, 8),
+  variable: () => new THREE.ConeGeometry(0.6, 1.4, 8),
+  hours: () => new THREE.TorusGeometry(1.4, 0.35, 10, 32),
+  overflow: () => new THREE.ConeGeometry(1.2, 2.2, 6),
+  capacity: () => new THREE.CylinderGeometry(0.9, 0.9, 1.6, 14),
+  team: () => new THREE.OctahedronGeometry(1.1, 0),
+  businessunit: () => new THREE.BoxGeometry(3.2, 0.9, 3.2)
 };
 
 interface SceneProps {
@@ -186,7 +193,8 @@ function LayerRings({ nodes, positions }: { nodes: GraphNode[]; positions: Map<s
             <ringGeometry args={[l.radius - 0.35, l.radius, 128]} />
             <meshBasicMaterial color={KINDS[l.kind].color} transparent opacity={0.22} side={THREE.DoubleSide} depthWrite={false} />
           </mesh>
-          <Html position={[-l.radius, l.radius * 0.15, 0]} center zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
+          {/* Half layers (settings next to a record type) put their name on the other side, so neighbouring names don't overlap. */}
+          <Html position={Number.isInteger(KINDS[l.kind].layer) ? [-l.radius, l.radius * 0.15, 0] : [l.radius, -l.radius * 0.15, 0]} center zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
             <div className="layer-label" style={{ color: KINDS[l.kind].color }}>{KINDS[l.kind].plural}</div>
           </Html>
         </group>

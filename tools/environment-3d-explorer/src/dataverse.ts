@@ -26,21 +26,30 @@ function message(error: unknown): string {
 export async function loadRaw(): Promise<RawEnvironment> {
   const warnings: string[] = [];
   const unread: Unread[] = [];
-  // Phone numbers, voice channels and skills are optional: without them the rest is still worth seeing.
+  // Everything but the core call path (workstreams, routing, queues, members) is optional: without
+  // it the rest is still worth seeing, and the page says what couldn't be read.
   const optional = async (what: string, which: Unread, read: () => Promise<Row[]>): Promise<Row[]> => {
     try { return await read(); } catch (error) { warnings.push(`Couldn't read ${what}: ${message(error)}`); unread.push(which); return []; }
   };
 
-  const [phoneNumbers, channels, workstreams, routingConfigurations, routingSteps, queues, memberships, users] = await Promise.all([
+  const [phoneNumbers, channels, workstreams, routingConfigurations, routingSteps, queues, memberships, users,
+    variables, operatingHours, overflowActions, capacityProfiles, workstreamCapacity, businessUnits, teams] = await Promise.all([
     optional("phone numbers", "phoneNumbers", () => readAll("msdyn_ocphonenumber", "?$select=msdyn_ocphonenumberid,msdyn_phonenumber,statecode,msdyn_phoneinboundenabled,msdyn_phoneoutboundenabled")),
     optional("voice channels", "channels", () => readAll("msdyn_ocvoicechannelsetting", "?$select=msdyn_ocvoicechannelsettingid,msdyn_name,_msdyn_phonenumberid_value,_msdyn_liveworkstreamid_value")),
-    readAll("msdyn_liveworkstream", "?$select=msdyn_liveworkstreamid,msdyn_name,msdyn_streamsource,_msdyn_defaultqueue_value&$filter=statecode eq 0"),
+    readAll("msdyn_liveworkstream", "?$select=msdyn_liveworkstreamid,msdyn_name,msdyn_streamsource,_msdyn_defaultqueue_value,_msdyn_bot_user_value&$filter=statecode eq 0"),
     readAll("msdyn_routingconfiguration", "?$select=msdyn_routingconfigurationid,msdyn_isactiveconfiguration,_msdyn_liveworkstreamid_value"),
     readAll("msdyn_routingconfigurationstep", "?$select=msdyn_type,_msdyn_routingconfigurationid_value,_msdyn_rulesetid_value"),
-    readAll("queue", "?$select=queueid,name,msdyn_queuetype&$filter=msdyn_isomnichannelqueue eq true and statecode eq 0"),
+    readAll("queue", "?$select=queueid,name,msdyn_queuetype,_msdyn_prequeueoverflowrulesetid_value,_msdyn_inqueueoverflowrulesetid_value,_msdyn_operatinghourid_value&$filter=msdyn_isomnichannelqueue eq true and statecode eq 0"),
     readAll("queuemembership", "?$select=queueid,systemuserid"),
     // Interactive users only (accessmode 0); application and non-interactive users can't take work.
-    readAll("systemuser", "?$select=systemuserid,fullname,domainname,isdisabled&$filter=accessmode eq 0")
+    readAll("systemuser", "?$select=systemuserid,fullname,domainname,isdisabled,_businessunitid_value&$filter=accessmode eq 0"),
+    optional("context variables", "variables", () => readAll("msdyn_ocliveworkstreamcontextvariable", "?$select=msdyn_ocliveworkstreamcontextvariableid,msdyn_name,msdyn_datatype,_msdyn_liveworkstreamid_value")),
+    optional("operating hours", "hours", () => readAll("msdyn_operatinghour", "?$select=msdyn_operatinghourid,msdyn_name")),
+    optional("overflow actions", "overflow", () => readAll("msdyn_overflowactionconfig", "?$select=msdyn_overflowactionconfigid,msdyn_name,msdyn_overflowactiontype,msdyn_overflowactiondata")),
+    optional("capacity profiles", "capacity", () => readAll("msdyn_capacityprofile", "?$select=msdyn_capacityprofileid,msdyn_name")),
+    optional("workstream capacity profiles", "capacity", () => readAll("msdyn_liveworkstreamcapacityprofile", "?$select=_msdyn_workstream_id_value,_msdyn_capacityprofile_id_value")),
+    optional("business units", "businessunits", () => readAll("businessunit", "?$select=businessunitid,name")),
+    optional("teams", "teams", () => readAll("team", "?$select=teamid,name,isdefault"))
   ]);
 
   const rulesetIds = [...new Set(routingSteps
@@ -56,7 +65,21 @@ export async function loadRaw(): Promise<RawEnvironment> {
     resources.map((r) => cleanId(str(r.bookableresourceid)))
   ));
 
-  return { phoneNumbers, channels, workstreams, routingConfigurations, routingSteps, rulesets, queues, memberships, users, resources, resourceSkills, warnings, unread };
+  // The workstreams' bots are users too, but not interactive ones, so they're read on their own.
+  const botIds = [...new Set(workstreams.map((w) => w._msdyn_bot_user_value).filter(Boolean).map((v) => cleanId(str(v))))];
+  const overflowRulesetIds = [...new Set(queues.flatMap((q) => [q._msdyn_prequeueoverflowrulesetid_value, q._msdyn_inqueueoverflowrulesetid_value]).filter(Boolean).map((v) => cleanId(str(v))))];
+  const [botUsers, overflowRulesets, resourceCapacity, teamMemberships] = await Promise.all([
+    optional("bots", "bots", () => readByIds("systemuser", "systemuserid", "$select=systemuserid,fullname", botIds)),
+    optional("overflow rules", "overflow", () => readByIds("msdyn_decisionruleset", "msdyn_decisionrulesetid", "$select=msdyn_decisionrulesetid,msdyn_rulesetdefinition", overflowRulesetIds)),
+    optional("agents' capacity profiles", "capacity", () => readByIds("msdyn_bookableresourcecapacityprofile", "_msdyn_bookableresourceid_value", "$select=_msdyn_bookableresourceid_value,_msdyn_capacityprofileid_value", resources.map((r) => cleanId(str(r.bookableresourceid))))),
+    optional("team memberships", "teams", () => readByIds("teammembership", "systemuserid", "$select=systemuserid,teamid", agentIds))
+  ]);
+
+  return {
+    phoneNumbers, channels, workstreams, routingConfigurations, routingSteps, rulesets, queues, memberships, users, resources, resourceSkills,
+    botUsers, variables, operatingHours, overflowRulesets, overflowActions, capacityProfiles, workstreamCapacity, resourceCapacity, businessUnits, teams, teamMemberships,
+    warnings, unread
+  };
 }
 
 export async function loadGraph(): Promise<Graph> {

@@ -3,11 +3,11 @@
 
 import { EDGE_LABELS, EdgeKind, Graph, GraphNode, NodeKind } from "./model";
 
-// "Follow the call": a route along the lines a conversation takes, phone number -> channel ->
-// workstream -> routing rule -> queue -> agent. Where there's one way on the route grows by itself;
+// "Follow the call": a route along the lines a conversation takes, phone number -> channel -> (bot) ->
+// workstream -> routing rule -> queue -> agent or overflow (a queue transfer goes on to its queue). Where there's one way on the route grows by itself;
 // where there are more, the viewer picks. Skills aren't a step a call takes, so the ride ends at the agent.
 
-const FLOW: EdgeKind[] = ["number", "channel", "routes", "default", "member"];
+const FLOW: EdgeKind[] = ["number", "channel", "bot", "handoff", "routes", "default", "member", "overflow", "transfer"];
 
 export interface RideOption {
   key: string;

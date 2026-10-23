@@ -44,11 +44,11 @@ describe("following the call", () => {
     expect(options[4].relation).toBe("default queue");
   });
 
-  test("goes from a rule to its queue, and from a queue to its agents, but not on to skills", () => {
+  test("goes from a rule to its queue, and from a queue to its agents or its overflow, but not on to skills", () => {
     const rule = graph.nodes.find((n) => n.kind === "rule" && n.name === "Billing")!.key;
     const { path, options } = extendRide(graph, [rule]);
     expect(names(path)).toEqual(["Billing", "Billing"]);
-    expect(options.every((o) => o.kind === "agent")).toBe(true);
+    expect(options.filter((o) => o.kind !== "agent").map((o) => `${o.name} (${o.relation})`)).toEqual(["Voicemail (overflow · Out of operating hours)"]);
     const agent = options[0].key;
     expect(rideOptions(graph, agent)).toEqual([]);
   });

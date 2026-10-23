@@ -8,11 +8,15 @@ Part of the [Promethean CCaaS Toolbox](../../Readme.md). For what the tool shows
 2. The tool reads the environment straight away. The left panel shows which environment it's reading. If it says **the sample environment**, the page isn't running inside the app and shows made-up data.
 3. Nothing is changed. The tool only reads.
 
-When the scene appears, you look at the environment from the front and a little to the side. Each record type is on its own layer, marked by a faint ring and a label. Front to back: phone numbers, voice channels, workstreams, routing rules, queues, agents, skills. Lines connect records that are linked.
+When the scene appears, you look at the environment from the front and a little to the side. Each record type is on its own layer, marked by a faint ring and a label. Front to back: phone numbers, voice channels, bots, workstreams, routing rules, queues, overflow actions, agents, skills. Settings that belong to a record (context variables, operating hours, capacity profiles, teams, business units) sit on half layers next to it. Lines connect records that are linked.
 
 ![The whole environment, front to back](images/00-overview.png)
 
-The legend in the left panel shows how many records of each type were read. Untick a type to hide that layer, and tick it again to show it.
+The legend in the left panel shows how many records of each type were read. Untick a type to hide that layer, and tick it again to show it. Context variables, capacity profiles, teams and business units start unticked, because they can add a lot of records.
+
+Select a queue to see what's around it: its operating hours in front, and behind it its agents and its overflow actions (voicemail, callback, a transfer to another queue). The details of an overflow action say when it applies.
+
+![A queue with its operating hours in front, and its agents and overflow actions behind](images/07-queue-overflow.png)
 
 If something couldn't be read (phone numbers, voice channels or skills, for example when you have no permission on that table), a link under the controls says how many things are missing. Click it to see which. The rest of the scene still shows.
 
