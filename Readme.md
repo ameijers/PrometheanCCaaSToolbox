@@ -17,6 +17,7 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 | [Context Variable Monitor](tools/context-variable-monitor/README.md) | Watches the actual context-variable values a real call captures, live, as it moves through the IVR and unified routing — for debugging against real traffic rather than simulated configuration. |
 | [Agent Readiness Checker](tools/agent-readiness-checker/README.md) | Answers "why isn't this agent receiving calls?" — checks one agent or the whole roster against every prerequisite for receiving voice work (account, roles, channel, queue membership, workstream reachability, capacity, skills, presence) with plain-language evidence and suggested fixes. |
 | [Environment Artifact Finder](tools/environment-artifact-finder/README.md) | Finds configuration you could clean up: records nothing active uses any more, records that are wired in but can never do anything (e.g. a voice workstream with no phone number, a queue no route reaches), broken references, and housekeeping items (old bulk-delete jobs, stale saved views). Recommends only. Every finding is a candidate for review, with its evidence and a confidence level. |
+| [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. **New: tried on sample data only, not yet in the solution zip or tested live.** |
 
 ### Creation and provisioning tools
 
@@ -84,7 +85,7 @@ The Recording & Transcription Provisioner works on a selection instead of a file
 
 ### Live status
 
-All tools have been built against schema read from a live environment (`academyexperiment`), run end to end in a browser against sample data, and tested against that live environment. They still need more testing in **other environments** — for example other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes. If a tool behaves differently in your environment, please report it.
+All tools except the new Environment 3D Explorer have been built against schema read from a live environment (`academyexperiment`), run end to end in a browser against sample data, and tested against that live environment. They still need more testing in **other environments** — for example other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes. If a tool behaves differently in your environment, please report it.
 
 Worth knowing from the live tests: in **Voice Workstream Builder**, workstreams and channels without a phone number are created and completed by the platform, but routing rules are **not** created automatically — set them up in the admin center (the tool says so per workstream).
 
@@ -176,6 +177,7 @@ tools/
   context-variable-monitor/    # Diagnostic
   agent-readiness-checker/     # Diagnostic
   environment-artifact-finder/ # Diagnostic
+  environment-3d-explorer/     # Diagnostic (3D view, Three.js)
   voice-workstream-builder/    # Creation — also holds the shared CSV, log and recording code
   queue-builder/               # Creation
   profile-builder/             # Creation (outbound profiles)
@@ -227,6 +229,7 @@ Each tool can be run locally in its offline demo mode:
 | Assignment Method Copier | `assignmentmethodcopier` | `npm run demo:assignmentmethodcopier` → http://localhost:5445/index.html |
 | Route-to-Queue Builder | `routetoqueuebuilder` | `npm run demo:routetoqueuebuilder` → http://localhost:5446/index.html |
 | Voicemail Builder | `voicemailbuilder` | `npm run demo:voicemailbuilder` → http://localhost:5447/index.html |
+| Environment 3D Explorer | `explorer3d` | `npm run demo:explorer3d` → http://localhost:5448/index.html |
 
 ## Deployment
 

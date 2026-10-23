@@ -198,6 +198,18 @@
         { "name": "pct_/tools/voicemailbuilder/style.css", "path": "dist/webresource/voicemailbuilder/style.css", "type": 2, "displayName": "Voicemail Builder - style.css" },
         { "name": "pct_/tools/voicemailbuilder/bundle.js", "path": "dist/webresource/voicemailbuilder/bundle.js", "type": 3, "displayName": "Voicemail Builder - bundle.js" }
       ]
+    },
+    "explorer3d": {
+      "displayName": "Environment 3D Explorer",
+      "stage": [
+        { "from": "tools/environment-3d-explorer/webresource/explorer3d.html", "to": "dist/webresource/explorer3d/index.html" },
+        { "from": "tools/environment-3d-explorer/css/environment3dExplorer.css", "to": "dist/webresource/explorer3d/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/explorer3d/index.html", "path": "dist/webresource/explorer3d/index.html", "type": 1, "displayName": "Environment 3D Explorer - index.html", "cacheBust": true },
+        { "name": "pct_/tools/explorer3d/style.css", "path": "dist/webresource/explorer3d/style.css", "type": 2, "displayName": "Environment 3D Explorer - style.css" },
+        { "name": "pct_/tools/explorer3d/bundle.js", "path": "dist/webresource/explorer3d/bundle.js", "type": 3, "displayName": "Environment 3D Explorer - bundle.js" }
+      ]
     }
   }
 }
