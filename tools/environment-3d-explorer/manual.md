@@ -67,16 +67,19 @@ Tick **Show problems** in the left panel. The two counters next to it show how m
 
 The [README](README.md#health-overlay) lists every check. If a table couldn't be read, the checks that need it are skipped and the panel says so.
 
-## 5. Fly-through, views and screenshots
+## 5. Following a call, views and screenshots
 
 These are under the mode buttons in the left panel.
 
-- **Fly through this chain** (or **the environment**, when nothing is focused) moves the camera layer by layer from the front to the back: phone numbers, channels, workstreams, routing rules, queues, agents, skills. A bar at the bottom shows the stop, a caption with what's there, and buttons to go back, pause or play, go forward and stop. Esc also stops it. With **Show only this chain** ticked, the tour shows only the chain.
+- **Follow the call from …** rides along the lines a call takes, starting at the selected record. With nothing selected it starts at the first phone number. A bright point (the call) travels from the phone number to its channel, workstream, routing rule, queue and agent, and the camera rides behind it, looking ahead.
+  - Only the route and the next choices are shown. Tick **Show everything** in the ride bar to see the rest around it.
+  - Where there's only one way, the call goes on by itself. At a fork (a workstream with several rules, a queue with several agents) it slows down, and the ride bar asks **Where does the call go next?** Click a choice to go on.
+  - The ride bar shows the route so far. **Pause** stops the call where it is, **Start again** rides the route again from the start, and **×** (or Esc) stops following the call.
 - **Size by connections** makes a record bigger the more links it has: a queue with many members and rules routing to it, a workstream with many channels and rules.
 - **Save view** keeps the current camera position. Type a name first, or leave it empty for "View 1", "View 2" and so on. Click a saved view to fly back to it, and × to delete it. Saved views stay in this browser, for this environment only.
 - **Screenshot** downloads what you see as a PNG. The name labels aren't in the picture.
 
-![The fly-through at the routing rules of a workstream](images/05-tour.png)
+![Following a call: the route so far and the choice at the workstream](images/05-ride.png)
 
 ## 6. Reading the environment again
 
@@ -84,4 +87,4 @@ The scene shows the environment as it was when the page loaded. After you change
 
 ## 7. Opening the tool from a link
 
-Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on, and `tour=1` to start the fly-through as soon as the page opens (together with `focus`, it tours that record's chain). In a Site Map subarea, put them in the **data** parameter, for example `focus=Customer Service&tour=1`.
+Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on, and `ride=1` to start following the call as soon as the page opens (together with `focus`, from that record). In a Site Map subarea, put them in the **data** parameter, for example `focus=Customer Service&ride=1`.

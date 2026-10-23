@@ -10,13 +10,13 @@ import { buildGraph, chainOf } from "./graph";
 import { findIssues, SEVERITY_LABELS, worstByKey } from "./health";
 import { computeLayout, connectionScales } from "./layout";
 import { EDGE_LABELS, Graph, GraphEdge, GraphNode, KIND_ORDER, KINDS, NodeKind } from "./model";
-import { CameraGoal, Mode, SEVERITY_COLORS, START_POSITION, Scene, SceneHandle } from "./Scene";
-import { buildTour, TourStop, tourCaption } from "./tour";
+import { CameraGoal, Mode, Ride, SEVERITY_COLORS, START_POSITION, Scene, SceneHandle } from "./Scene";
+import { defaultRideStart, extendRide, RideOption } from "./ride";
 import { readUrlOptions } from "./urlOptions";
 import { loadViews, nextViewName, SavedView, storeViews } from "./views";
 
-// How long the fly-through stays at each layer.
-const TOUR_STOP_MS = 4500;
+// Choices shown at a fork in the ride; the rest are counted.
+const MAX_RIDE_CHOICES = 8;
 
 const MAX_ISSUES_LISTED = 60;
 
@@ -76,7 +76,7 @@ export function App(): React.ReactElement {
   const [showHealth, setShowHealth] = useState(urlOptions.health);
   const [problemsOnly, setProblemsOnly] = useState(false);
   const [sizeByConnections, setSizeByConnections] = useState(false);
-  const [tour, setTour] = useState<{ stops: TourStop[]; index: number; playing: boolean } | undefined>(undefined);
+  const [ride, setRide] = useState<{ id: number; path: string[]; options: RideOption[]; playing: boolean; showAll: boolean } | undefined>(undefined);
   const [views, setViews] = useState<SavedView[]>(() => loadViews(environment));
   const [viewName, setViewName] = useState("");
   const sceneHandle = useRef<SceneHandle | null>(null);
@@ -111,9 +111,12 @@ export function App(): React.ReactElement {
   const problemCount = issues.filter((i) => i.severity === "problem").length;
   const skipped = (graph?.unread ?? []).map((u) => SKIPPED_CHECKS[u]).filter(Boolean);
 
+  const rideKeys = useMemo(() => (ride ? new Set([...ride.path, ...ride.options.map((o) => o.key)]) : undefined), [ride]);
   const visibleNodes = useMemo(
-    () => (graph?.nodes ?? []).filter((n) => !hiddenKinds.has(n.kind) && (!chainOnly || !lit || lit.has(n.key)) && (!showHealth || !problemsOnly || issueContext.has(n.key))),
-    [graph, hiddenKinds, chainOnly, lit, showHealth, problemsOnly, issueContext]
+    () => (graph?.nodes ?? []).filter((n) => rideKeys && !ride?.showAll
+      ? rideKeys.has(n.key)
+      : !hiddenKinds.has(n.kind) && (!chainOnly || !lit || lit.has(n.key)) && (!showHealth || !problemsOnly || issueContext.has(n.key))),
+    [graph, hiddenKinds, chainOnly, lit, showHealth, problemsOnly, issueContext, rideKeys, ride?.showAll]
   );
   const visibleEdges = useMemo(() => {
     const visible = new Set(visibleNodes.map((n) => n.key));
@@ -152,31 +155,29 @@ export function App(): React.ReactElement {
   const flyTo = (position: CameraGoal["position"], target: CameraGoal["target"]) => setGoal((g) => ({ position, target, serial: (g?.serial ?? 0) + 1 }));
   const resetView = () => flyTo(START_POSITION, [0, 0, 0]);
 
-  // The fly-through: the focused chain, or everything that's shown.
-  const startTour = () => {
-    const stops = buildTour(visibleNodes, positions, lit);
-    if (!stops.length) return;
-    setMode("orbit");
-    setTour({ stops, index: 0, playing: true });
+  // "Follow the call": ride from the selected record (or the first phone number) along the route.
+  const startRide = (from?: string) => {
+    const start = from ?? selected ?? (graph ? defaultRideStart(graph) : undefined);
+    if (!graph || !start) return;
+    setHovered(undefined);
+    setRide({ id: Date.now(), ...extendRide(graph, [start]), playing: true, showAll: false });
   };
-  const stopTour = useCallback(() => setTour(undefined), []);
-  // ?tour=1 starts the fly-through once the environment is read (and focused, with ?focus=).
-  const tourStarted = useRef(false);
+  const stopRide = useCallback(() => setRide(undefined), []);
+  const choose = (option: RideOption) => {
+    if (graph) setRide((r) => (r ? { ...r, ...extendRide(graph, [...r.path, option.key]), playing: true } : r));
+  };
+  const scenePositions = positions;
+  const sceneRide = useMemo<Ride | undefined>(
+    () => (ride ? { id: ride.id, playing: ride.playing, points: ride.path.map((k) => scenePositions.get(k)).filter((p): p is CameraGoal["position"] => !!p) } : undefined),
+    [ride, scenePositions]
+  );
+  // ?ride=1 starts following the call once the environment is read (from the record in ?focus=, if any).
+  const rideStarted = useRef(false);
   useEffect(() => {
-    if (tourStarted.current || !urlOptions.tour || !graph || (urlOptions.focus && !lit)) return;
-    tourStarted.current = true;
-    startTour();
-  }, [graph, lit]); // eslint-disable-line react-hooks/exhaustive-deps
-  const stepTour = (by: number) => setTour((t) => (t ? { ...t, index: Math.max(0, Math.min(t.stops.length - 1, t.index + by)), playing: false } : t));
-  useEffect(() => {
-    const stop = tour?.stops[tour.index];
-    if (stop) flyTo(stop.position, stop.target);
-  }, [tour?.stops, tour?.index]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!tour?.playing) return;
-    const timer = setTimeout(() => setTour((t) => (t ? (t.index + 1 < t.stops.length ? { ...t, index: t.index + 1 } : { ...t, playing: false }) : t)), TOUR_STOP_MS);
-    return () => clearTimeout(timer);
-  }, [tour]);
+    if (rideStarted.current || !urlOptions.ride || !graph || (urlOptions.focus && !selected)) return;
+    rideStarted.current = true;
+    startRide(selected);
+  }, [graph, selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveView = () => {
     const view = sceneHandle.current?.view();
@@ -206,12 +207,12 @@ export function App(): React.ReactElement {
   useEffect(() => {
     const keydown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) { if (e.key === "Escape") (e.target as HTMLInputElement).blur(); return; }
-      if (e.key === "Escape") { clear(); stopTour(); }
+      if (e.key === "Escape") { clear(); stopRide(); }
       if (e.key === "m" || e.key === "M") { setMode((m) => (m === "orbit" ? "walk" : "orbit")); }
     };
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
-  }, [clear, stopTour]);
+  }, [clear, stopRide]);
 
   const selectedNode = selected ? nodeByKey.get(selected) : undefined;
   const hoveredNode = hovered ? nodeByKey.get(hovered) : undefined;
@@ -225,9 +226,10 @@ export function App(): React.ReactElement {
     <div className="explorer">
       {graph && !error && (
         <Scene
-          nodes={visibleNodes} edges={visibleEdges} positions={positions} lit={lit}
+          nodes={visibleNodes} edges={visibleEdges} positions={positions} lit={rideKeys ?? lit}
           selected={selected} hovered={hovered} mode={mode} goal={goal} issues={showHealth ? worst : undefined}
-          scales={scales} handle={sceneHandle} onHover={setHovered} onSelect={select}
+          scales={scales} handle={sceneHandle} ride={sceneRide} labelKeys={rideKeys ? [...rideKeys] : undefined}
+          onHover={setHovered} onSelect={select}
         />
       )}
 
@@ -295,7 +297,7 @@ export function App(): React.ReactElement {
 
         {graph && (
           <div className="views">
-            <button className="wide" onClick={startTour} disabled={!visibleNodes.length}>▶ Fly through {selected ? "this chain" : "the environment"}</button>
+            <button className="wide" onClick={() => startRide()} disabled={!graph.nodes.length}>▶ Follow the call {selectedNode ? `from ${selectedNode.name}` : "from a phone number"}</button>
             <label className="toggle"><input type="checkbox" checked={sizeByConnections} onChange={(e) => setSizeByConnections(e.target.checked)} /> Size by connections</label>
             <div className="save-view">
               <input value={viewName} onChange={(e) => setViewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveView(); }} placeholder={nextViewName(views)} aria-label="View name" />
@@ -381,14 +383,38 @@ export function App(): React.ReactElement {
         </aside>
       )}
 
-      {tour && (
-        <div className="tour">
-          <span className="step">{tour.index + 1} / {tour.stops.length}</span>
-          <span className="caption"><span className="dot" style={{ background: KINDS[tour.stops[tour.index].kind].color }} />{tourCaption(tour.stops[tour.index])}</span>
-          <button onClick={() => stepTour(-1)} disabled={tour.index === 0} aria-label="Previous stop">◀</button>
-          <button onClick={() => setTour((t) => (t ? { ...t, playing: !t.playing, index: !t.playing && t.index + 1 >= t.stops.length ? 0 : t.index } : t))} aria-label={tour.playing ? "Pause" : "Play"}>{tour.playing ? "❚❚" : "▶"}</button>
-          <button onClick={() => stepTour(1)} disabled={tour.index + 1 >= tour.stops.length} aria-label="Next stop">▶▶</button>
-          <button onClick={stopTour} aria-label="Stop the fly-through">✕</button>
+      {ride && (
+        <div className="ride">
+          <div className="ride-route">
+            {ride.path.map((k, i) => {
+              const n = nodeByKey.get(k);
+              return n ? (
+                <React.Fragment key={k}>
+                  {i > 0 && <span className="arrow">›</span>}
+                  <span className="stop"><span className="dot" style={{ background: KINDS[n.kind].color }} />{n.name}</span>
+                </React.Fragment>
+              ) : null;
+            })}
+          </div>
+          {ride.options.length > 0 ? (
+            <div className="ride-choices">
+              <span className="question">Where does the call go next?</span>
+              {ride.options.slice(0, MAX_RIDE_CHOICES).map((o) => (
+                <button key={o.key} onClick={() => choose(o)}>
+                  <span className="dot" style={{ background: KINDS[o.kind].color }} />{o.name}<small>{o.relation}</small>
+                </button>
+              ))}
+              {ride.options.length > MAX_RIDE_CHOICES && <span className="muted small">and {ride.options.length - MAX_RIDE_CHOICES} more</span>}
+            </div>
+          ) : (
+            <div className="ride-choices"><span className="question">End of the line.</span></div>
+          )}
+          <div className="ride-controls">
+            <button onClick={() => setRide((r) => (r ? { ...r, playing: !r.playing } : r))}>{ride.playing ? "❚❚ Pause" : "▶ Go on"}</button>
+            <button onClick={() => startRide(ride.path[0])}>↺ Start again</button>
+            <label className="toggle"><input type="checkbox" checked={ride.showAll} onChange={(e) => setRide((r) => (r ? { ...r, showAll: e.target.checked } : r))} /> Show everything</label>
+            <button onClick={stopRide} aria-label="Stop following the call">✕</button>
+          </div>
         </div>
       )}
 

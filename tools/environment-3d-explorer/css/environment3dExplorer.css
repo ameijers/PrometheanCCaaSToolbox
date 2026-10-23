@@ -101,11 +101,11 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .finding .fix { color: #9fd8b5; }
 .finding .fix::before { content: "Fix: "; font-weight: 700; }
 
-/* Ways to look: fly-through, size, saved views, screenshot. */
+/* Ways to look: follow the call, size, saved views, screenshot. */
 .views { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(140, 170, 200, .18); display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
-.views button, .tour button { padding: 6px 10px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(140, 170, 200, .25); border-radius: 4px; font-size: 12px; font-weight: 700; }
-.views button:hover:not(:disabled), .tour button:hover:not(:disabled) { border-color: #7dd3fc; }
-.views button:disabled, .tour button:disabled { opacity: .4; cursor: default; }
+.views button, .ride button { padding: 6px 10px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(140, 170, 200, .25); border-radius: 4px; font-size: 12px; font-weight: 700; }
+.views button:hover:not(:disabled), .ride button:hover:not(:disabled) { border-color: #7dd3fc; }
+.views button:disabled, .ride button:disabled { opacity: .4; cursor: default; }
 .views .wide { width: 100%; padding: 8px 10px; background: rgba(125, 211, 252, .14); border-color: rgba(125, 211, 252, .5); }
 .save-view { display: flex; gap: 6px; }
 .save-view input { flex: 1; min-width: 0; padding: 6px 8px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(140, 170, 200, .25); border-radius: 4px; font-size: 12px; outline: none; }
@@ -115,7 +115,15 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .view-list .name { border-radius: 4px 0 0 4px; font-weight: 600; }
 .view-list .remove { border-left: 0; border-radius: 0 4px 4px 0; padding: 6px 8px; color: #7f98a8; }
 
-.tour { position: absolute; z-index: 100; left: 50%; bottom: 60px; transform: translateX(-50%); max-width: calc(100% - 28px); display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; background: rgba(10, 18, 30, .9); border: 1px solid rgba(125, 211, 252, .35); border-radius: 22px; font-size: 13px; box-shadow: 0 10px 40px rgba(0, 0, 0, .35); }
-.tour .step { color: #7f98a8; font: 500 11px 'DM Mono', Consolas, monospace; white-space: nowrap; }
-.tour .caption { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 4px; }
-.tour button { border-radius: 14px; padding: 4px 10px; }
+/* Following the call: the route so far, the choices at a fork, and the controls. */
+.ride { position: absolute; z-index: 100; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(880px, calc(100% - 28px)); display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; background: rgba(10, 18, 30, .92); border: 1px solid rgba(125, 211, 252, .35); border-radius: 8px; font-size: 13px; box-shadow: 0 10px 40px rgba(0, 0, 0, .4); }
+.ride-route { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ride-route .stop { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; background: rgba(255, 255, 255, .06); border-radius: 12px; font-weight: 600; }
+.ride-route .stop:last-child { background: rgba(125, 211, 252, .18); }
+.ride-route .arrow { color: #7f98a8; }
+.ride-choices { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ride-choices .question { color: #c9d8e2; font-weight: 700; margin-right: 4px; }
+.ride-choices button { display: inline-flex; align-items: center; gap: 6px; border-radius: 14px; font-weight: 600; }
+.ride-choices small { color: #7f98a8; font-weight: 500; font-size: 10.5px; }
+.ride-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ride-controls button:last-child { margin-left: auto; }

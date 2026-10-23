@@ -55,7 +55,22 @@ interface SceneProps {
   scales?: Map<string, number>;
   // Lets the page read the camera and take a screenshot.
   handle?: React.MutableRefObject<SceneHandle | null>;
+  // "Follow the call": the camera rides along these points. A new id starts a new ride.
+  ride?: Ride;
+  // Names to label instead of the selected record and its links (the ride labels its route).
+  labelKeys?: string[];
 }
+
+export interface Ride {
+  id: number;
+  points: Vec3[];
+  playing: boolean;
+}
+
+// Ride speed in scene units per second, and how far behind and above the point the camera rides.
+const RIDE_SPEED = 30;
+const RIDE_BEHIND = 16;
+const RIDE_ABOVE = 5;
 
 export interface SceneHandle {
   view(): { position: Vec3; target: Vec3 };
@@ -218,7 +233,7 @@ const MOVE_KEYS: Record<string, [number, number, number]> = {
 // Moves the camera: flying to a goal, the keyboard (both modes), and mouse look in walk mode.
 // Walk mode turns the view by dragging, so it needs no pointer lock and works inside the
 // model-driven app's frame.
-function CameraRig({ mode, goal, handle }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null> }) {
+function CameraRig({ mode, goal, handle, ride }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null>; ride?: Ride }) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
@@ -243,6 +258,19 @@ function CameraRig({ mode, goal, handle }: { mode: Mode; goal?: CameraGoal; hand
   const look = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
   const flight = useRef<{ position: THREE.Vector3; target: THREE.Vector3; current: THREE.Vector3 } | undefined>(undefined);
   const previousMode = useRef<Mode | undefined>(undefined);
+  const call = useRef<THREE.Mesh>(null);
+  // The ride: a point travels the route at a steady speed; the camera follows it on a spring, a little
+  // behind and above, looking ahead. The spring rounds the corners, so the route itself can be straight lines.
+  const rider = useRef<{ id: number; segment: number; along: number; point: THREE.Vector3; heading: THREE.Vector3; look: THREE.Vector3; speed: number; boarded: boolean } | undefined>(undefined);
+  useEffect(() => {
+    if (!ride || !ride.points.length) { rider.current = undefined; return; }
+    if (rider.current?.id === ride.id) return;
+    const start = new THREE.Vector3(...ride.points[0]);
+    const next = ride.points[1] ? new THREE.Vector3(...ride.points[1]) : start.clone().add(new THREE.Vector3(0, 0, -1));
+    const heading = next.clone().sub(start).normalize();
+    rider.current = { id: ride.id, segment: 0, along: 0, point: start, heading, look: camera.position.clone().add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(60)), speed: 0, boarded: false };
+    flight.current = undefined;
+  }, [ride?.id, ride?.points]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Start flying whenever a new goal comes in.
   useEffect(() => {
@@ -308,6 +336,44 @@ function CameraRig({ mode, goal, handle }: { mode: Mode; goal?: CameraGoal; hand
 
   useFrame((_, dt) => {
     const step = Math.min(dt, 0.1);
+
+    const r = rider.current;
+    if (ride && r) {
+      const points = ride.points.map((p) => new THREE.Vector3(...p));
+      // Distance left to the end of the known route: the ride slows down towards it (a choice or the end).
+      let left = 0;
+      if (r.segment < points.length - 1) {
+        left = points[r.segment + 1].distanceTo(r.point);
+        for (let i = r.segment + 1; i < points.length - 1; i++) left += points[i].distanceTo(points[i + 1]);
+      }
+      // First the camera flies to its place behind the call; only then does the call set off.
+      const behind = r.point.clone().addScaledVector(r.heading, -RIDE_BEHIND).add(new THREE.Vector3(0, RIDE_ABOVE, 0));
+      if (!r.boarded && camera.position.distanceTo(behind) < 4) r.boarded = true;
+      const wanted = ride.playing && r.boarded ? Math.min(RIDE_SPEED, Math.max(4, left * 0.9)) : 0;
+      r.speed += (wanted - r.speed) * (1 - Math.exp(-step * 2.5));
+      let travel = r.speed * step;
+      while (travel > 0 && r.segment < points.length - 1) {
+        const from = points[r.segment];
+        const to = points[r.segment + 1];
+        const length = from.distanceTo(to);
+        const room = length - r.along;
+        if (travel < room) { r.along += travel; travel = 0; } else { travel -= room; r.segment++; r.along = 0; }
+        const a = points[r.segment];
+        const b = points[Math.min(r.segment + 1, points.length - 1)];
+        const segLength = a.distanceTo(b);
+        r.point.copy(segLength > 0 ? a.clone().lerp(b, r.along / segLength) : a);
+      }
+      // Head towards the next point (or keep the last heading at the end).
+      const target = r.segment < points.length - 1 ? points[r.segment + 1] : undefined;
+      if (target && target.distanceTo(r.point) > 0.01) r.heading.lerp(target.clone().sub(r.point).normalize(), 1 - Math.exp(-step * 1.8)).normalize();
+      const desired = r.point.clone().addScaledVector(r.heading, -RIDE_BEHIND).add(new THREE.Vector3(0, RIDE_ABOVE, 0));
+      camera.position.lerp(desired, 1 - Math.exp(-step * (r.boarded ? 2.2 : 2.8)));
+      r.look.lerp(r.point.clone().addScaledVector(r.heading, 14), 1 - Math.exp(-step * 2.5));
+      camera.lookAt(r.look);
+      look.current.setFromQuaternion(camera.quaternion, "YXZ");
+      if (call.current) { call.current.position.copy(r.point); call.current.scale.setScalar(1 + 0.25 * Math.sin(performance.now() / 180)); }
+      return;
+    }
     const f = flight.current;
     if (f) {
       const t = 1 - Math.exp(-step * 3.5);
@@ -339,24 +405,30 @@ function CameraRig({ mode, goal, handle }: { mode: Mode; goal?: CameraGoal; hand
     if (mode === "orbit" && controls) { controls.target.add(delta); controls.update(); }
   });
 
-  return null;
+  // The call being followed: a bright point the camera rides behind.
+  return ride ? (
+    <mesh ref={call} raycast={() => null}>
+      <sphereGeometry args={[1.3, 16, 12]} />
+      <meshBasicMaterial color="#ffffff" fog={false} />
+    </mesh>
+  ) : null;
 }
 
-export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, onHover, onSelect }: SceneProps): React.ReactElement {
+export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, ride, labelKeys, onHover, onSelect }: SceneProps): React.ReactElement {
   const byKind = useMemo(() => KIND_ORDER.map((kind) => ({ kind, nodes: nodes.filter((n) => n.kind === kind) })).filter((g) => g.nodes.length), [nodes]);
   const nodeByKey = useMemo(() => new Map(nodes.map((n) => [n.key, n])), [nodes]);
 
   // Names float next to the hovered node, the selected node and what it's directly linked to;
   // the rest of the chain is lit but unlabelled, or the labels pile up.
   const labelled = useMemo(() => {
-    const keys = new Set<string>();
-    if (selected) {
+    const keys = new Set<string>(labelKeys ?? []);
+    if (selected && !labelKeys) {
       keys.add(selected);
       edges.forEach((e) => { if (e.from === selected) keys.add(e.to); if (e.to === selected) keys.add(e.from); });
     }
     if (hovered) keys.add(hovered);
     return [...keys].slice(0, 40).map((k) => nodeByKey.get(k)).filter((n): n is GraphNode => !!n);
-  }, [edges, selected, hovered, nodeByKey]);
+  }, [edges, selected, hovered, nodeByKey, labelKeys]);
 
   const selectedPosition = selected ? positions.get(selected) : undefined;
   const markers = useMemo(() => {
@@ -391,8 +463,8 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
         </Html>
       ))}
 
-      {mode === "orbit" && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxDistance={1500} />}
-      <CameraRig mode={mode} goal={goal} handle={handle} />
+      {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxDistance={1500} />}
+      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} />
     </Canvas>
   );
 }
