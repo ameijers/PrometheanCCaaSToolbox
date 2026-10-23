@@ -17,7 +17,7 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 | [Context Variable Monitor](tools/context-variable-monitor/README.md) | Watches the actual context-variable values a real call captures, live, as it moves through the IVR and unified routing — for debugging against real traffic rather than simulated configuration. |
 | [Agent Readiness Checker](tools/agent-readiness-checker/README.md) | Answers "why isn't this agent receiving calls?" — checks one agent or the whole roster against every prerequisite for receiving voice work (account, roles, channel, queue membership, workstream reachability, capacity, skills, presence) with plain-language evidence and suggested fixes. |
 | [Environment Artifact Finder](tools/environment-artifact-finder/README.md) | Finds configuration you could clean up: records nothing active uses any more, records that are wired in but can never do anything (e.g. a voice workstream with no phone number, a queue no route reaches), broken references, and housekeeping items (old bulk-delete jobs, stale saved views). Recommends only. Every finding is a candidate for review, with its evidence and a confidence level. |
-| [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. **New: tried on sample data only, not yet in the solution zip or tested live.** |
+| [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. In the Site Map as **3D → 3D Explorer**. **New: deployed to `academyexperiment` and in solution 1.0.0.12, but not yet tested live.** |
 
 ### Creation and provisioning tools
 
@@ -68,7 +68,7 @@ Users themselves come from Microsoft Entra ID: a user is in the environment once
 </tr>
 </table>
 
-Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Skill Assignment](tools/skill-assignment/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md), [Assignment Method Copier](tools/assignment-method-copier/manual.md), [Route-to-Queue Builder](tools/route-to-queue-builder/manual.md), [Voicemail Builder](tools/voicemail-builder/manual.md).
+Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Skill Assignment](tools/skill-assignment/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md), [Assignment Method Copier](tools/assignment-method-copier/manual.md), [Route-to-Queue Builder](tools/route-to-queue-builder/manual.md), [Voicemail Builder](tools/voicemail-builder/manual.md), [Environment 3D Explorer](tools/environment-3d-explorer/manual.md).
 
 ### How the creation tools work
 
@@ -97,9 +97,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_11.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_11.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_12.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_12.zip)
 >
-> **Version 1.0.0.11 contains all sixteen tools**, already in the app's Site Map in four groups: **Tools** (the four diagnostic tools), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.12 contains all seventeen tools**, already in the app's Site Map in five groups: **Tools** (the four diagnostic tools), **3D** (3D Explorer), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -109,7 +109,7 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_11.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_12.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
@@ -128,7 +128,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.11 already has all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.12 already has all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
@@ -136,6 +136,7 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Tools | Context Variable Monitor | `pct_/tools/contextvariablemonitor/index.html` |
 | Tools | Agent Readiness Checker | `pct_/tools/agentreadiness/index.html` |
 | Tools | Environment Artifact Finder | `pct_/tools/artifactfinder/index.html` |
+| 3D | 3D Explorer | `pct_/tools/explorer3d/index.html` |
 | Creation | Voice Workstream Builder | `pct_/tools/voicebuilder/index.html` |
 | Creation | Queue Builder | `pct_/tools/queuebuilder/index.html` |
 | Creation | Profile Builder | `pct_/tools/profilebuilder/index.html` |
@@ -160,6 +161,7 @@ Every tool in this toolbox is a plain HTML/CSS/React (TypeScript) app, deployed 
 All tools:
 - Talk to Dataverse with the signed-in user's existing session — mostly through `Xrm.WebApi`, and through the same-origin Web API where `Xrm.WebApi` has no helper (metadata reads, adding queue members) — so no separate Microsoft Entra ID app registration or manual OAuth setup is required, and Dataverse applies the user's own privileges.
 - Live in one Dataverse solution and one model-driven app/Site Map, rather than one solution per tool.
+- Use no libraries beyond React, except the Environment 3D Explorer: it also bundles Three.js, through React Three Fiber and drei, for its WebGL scene. That makes its bundle about 1 MB; the others are about 200 KB.
 - Include a fully working **offline demo mode** with bundled sample data, so you can try them out locally without a Dataverse connection. In the writing tools, demo mode simulates the writes in memory.
 - Keep every Dataverse write in one `dataverse.ts` per tool. Profile Builder has none of its own: it uses Voice Workstream Builder's. The onboarding tools share read helpers from `tools/shared/`, which never writes.
 

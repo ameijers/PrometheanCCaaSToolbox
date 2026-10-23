@@ -5,8 +5,8 @@
 First version, built to see what a 3D view of the environment feels like.
 
 - Runs on the sample environment (`npm run demo:explorer3d`). It was checked in headless Edge (SwiftShader WebGL): overview, focus on a workstream, focus on a queue, and the camera flight.
-- **Not yet deployed or tested live.** Not in the solution zip, no Site Map subarea yet.
-- Not yet tried interactively by a person. Orbit, walk, keyboard movement and hover need a hands-on check, especially inside the model-driven app's frame.
+- **Deployed to `academyexperiment` on 2026-10-23.** The deploy script read the three web resources back to verify them. Included in the packaged solution from **1.0.0.12** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_12.zip`): **3D → 3D Explorer**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/explorer3d/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
+- **Not yet tested live**: whether it reads the live data correctly, load time, and frame rate. Orbit, walk, keyboard movement and hover also still need a hands-on check, especially inside the model-driven app's frame.
 
 ## Schema
 

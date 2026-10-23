@@ -1,6 +1,6 @@
 # Environment 3D Explorer
 
-Shows the whole contact center as a 3D cloud of records you can rotate, zoom into and walk through. Read-only.
+Shows the whole contact center as a 3D cloud of records you can rotate, zoom into and walk through. Read-only. Step by step: the [manual](manual.md).
 
 ![Overview](images/00-overview.png)
 
@@ -53,6 +53,7 @@ Nothing. `tests/readOnly.test.ts` fails if any source file names a write method 
 
 - Demo with sample data: `npm run demo:explorer3d` → http://localhost:5448/index.html
 - Tests: `npx jest tools/environment-3d-explorer`
-- Deploy: `pwsh ./scripts/deploy.ps1 -Tool explorer3d -CreateIfMissing` the first time, then without `-CreateIfMissing`. Then add a Site Map subarea pointing at `pct_/tools/explorer3d/index.html`.
+- Deploy: `pwsh ./scripts/deploy.ps1 -Tool explorer3d` (add `-CreateIfMissing` in an environment where its web resources don't exist yet).
+- Web resources: `pct_/tools/explorer3d/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.12** (Site Map: **3D → 3D Explorer**). For an environment on an older solution version, add a subarea for `pct_/tools/explorer3d/index.html` by hand (see the [toolbox README](../../Readme.md#site-map-subareas)).
 
 The bundle is about 1 MB, because Three.js is included. The other tools are about 200 KB each.
