@@ -1,0 +1,59 @@
+# Environment 3D Explorer
+
+Shows the whole contact center as a 3D cloud of records you can rotate, zoom into and walk through. Read-only. Step by step: the [manual](manual.md).
+
+![Overview](images/00-overview.png)
+
+## What you see
+
+Each record type sits on its own depth layer. Front to back follows the way a conversation travels:
+
+| Layer (front → back) | Shape | Linked to the next layer by |
+| --- | --- | --- |
+| Phone numbers | small sphere | the voice channel that uses the number |
+| Voice channels | diamond | the channel's workstream |
+| Workstreams | large ball | the route-to-queue rules of the active routing configuration, and the default queue |
+| Routing rules | pyramid | the queue(s) the rule routes to (weighted distributions show the percentage) |
+| Queues | cube | the queue's members |
+| Agents | small sphere | the agent's skills (with rating) |
+| Skills | dodecahedron | — |
+
+A faint ring marks each layer. Within a layer, a record sits near the records it's linked to, so connected things line up front to back.
+
+## Using it
+
+- **Click a record** (or find it with the search box) and the camera flies to it, from a little in front and to the side. Its whole chain lights up: everything in front of it (where its work comes from) and everything behind it (where the work goes). The rest dims. The panel on the right lists its details and direct links. Click a link to move on to that record.
+- **Show only this chain** hides everything else, which helps when you walk through it.
+- **Orbit mode**: drag to rotate, scroll to zoom, right-drag to pan.
+- **Walk mode**: drag to look around. You turn the view by dragging, without pointer lock, so walk mode also works inside the model-driven app's frame.
+- **Both modes**: W A S D or the arrow keys move, E/Q go up and down, Shift moves faster. M switches mode, Esc clears the focus.
+- The checkboxes in the legend hide or show a layer.
+- `?focus=<name>` in the page URL (or Dataverse's `?data=<name>`) opens the explorer focused on that record.
+
+![A workstream in focus](images/01-workstream-focus.png)
+
+## How it works
+
+- `src/dataverse.ts` reads the tables below with `Xrm.WebApi.retrieveMultipleRecords` (through `shared/src/xrm.ts`). Phone numbers, voice channels and skills are optional: if one of them can't be read, the rest still shows and the page says what's missing.
+- `src/graph.ts` turns the rows into nodes and edges, with edges pointing downstream. It reuses Visual Routing Tester's decision-XML parser for the route-to-queue rules.
+- `src/layout.ts` places the nodes deterministically, so the same environment always gives the same picture.
+- `src/Scene.tsx` draws them with [Three.js](https://threejs.org) through React Three Fiber and drei. Each record type is one instanced mesh, and all the lines are one geometry, so thousands of records stay smooth.
+
+### Tables read
+
+`msdyn_ocphonenumber`, `msdyn_ocvoicechannelsetting`, `msdyn_liveworkstream` (active), `msdyn_routingconfiguration`, `msdyn_routingconfigurationstep`, `msdyn_decisionruleset` (the route-to-queue rulesets only), `queue` (active omnichannel queues, not `<CDS System>`), `queuemembership`, `systemuser` (interactive users), `bookableresource`, `bookableresourcecharacteristic` (with its characteristic and rating).
+
+Agents are the users who are a member of at least one omnichannel queue.
+
+### Written
+
+Nothing. `tests/readOnly.test.ts` fails if any source file names a write method or calls `fetch`, and checks that loading the environment only calls `retrieveMultipleRecords`.
+
+## Build, run, deploy
+
+- Demo with sample data: `npm run demo:explorer3d` → http://localhost:5448/index.html
+- Tests: `npx jest tools/environment-3d-explorer`
+- Deploy: `pwsh ./scripts/deploy.ps1 -Tool explorer3d` (add `-CreateIfMissing` in an environment where its web resources don't exist yet).
+- Web resources: `pct_/tools/explorer3d/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.12** (Site Map: **3D → 3D Explorer**). For an environment on an older solution version, add a subarea for `pct_/tools/explorer3d/index.html` by hand (see the [toolbox README](../../Readme.md#site-map-subareas)).
+
+The bundle is about 1 MB, because Three.js is included. The other tools are about 200 KB each.
