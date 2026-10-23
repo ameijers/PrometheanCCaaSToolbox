@@ -51,10 +51,24 @@ interface SceneProps {
   issues?: Map<string, Severity>;
   onHover(key: string | undefined): void;
   onSelect(key: string): void;
+  // Per-record size ("size by connections"); 1 when missing.
+  scales?: Map<string, number>;
+  // Lets the page read the camera and take a screenshot.
+  handle?: React.MutableRefObject<SceneHandle | null>;
 }
 
-function KindMesh({ kind, nodes, positions, lit, onHover, onSelect }: {
-  kind: NodeKind; nodes: GraphNode[]; positions: Map<string, Vec3>; lit?: Set<string>;
+export interface SceneHandle {
+  view(): { position: Vec3; target: Vec3 };
+  // The current view as a PNG data URL.
+  capture(): string;
+}
+
+const ONE = new THREE.Vector3(1, 1, 1);
+const place = (matrix: THREE.Matrix4, [x, y, z]: Vec3, scale = 1) =>
+  matrix.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(), ONE.clone().multiplyScalar(scale));
+
+function KindMesh({ kind, nodes, positions, scales, lit, onHover, onSelect }: {
+  kind: NodeKind; nodes: GraphNode[]; positions: Map<string, Vec3>; scales?: Map<string, number>; lit?: Set<string>;
   onHover(key: string | undefined): void; onSelect(key: string): void;
 }) {
   const ref = useRef<THREE.InstancedMesh>(null);
@@ -68,15 +82,14 @@ function KindMesh({ kind, nodes, positions, lit, onHover, onSelect }: {
     const base = new THREE.Color(KINDS[kind].color);
     const dim = base.clone().lerp(BG, 0.85);
     nodes.forEach((n, i) => {
-      const [x, y, z] = positions.get(n.key) ?? [0, 0, 0];
-      matrix.makeTranslation(x, y, z);
+      place(matrix, positions.get(n.key) ?? [0, 0, 0], scales?.get(n.key) ?? 1);
       mesh.setMatrixAt(i, matrix);
       mesh.setColorAt(i, !lit || lit.has(n.key) ? base : dim);
     });
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [kind, nodes, positions, lit]);
+  }, [kind, nodes, positions, scales, lit]);
 
   const keyOf = (e: ThreeEvent<PointerEvent | MouseEvent>) => (e.instanceId !== undefined ? nodes[e.instanceId]?.key : undefined);
   return (
@@ -161,7 +174,7 @@ function LayerRings({ nodes, positions }: { nodes: GraphNode[]; positions: Map<s
 export const SEVERITY_COLORS: Record<Severity, string> = { problem: "#ff4d4f", warning: "#ffa62b" };
 
 // A pulsing glow around every record with an issue: red for a problem, orange for a warning.
-function IssueMarkers({ severity, keys, positions }: { severity: Severity; keys: string[]; positions: Map<string, Vec3> }) {
+function IssueMarkers({ severity, keys, positions, scales }: { severity: Severity; keys: string[]; positions: Map<string, Vec3>; scales?: Map<string, number> }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const material = useRef<THREE.MeshBasicMaterial>(null);
   const geometry = useMemo(() => new THREE.SphereGeometry(5.5, 24, 16), []);
@@ -170,9 +183,9 @@ function IssueMarkers({ severity, keys, positions }: { severity: Severity; keys:
     const mesh = ref.current;
     if (!mesh) return;
     const matrix = new THREE.Matrix4();
-    keys.forEach((k, i) => { const [x, y, z] = positions.get(k) ?? [0, 0, 0]; mesh.setMatrixAt(i, matrix.makeTranslation(x, y, z)); });
+    keys.forEach((k, i) => mesh.setMatrixAt(i, place(matrix, positions.get(k) ?? [0, 0, 0], scales?.get(k) ?? 1)));
     mesh.instanceMatrix.needsUpdate = true;
-  }, [keys, positions]);
+  }, [keys, positions, scales]);
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime() * (severity === "problem" ? 3 : 1.8);
     if (material.current) material.current.opacity = 0.34 + 0.18 * Math.sin(t);
@@ -185,11 +198,11 @@ function IssueMarkers({ severity, keys, positions }: { severity: Severity; keys:
   );
 }
 
-function SelectionMarker({ position }: { position: Vec3 }) {
+function SelectionMarker({ position, scale = 1 }: { position: Vec3; scale?: number }) {
   const ref = useRef<THREE.Mesh>(null);
   useFrame((_, dt) => { if (ref.current) { ref.current.rotation.z += dt * 1.5; ref.current.rotation.x += dt * 0.6; } });
   return (
-    <mesh ref={ref} position={position} raycast={() => null}>
+    <mesh ref={ref} position={position} scale={scale} raycast={() => null}>
       <torusGeometry args={[4.2, 0.12, 8, 64]} />
       <meshBasicMaterial color="#ffffff" />
     </mesh>
@@ -205,10 +218,27 @@ const MOVE_KEYS: Record<string, [number, number, number]> = {
 // Moves the camera: flying to a goal, the keyboard (both modes), and mouse look in walk mode.
 // Walk mode turns the view by dragging, so it needs no pointer lock and works inside the
 // model-driven app's frame.
-function CameraRig({ mode, goal }: { mode: Mode; goal?: CameraGoal }) {
+function CameraRig({ mode, goal, handle }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null> }) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
+  const scene = useThree((s) => s.scene);
+
+  useEffect(() => {
+    if (!handle) return;
+    handle.current = {
+      view: () => {
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction);
+        const target = controls ? controls.target.clone() : camera.position.clone().addScaledVector(direction, 60);
+        return { position: camera.position.toArray() as Vec3, target: target.toArray() as Vec3 };
+      },
+      // Rendering right before reading keeps the picture without preserveDrawingBuffer (which costs
+      // every frame). Labels are HTML, so they aren't in it.
+      capture: () => { gl.render(scene, camera); return gl.domElement.toDataURL("image/png"); }
+    };
+    return () => { handle.current = null; };
+  }, [handle, camera, controls, gl, scene]);
   const pressed = useRef(new Set<string>());
   const look = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
   const flight = useRef<{ position: THREE.Vector3; target: THREE.Vector3; current: THREE.Vector3 } | undefined>(undefined);
@@ -312,7 +342,7 @@ function CameraRig({ mode, goal }: { mode: Mode; goal?: CameraGoal }) {
   return null;
 }
 
-export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, issues, onHover, onSelect }: SceneProps): React.ReactElement {
+export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, onHover, onSelect }: SceneProps): React.ReactElement {
   const byKind = useMemo(() => KIND_ORDER.map((kind) => ({ kind, nodes: nodes.filter((n) => n.kind === kind) })).filter((g) => g.nodes.length), [nodes]);
   const nodeByKey = useMemo(() => new Map(nodes.map((n) => [n.key, n])), [nodes]);
 
@@ -347,11 +377,11 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
       <LayerRings nodes={nodes} positions={positions} />
       <Edges nodes={nodes} edges={edges} positions={positions} lit={lit} />
       {byKind.map((g) => (
-        <KindMesh key={g.kind} kind={g.kind} nodes={g.nodes} positions={positions} lit={lit} onHover={onHover} onSelect={onSelect} />
+        <KindMesh key={g.kind} kind={g.kind} nodes={g.nodes} positions={positions} scales={scales} lit={lit} onHover={onHover} onSelect={onSelect} />
       ))}
-      {selectedPosition && <SelectionMarker position={selectedPosition} />}
-      <IssueMarkers severity="problem" keys={markers.problem} positions={positions} />
-      <IssueMarkers severity="warning" keys={markers.warning} positions={positions} />
+      {selectedPosition && <SelectionMarker position={selectedPosition} scale={(selected && scales?.get(selected)) || 1} />}
+      <IssueMarkers severity="problem" keys={markers.problem} positions={positions} scales={scales} />
+      <IssueMarkers severity="warning" keys={markers.warning} positions={positions} scales={scales} />
 
       {labelled.map((n) => (
         <Html key={n.key} position={positions.get(n.key)} center zIndexRange={[20, 10]} style={{ pointerEvents: "none" }}>
@@ -362,7 +392,7 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
       ))}
 
       {mode === "orbit" && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxDistance={1500} />}
-      <CameraRig mode={mode} goal={goal} />
+      <CameraRig mode={mode} goal={goal} handle={handle} />
     </Canvas>
   );
 }

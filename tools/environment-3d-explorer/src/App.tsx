@@ -2,15 +2,21 @@
 // SPDX-License-Identifier: MIT
 
 import * as React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { environmentLabel, isDataverseAvailable, recordUrl } from "../../shared/src/xrm";
 import { loadGraph } from "./dataverse";
 import { demoRaw } from "./demoData";
 import { buildGraph, chainOf } from "./graph";
 import { findIssues, SEVERITY_LABELS, worstByKey } from "./health";
-import { computeLayout } from "./layout";
+import { computeLayout, connectionScales } from "./layout";
 import { EDGE_LABELS, Graph, GraphEdge, GraphNode, KIND_ORDER, KINDS, NodeKind } from "./model";
-import { CameraGoal, Mode, SEVERITY_COLORS, START_POSITION, Scene } from "./Scene";
+import { CameraGoal, Mode, SEVERITY_COLORS, START_POSITION, Scene, SceneHandle } from "./Scene";
+import { buildTour, TourStop, tourCaption } from "./tour";
+import { readUrlOptions } from "./urlOptions";
+import { loadViews, nextViewName, SavedView, storeViews } from "./views";
+
+// How long the fly-through stays at each layer.
+const TOUR_STOP_MS = 4500;
 
 const MAX_ISSUES_LISTED = 60;
 
@@ -66,9 +72,14 @@ export function App(): React.ReactElement {
   const [goal, setGoal] = useState<CameraGoal | undefined>(undefined);
   const [search, setSearch] = useState("");
   const [showWarnings, setShowWarnings] = useState(false);
-  // ?health=1 opens with the overlay on.
-  const [showHealth, setShowHealth] = useState(() => new URLSearchParams(window.location.search).has("health"));
+  const urlOptions = useMemo(() => readUrlOptions(window.location.search), []);
+  const [showHealth, setShowHealth] = useState(urlOptions.health);
   const [problemsOnly, setProblemsOnly] = useState(false);
+  const [sizeByConnections, setSizeByConnections] = useState(false);
+  const [tour, setTour] = useState<{ stops: TourStop[]; index: number; playing: boolean } | undefined>(undefined);
+  const [views, setViews] = useState<SavedView[]>(() => loadViews(environment));
+  const [viewName, setViewName] = useState("");
+  const sceneHandle = useRef<SceneHandle | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,6 +97,7 @@ export function App(): React.ReactElement {
 
   const positions = useMemo(() => (graph ? computeLayout(graph) : new Map()), [graph]);
   const nodeByKey = useMemo(() => new Map((graph?.nodes ?? []).map((n) => [n.key, n])), [graph]);
+  const scales = useMemo(() => (graph && sizeByConnections ? connectionScales(graph) : undefined), [graph, sizeByConnections]);
   const lit = useMemo(() => (graph && selected ? chainOf(graph, selected) : undefined), [graph, selected]);
 
   const issues = useMemo(() => (graph ? findIssues(graph) : []), [graph]);
@@ -128,27 +140,78 @@ export function App(): React.ReactElement {
     if (p) setGoal((g) => ({ position: [p[0] + 26, p[1] + 14, p[2] + 42], target: p, serial: (g?.serial ?? 0) + 1 }));
   }, [positions]);
 
-  // ?focus=<name> (or Dataverse's ?data=<name>) opens the explorer focused on that record.
+  // ?focus=<name> (see urlOptions.ts) opens the explorer focused on that record.
   useEffect(() => {
     if (!graph) return;
-    const params = new URLSearchParams(window.location.search);
-    const wanted = (params.get("focus") ?? params.get("data") ?? "").trim().toLowerCase();
+    const wanted = (urlOptions.focus ?? "").toLowerCase();
     const match = wanted ? graph.nodes.find((n) => n.name.toLowerCase() === wanted) ?? graph.nodes.find((n) => n.name.toLowerCase().includes(wanted)) : undefined;
     if (match) select(match.key);
   }, [graph]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const clear = useCallback(() => { setSelected(undefined); setChainOnly(false); }, []);
-  const resetView = () => setGoal((g) => ({ position: START_POSITION, target: [0, 0, 0], serial: (g?.serial ?? 0) + 1 }));
+  const flyTo = (position: CameraGoal["position"], target: CameraGoal["target"]) => setGoal((g) => ({ position, target, serial: (g?.serial ?? 0) + 1 }));
+  const resetView = () => flyTo(START_POSITION, [0, 0, 0]);
+
+  // The fly-through: the focused chain, or everything that's shown.
+  const startTour = () => {
+    const stops = buildTour(visibleNodes, positions, lit);
+    if (!stops.length) return;
+    setMode("orbit");
+    setTour({ stops, index: 0, playing: true });
+  };
+  const stopTour = useCallback(() => setTour(undefined), []);
+  // ?tour=1 starts the fly-through once the environment is read (and focused, with ?focus=).
+  const tourStarted = useRef(false);
+  useEffect(() => {
+    if (tourStarted.current || !urlOptions.tour || !graph || (urlOptions.focus && !lit)) return;
+    tourStarted.current = true;
+    startTour();
+  }, [graph, lit]); // eslint-disable-line react-hooks/exhaustive-deps
+  const stepTour = (by: number) => setTour((t) => (t ? { ...t, index: Math.max(0, Math.min(t.stops.length - 1, t.index + by)), playing: false } : t));
+  useEffect(() => {
+    const stop = tour?.stops[tour.index];
+    if (stop) flyTo(stop.position, stop.target);
+  }, [tour?.stops, tour?.index]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!tour?.playing) return;
+    const timer = setTimeout(() => setTour((t) => (t ? (t.index + 1 < t.stops.length ? { ...t, index: t.index + 1 } : { ...t, playing: false }) : t)), TOUR_STOP_MS);
+    return () => clearTimeout(timer);
+  }, [tour]);
+
+  const saveView = () => {
+    const view = sceneHandle.current?.view();
+    if (!view) return;
+    const name = viewName.trim() || nextViewName(views);
+    const next = [...views.filter((v) => v.name !== name), { name, ...view }];
+    setViews(next);
+    storeViews(environment, next);
+    setViewName("");
+  };
+  const deleteView = (name: string) => {
+    const next = views.filter((v) => v.name !== name);
+    setViews(next);
+    storeViews(environment, next);
+  };
+  const screenshot = () => {
+    const url = sceneHandle.current?.capture();
+    if (!url) return;
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `3d-explorer-${environment.replace(/[^a-z0-9]+/gi, "-")}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
 
   useEffect(() => {
     const keydown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) { if (e.key === "Escape") (e.target as HTMLInputElement).blur(); return; }
-      if (e.key === "Escape") clear();
+      if (e.key === "Escape") { clear(); stopTour(); }
       if (e.key === "m" || e.key === "M") { setMode((m) => (m === "orbit" ? "walk" : "orbit")); }
     };
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
-  }, [clear]);
+  }, [clear, stopTour]);
 
   const selectedNode = selected ? nodeByKey.get(selected) : undefined;
   const hoveredNode = hovered ? nodeByKey.get(hovered) : undefined;
@@ -164,7 +227,7 @@ export function App(): React.ReactElement {
         <Scene
           nodes={visibleNodes} edges={visibleEdges} positions={positions} lit={lit}
           selected={selected} hovered={hovered} mode={mode} goal={goal} issues={showHealth ? worst : undefined}
-          onHover={setHovered} onSelect={select}
+          scales={scales} handle={sceneHandle} onHover={setHovered} onSelect={select}
         />
       )}
 
@@ -231,6 +294,28 @@ export function App(): React.ReactElement {
         </dl>
 
         {graph && (
+          <div className="views">
+            <button className="wide" onClick={startTour} disabled={!visibleNodes.length}>▶ Fly through {selected ? "this chain" : "the environment"}</button>
+            <label className="toggle"><input type="checkbox" checked={sizeByConnections} onChange={(e) => setSizeByConnections(e.target.checked)} /> Size by connections</label>
+            <div className="save-view">
+              <input value={viewName} onChange={(e) => setViewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveView(); }} placeholder={nextViewName(views)} aria-label="View name" />
+              <button onClick={saveView}>Save view</button>
+              <button onClick={screenshot} title="Download the current view as a PNG">Screenshot</button>
+            </div>
+            {views.length > 0 && (
+              <ul className="view-list">
+                {views.map((v) => (
+                  <li key={v.name}>
+                    <button className="name" onClick={() => flyTo(v.position, v.target)}>{v.name}</button>
+                    <button className="remove" onClick={() => deleteView(v.name)} aria-label={`Delete view ${v.name}`}>×</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {graph && (
           <div className="health">
             <label className="toggle">
               <input type="checkbox" checked={showHealth} onChange={(e) => setShowHealth(e.target.checked)} />
@@ -294,6 +379,17 @@ export function App(): React.ReactElement {
           <Connections title="In front (comes from)" edges={upstream} side="from" nodeByKey={nodeByKey} onSelect={select} />
           <Connections title="Behind (goes to)" edges={downstream} side="to" nodeByKey={nodeByKey} onSelect={select} />
         </aside>
+      )}
+
+      {tour && (
+        <div className="tour">
+          <span className="step">{tour.index + 1} / {tour.stops.length}</span>
+          <span className="caption"><span className="dot" style={{ background: KINDS[tour.stops[tour.index].kind].color }} />{tourCaption(tour.stops[tour.index])}</span>
+          <button onClick={() => stepTour(-1)} disabled={tour.index === 0} aria-label="Previous stop">◀</button>
+          <button onClick={() => setTour((t) => (t ? { ...t, playing: !t.playing, index: !t.playing && t.index + 1 >= t.stops.length ? 0 : t.index } : t))} aria-label={tour.playing ? "Pause" : "Play"}>{tour.playing ? "❚❚" : "▶"}</button>
+          <button onClick={() => stepTour(1)} disabled={tour.index + 1 >= tour.stops.length} aria-label="Next stop">▶▶</button>
+          <button onClick={stopTour} aria-label="Stop the fly-through">✕</button>
+        </div>
       )}
 
       {hoveredNode && hoveredNode.key !== selected && (

@@ -35,6 +35,16 @@ Structural checks on the graph, in `src/health.ts`: see the [README](README.md#h
 - A default queue that's gone is reported once (default queue not found), not also as "routes nowhere".
 - Open question for the live test: how many warnings a real environment has, and whether any check is too noisy.
 
+## Ways to look (2026-10-23)
+
+Fly-through, size by connections, saved views, screenshot and the `tour` page option. Checked on the sample environment; the tour's camera flight between stops still needs a hands-on check (headless Edge doesn't play animation in full).
+
+- The tour has one stop per layer, looking at that layer's part of the chain, not one stop per record: a workstream's chain can hold dozens of agents.
+- Saved views use the browser's local storage, keyed by environment. They're a convenience: if storage is blocked they're simply not remembered.
+- The screenshot renders one frame right before reading the canvas, instead of turning on `preserveDrawingBuffer`, which would cost on every frame. Labels are HTML and aren't in the picture.
+- Dataverse passes a Site Map subarea's parameters as one `data` value, so `data=focus=…&health=1&tour=1` is read as well as plain `?focus=…`.
+- Not built yet, each needing a decision first: **VR** (WebXR needs the page outside the app's frame, where it has no Dataverse session) and **comparing environments or snapshots** (needs a snapshot format and somewhere to keep it).
+
 ## Open questions / next ideas
 
 - Live test: data volumes, load time, frame rate with a few thousand agents.

@@ -67,10 +67,21 @@ Tick **Show problems** in the left panel. The two counters next to it show how m
 
 The [README](README.md#health-overlay) lists every check. If a table couldn't be read, the checks that need it are skipped and the panel says so.
 
-## 5. Reading the environment again
+## 5. Fly-through, views and screenshots
+
+These are under the mode buttons in the left panel.
+
+- **Fly through this chain** (or **the environment**, when nothing is focused) moves the camera layer by layer from the front to the back: phone numbers, channels, workstreams, routing rules, queues, agents, skills. A bar at the bottom shows the stop, a caption with what's there, and buttons to go back, pause or play, go forward and stop. Esc also stops it. With **Show only this chain** ticked, the tour shows only the chain.
+- **Size by connections** makes a record bigger the more links it has: a queue with many members and rules routing to it, a workstream with many channels and rules.
+- **Save view** keeps the current camera position. Type a name first, or leave it empty for "View 1", "View 2" and so on. Click a saved view to fly back to it, and × to delete it. Saved views stay in this browser, for this environment only.
+- **Screenshot** downloads what you see as a PNG. The name labels aren't in the picture.
+
+![The fly-through at the routing rules of a workstream](images/05-tour.png)
+
+## 6. Reading the environment again
 
 The scene shows the environment as it was when the page loaded. After you change something in the admin center, click **Read the environment again**.
 
-## 6. Opening the tool focused on a record
+## 7. Opening the tool from a link
 
-Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on.
+Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on, and `tour=1` to start the fly-through as soon as the page opens (together with `focus`, it tours that record's chain). In a Site Map subarea, put them in the **data** parameter, for example `focus=Customer Service&tour=1`.

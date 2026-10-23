@@ -100,3 +100,22 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .finding p { margin: 0 0 4px; color: #c9d8e2; }
 .finding .fix { color: #9fd8b5; }
 .finding .fix::before { content: "Fix: "; font-weight: 700; }
+
+/* Ways to look: fly-through, size, saved views, screenshot. */
+.views { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(140, 170, 200, .18); display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.views button, .tour button { padding: 6px 10px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(140, 170, 200, .25); border-radius: 4px; font-size: 12px; font-weight: 700; }
+.views button:hover:not(:disabled), .tour button:hover:not(:disabled) { border-color: #7dd3fc; }
+.views button:disabled, .tour button:disabled { opacity: .4; cursor: default; }
+.views .wide { width: 100%; padding: 8px 10px; background: rgba(125, 211, 252, .14); border-color: rgba(125, 211, 252, .5); }
+.save-view { display: flex; gap: 6px; }
+.save-view input { flex: 1; min-width: 0; padding: 6px 8px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(140, 170, 200, .25); border-radius: 4px; font-size: 12px; outline: none; }
+.save-view input:focus { border-color: #7dd3fc; }
+.view-list { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.view-list li { display: flex; }
+.view-list .name { border-radius: 4px 0 0 4px; font-weight: 600; }
+.view-list .remove { border-left: 0; border-radius: 0 4px 4px 0; padding: 6px 8px; color: #7f98a8; }
+
+.tour { position: absolute; z-index: 100; left: 50%; bottom: 60px; transform: translateX(-50%); max-width: calc(100% - 28px); display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; background: rgba(10, 18, 30, .9); border: 1px solid rgba(125, 211, 252, .35); border-radius: 22px; font-size: 13px; box-shadow: 0 10px 40px rgba(0, 0, 0, .35); }
+.tour .step { color: #7f98a8; font: 500 11px 'DM Mono', Consolas, monospace; white-space: nowrap; }
+.tour .caption { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 4px; }
+.tour button { border-radius: 14px; padding: 4px 10px; }
