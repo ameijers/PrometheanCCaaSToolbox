@@ -72,6 +72,14 @@ Schema, read-only and checked live on academyexperiment (2026-10-23), or already
 - Health: a queue counts as reached through a rule, a default queue or another queue's overflow transfer, not through operating hours; a voice workstream with a bot counts the bot's channels.
 - Not yet: other channels (chat, SMS, WhatsApp) as their own channel records, and classification rules.
 
+## Panel, layer distance, full screen (2026-10-24)
+
+After the user's review: the left panel had grown too long, layers were hard to read with many of them, and the app's menu took room.
+
+- **Tabs**: the header, search, camera buttons and layer distance stay on top; Layers, Explore, Live, Health and Help below. Panels' state lives in the page, so switching tabs switches nothing off.
+- **Layer distance** (1× to 3×, also `depth=` in the page address): positions are laid out once and only their depth is stretched, so dragging the slider doesn't redo the layout. The camera, the orbit point, the layer rings and the fog stretch with it.
+- **Full screen** requests full screen on the app's frame (`window.frameElement`, reachable because the web resource and the app share an origin), so the app's menu and header go; outside a frame, the page itself. If the app's page refuses, the page itself is tried, then a message is shown. To check inside the app: whether the browser allows it from the frame without extra frame permissions.
+
 ## Open questions / next ideas
 
 - Live test: data volumes, load time, frame rate with a few thousand agents.

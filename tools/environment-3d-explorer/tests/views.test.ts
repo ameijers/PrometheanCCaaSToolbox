@@ -21,6 +21,12 @@ describe("readUrlOptions", () => {
     expect(readUrlOptions("?data=health%3D1")).toEqual({ focus: undefined, health: true, ride: false, live: false });
   });
 
+  test("reads the layer distance, kept between 1 and 3", () => {
+    expect(readUrlOptions("?depth=2").depth).toBe(2);
+    expect(readUrlOptions("?data=depth%3D9").depth).toBe(3);
+    expect(readUrlOptions("?depth=abc").depth).toBeUndefined();
+  });
+
   test("a plain data value is a record name", () => {
     expect(readUrlOptions("?data=Billing")).toEqual({ focus: "Billing", health: false, ride: false, live: false });
   });

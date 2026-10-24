@@ -22,6 +22,25 @@ const LIVE_REFRESH_MS = 15000;
 const DEMO_REFRESH_MS = 5000;
 const LIVE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+// The left panel's tabs; the header, search, camera buttons and layer distance stay above them.
+type Tab = "layers" | "explore" | "live" | "health" | "help";
+const TABS: { id: Tab; label: string }[] = [
+  { id: "layers", label: "Layers" }, { id: "explore", label: "Explore" }, { id: "live", label: "Live" }, { id: "health", label: "Health" }, { id: "help", label: "Help" }
+];
+
+// "Layer distance": how far apart the layers are, as a multiple of the layout's own spacing.
+const MAX_DEPTH = 3;
+
+// Full screen goes to the frame the model-driven app shows this page in (same origin, so the page can
+// reach it), which hides the app's menu and header; on its own the page goes full screen itself.
+function fullscreenTarget(): HTMLElement {
+  try {
+    const frame = window.frameElement as HTMLElement | null;
+    if (frame?.ownerDocument) return frame;
+  } catch { /* another origin: use the page */ }
+  return document.documentElement;
+}
+
 // Choices shown at a fork in the ride; the rest are counted.
 const MAX_RIDE_CHOICES = 8;
 
@@ -87,6 +106,10 @@ export function App(): React.ReactElement {
   const [views, setViews] = useState<SavedView[]>(() => loadViews(environment));
   const [viewName, setViewName] = useState("");
   const sceneHandle = useRef<SceneHandle | null>(null);
+  const [tab, setTab] = useState<Tab>("layers");
+  const [depth, setDepth] = useState(urlOptions.depth ?? 1);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState("");
   const [liveOn, setLiveOn] = useState(urlOptions.live);
   const [activity, setActivity] = useState<Live | undefined>(undefined);
   const [liveError, setLiveError] = useState("");
@@ -106,7 +129,14 @@ export function App(): React.ReactElement {
   }, [live]);
   useEffect(() => { void load(); }, [load]);
 
-  const positions = useMemo(() => (graph ? computeLayout(graph) : new Map()), [graph]);
+  const basePositions = useMemo(() => (graph ? computeLayout(graph) : new Map<string, CameraGoal["position"]>()), [graph]);
+  // Stretching only the depth keeps the slider smooth: the layout within a layer isn't worked out again.
+  const positions = useMemo(
+    () => (depth === 1 ? basePositions : new Map([...basePositions].map(([k, [x, y, z]]) => [k, [x, y, z * depth] as CameraGoal["position"]]))),
+    [basePositions, depth]
+  );
+  const positionsRef = useRef(positions);
+  positionsRef.current = positions;
 
   // Live activity: read now and then every so often while it's on. A failed read keeps the last picture.
   useEffect(() => {
@@ -121,7 +151,7 @@ export function App(): React.ReactElement {
         const next = buildLive(graph, await readRows(since), new Date().toISOString());
         if (cancelled) return;
         const arriving = newArrivals(previous, next)
-          .map((c) => ({ id: `${c.id}:${next.readAt}`, from: positions.get(c.workstreamKey ?? ""), to: positions.get(c.queueKey ?? c.agentKey ?? "") }))
+          .map((c) => ({ id: `${c.id}:${next.readAt}`, from: positionsRef.current.get(c.workstreamKey ?? ""), to: positionsRef.current.get(c.queueKey ?? c.agentKey ?? "") }))
           .filter((a): a is { id: string; from: CameraGoal["position"]; to: CameraGoal["position"] } => !!a.from && !!a.to);
         previous = next;
         setActivity(next);
@@ -134,7 +164,7 @@ export function App(): React.ReactElement {
     void read();
     const timer = setInterval(() => void read(), demo ? DEMO_REFRESH_MS : LIVE_REFRESH_MS);
     return () => { cancelled = true; clearInterval(timer); };
-  }, [liveOn, graph, positions]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [liveOn, graph]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const liveColors = useMemo(() => (activity ? new Map([...activity.presence.entries()].map(([k, p]) => [k, PRESENCE_COLORS[p.presence]])) : undefined), [activity]);
   const waiting = useMemo(() => (activity ? waitingByQueue(activity) : new Map<string, number>()), [activity]);
@@ -210,7 +240,7 @@ export function App(): React.ReactElement {
 
   const clear = useCallback(() => { setSelected(undefined); setChainOnly(false); }, []);
   const flyTo = (position: CameraGoal["position"], target: CameraGoal["target"]) => setGoal((g) => ({ position, target, serial: (g?.serial ?? 0) + 1 }));
-  const resetView = () => flyTo(START_POSITION, [0, 0, 0]);
+  const resetView = () => flyTo([START_POSITION[0], START_POSITION[1], START_POSITION[2] * depth], [0, 0, 0]);
 
   // "Follow the call": ride from the selected record (or the first phone number) along the route.
   const startRide = (from?: string) => {
@@ -235,6 +265,26 @@ export function App(): React.ReactElement {
     rideStarted.current = true;
     startRide(selected);
   }, [graph, selected]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleFullscreen = async () => {
+    const target = fullscreenTarget();
+    const doc = target.ownerDocument;
+    setFullscreenError("");
+    try {
+      if (doc.fullscreenElement || document.fullscreenElement) await (doc.fullscreenElement ? doc : document).exitFullscreen();
+      else await target.requestFullscreen();
+    } catch {
+      // The app's page may refuse; the page itself can still fill the screen inside its frame's window.
+      try { if (target !== document.documentElement) { await document.documentElement.requestFullscreen(); return; } } catch { /* refused too */ }
+      setFullscreenError("The browser didn't allow full screen here.");
+    }
+  };
+  useEffect(() => {
+    const docs = [...new Set([document, fullscreenTarget().ownerDocument])];
+    const update = () => setFullscreen(docs.some((d) => !!d.fullscreenElement));
+    docs.forEach((d) => d.addEventListener("fullscreenchange", update));
+    return () => docs.forEach((d) => d.removeEventListener("fullscreenchange", update));
+  }, []);
 
   const saveView = () => {
     const view = sceneHandle.current?.view();
@@ -266,6 +316,7 @@ export function App(): React.ReactElement {
       if (e.target instanceof HTMLInputElement) { if (e.key === "Escape") (e.target as HTMLInputElement).blur(); return; }
       if (e.key === "Escape") { clear(); stopRide(); }
       if (e.key === "m" || e.key === "M") { setMode((m) => (m === "orbit" ? "walk" : "orbit")); }
+      if (e.key === "f" || e.key === "F") void toggleFullscreen();
     };
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
@@ -285,7 +336,7 @@ export function App(): React.ReactElement {
         <Scene
           nodes={visibleNodes} edges={visibleEdges} positions={positions} lit={rideKeys ?? lit}
           selected={selected} hovered={hovered} mode={mode} goal={goal} issues={showHealth ? worst : undefined}
-          scales={scales} handle={sceneHandle} ride={sceneRide} labelKeys={rideKeys ? [...rideKeys] : undefined}
+          depth={depth} scales={scales} handle={sceneHandle} ride={sceneRide} labelKeys={rideKeys ? [...rideKeys] : undefined}
           colors={liveColors} labelSuffix={liveSuffix} conversations={liveConversations} arrivals={arrivals}
           onHover={setHovered} onSelect={select}
         />
@@ -318,134 +369,179 @@ export function App(): React.ReactElement {
           )}
         </div>
 
-        <ul className="legend">
-          {KIND_ORDER.map((kind) => (
-            <li key={kind}>
-              <label className={hiddenKinds.has(kind) ? "off" : ""}>
-                <input
-                  type="checkbox" checked={!hiddenKinds.has(kind)}
-                  onChange={() => setHiddenKinds((h) => { const next = new Set(h); if (next.has(kind)) next.delete(kind); else next.add(kind); return next; })}
-                />
-                <span className="dot" style={{ background: KINDS[kind].color }} />
-                <span className="name">{KINDS[kind].plural}</span>
-                <span className="count">{counts.get(kind) ?? 0}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
-        <p className="muted small">Front to back: how a conversation travels. Phone numbers are in front, skills at the back.</p>
-
         <div className="mode">
           <button className={mode === "orbit" ? "on" : ""} onClick={() => setMode("orbit")}>Orbit</button>
           <button className={mode === "walk" ? "on" : ""} onClick={() => setMode("walk")}>Walk</button>
-          <button onClick={resetView}>Reset view</button>
+          <button onClick={resetView}>Reset</button>
+          <button className={fullscreen ? "on" : ""} onClick={() => void toggleFullscreen()} title="Full screen (F)">{fullscreen ? "Exit full screen" : "Full screen"}</button>
         </div>
-        <dl className="help">
-          {mode === "orbit" ? (
-            <><dt>Drag</dt><dd>rotate</dd><dt>Scroll</dt><dd>zoom</dd><dt>Right-drag</dt><dd>pan</dd></>
-          ) : (
-            <><dt>Drag</dt><dd>look around</dd></>
+        {fullscreenError && <p className="muted small error-text">{fullscreenError}</p>}
+        <label className="slider">
+          <span>Layer distance</span>
+          <input type="range" min={1} max={MAX_DEPTH} step={0.1} value={depth} onChange={(e) => setDepth(Number(e.target.value))} aria-label="Layer distance" />
+          <span className="count">{depth.toFixed(1)}×</span>
+        </label>
+
+        <nav className="tabs" role="tablist">
+          {TABS.map((t) => (
+            <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)}>
+              {t.label}
+              {t.id === "live" && liveOn && <span className={`pulse${liveError ? " error" : ""}`} />}
+              {t.id === "health" && problemCount > 0 && <span className="badge problem">{problemCount}</span>}
+            </button>
+          ))}
+        </nav>
+
+        <div className="tab-body" role="tabpanel">
+          {tab === "layers" && (
+            <>
+            <ul className="legend">
+              {KIND_ORDER.map((kind) => (
+                <li key={kind}>
+                  <label className={hiddenKinds.has(kind) ? "off" : ""}>
+                    <input
+                      type="checkbox" checked={!hiddenKinds.has(kind)}
+                      onChange={() => setHiddenKinds((h) => { const next = new Set(h); if (next.has(kind)) next.delete(kind); else next.add(kind); return next; })}
+                    />
+                    <span className="dot" style={{ background: KINDS[kind].color }} />
+                    <span className="name">{KINDS[kind].plural}</span>
+                    <span className="count">{counts.get(kind) ?? 0}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <p className="muted small">Front to back: how a conversation travels. Phone numbers are in front, skills at the back.</p>
+
+              {graph && (
+                <div className="views">
+                  <label className="toggle"><input type="checkbox" checked={sizeByConnections} onChange={(e) => setSizeByConnections(e.target.checked)} /> Size by connections</label>
+                </div>
+              )}
+            </>
           )}
-          <dt>W A S D</dt><dd>move (Shift: faster)</dd>
-          <dt>E / Q</dt><dd>up / down</dd>
-          <dt>Click</dt><dd>focus a record</dd>
-          <dt>M</dt><dd>switch orbit / walk</dd>
-          <dt>Esc</dt><dd>clear focus</dd>
-        </dl>
-
-        {graph && (
-          <div className="views">
-            <button className="wide" onClick={() => startRide()} disabled={!graph.nodes.length}>▶ Follow the call {selectedNode ? `from ${selectedNode.name}` : "from a phone number"}</button>
-            <label className="toggle"><input type="checkbox" checked={sizeByConnections} onChange={(e) => setSizeByConnections(e.target.checked)} /> Size by connections</label>
-            <div className="save-view">
-              <input value={viewName} onChange={(e) => setViewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveView(); }} placeholder={nextViewName(views)} aria-label="View name" />
-              <button onClick={saveView}>Save view</button>
-              <button onClick={screenshot} title="Download the current view as a PNG">Screenshot</button>
-            </div>
-            {views.length > 0 && (
-              <ul className="view-list">
-                {views.map((v) => (
-                  <li key={v.name}>
-                    <button className="name" onClick={() => flyTo(v.position, v.target)}>{v.name}</button>
-                    <button className="remove" onClick={() => deleteView(v.name)} aria-label={`Delete view ${v.name}`}>×</button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-
-        {graph && (
-          <div className="live">
-            <label className="toggle">
-              <input type="checkbox" checked={liveOn} onChange={(e) => setLiveOn(e.target.checked)} />
-              <span>Live activity</span>
-              {liveOn && <span className={`pulse${liveError ? " error" : ""}`} />}
-            </label>
-            {liveOn && (
-              <>
-                {activity ? (
-                  <>
-                    <p className="muted small">
-                      Updated {new Date(activity.readAt).toLocaleTimeString()}, every {(isDataverseAvailable() ? LIVE_REFRESH_MS : DEMO_REFRESH_MS) / 1000} seconds.
-                    </p>
-                    <ul className="live-counts">
-                      {(["waiting", "with-agent", "wrap-up"] as const).map((status) => (
-                        <li key={status}><span className="dot" style={{ background: CONVERSATION_COLORS[status] }} />{activity.open.filter((c) => c.status === status).length} {CONVERSATION_LABELS[status]}</li>
-                      ))}
-                      <li className="muted">{[...activity.recent.entries()].filter(([k]) => k.startsWith("workstream:")).reduce((n, [, c]) => n + c, 0)} in the last 24 hours</li>
-                    </ul>
-                    <ul className="live-counts">
-                      {(Object.keys(PRESENCE_LABELS) as Presence[]).map((p) => (
-                        <li key={p}><span className="dot" style={{ background: PRESENCE_COLORS[p] }} />{presenceCounts.get(p) ?? 0} {PRESENCE_LABELS[p].toLowerCase()}</li>
-                      ))}
-                    </ul>
-                  </>
-                ) : !liveError && <p className="muted small">Reading live activity…</p>}
-                {liveError && <p className="muted small error-text">Couldn't read live activity: {liveError}</p>}
-              </>
-            )}
-          </div>
-        )}
-
-        {graph && (
-          <div className="health">
-            <label className="toggle">
-              <input type="checkbox" checked={showHealth} onChange={(e) => setShowHealth(e.target.checked)} />
-              <span>Show problems</span>
-              <span className="badge problem" title="Problems">{problemCount}</span>
-              <span className="badge warning" title="Warnings">{issues.length - problemCount}</span>
-            </label>
-            {showHealth && (
-              <>
-                <label className="toggle"><input type="checkbox" checked={problemsOnly} onChange={(e) => setProblemsOnly(e.target.checked)} /> Only records with an issue</label>
-                {issues.length === 0 ? <p className="muted small">No problems found.</p> : (
-                  <ul className="issue-list">
-                    {issues.slice(0, MAX_ISSUES_LISTED).map((i) => (
-                      <li key={`${i.key}:${i.check}`}>
-                        <button onClick={() => select(i.key)}>
-                          <span className="dot" style={{ background: SEVERITY_COLORS[i.severity] }} />
-                          <span className="name">{nodeByKey.get(i.key)?.name}</span>
-                          <span className="relation">{i.title}</span>
-                        </button>
+          {tab === "explore" && (
+            <>
+            {graph && (
+              <div className="views">
+                <button className="wide" onClick={() => startRide()} disabled={!graph.nodes.length}>▶ Follow the call {selectedNode ? `from ${selectedNode.name}` : "from a phone number"}</button>
+                <div className="save-view">
+                  <input value={viewName} onChange={(e) => setViewName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveView(); }} placeholder={nextViewName(views)} aria-label="View name" />
+                  <button onClick={saveView}>Save view</button>
+                  <button onClick={screenshot} title="Download the current view as a PNG">Screenshot</button>
+                </div>
+                {views.length > 0 && (
+                  <ul className="view-list">
+                    {views.map((v) => (
+                      <li key={v.name}>
+                        <button className="name" onClick={() => flyTo(v.position, v.target)}>{v.name}</button>
+                        <button className="remove" onClick={() => deleteView(v.name)} aria-label={`Delete view ${v.name}`}>×</button>
                       </li>
                     ))}
                   </ul>
                 )}
-                {issues.length > MAX_ISSUES_LISTED && <p className="muted small">and {issues.length - MAX_ISSUES_LISTED} more</p>}
-                {skipped.length > 0 && <p className="muted small">Not checked, because a table couldn't be read: {skipped.join("; ")}.</p>}
-              </>
+              </div>
             )}
-          </div>
-        )}
 
-        {graph && graph.warnings.length > 0 && (
-          <div className="warnings">
-            <button onClick={() => setShowWarnings((s) => !s)}>{graph.warnings.length} thing{graph.warnings.length === 1 ? "" : "s"} couldn't be read</button>
-            {showWarnings && <ul>{graph.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>}
-          </div>
-        )}
-        <button className="link" onClick={() => void load()} disabled={loading}>Read the environment again</button>
+            </>
+          )}
+          {tab === "live" && (
+            <>
+            {graph && (
+              <div className="live">
+                <label className="toggle">
+                  <input type="checkbox" checked={liveOn} onChange={(e) => setLiveOn(e.target.checked)} />
+                  <span>Live activity</span>
+                  {liveOn && <span className={`pulse${liveError ? " error" : ""}`} />}
+                </label>
+                {liveOn && (
+                  <>
+                    {activity ? (
+                      <>
+                        <p className="muted small">
+                          Updated {new Date(activity.readAt).toLocaleTimeString()}, every {(isDataverseAvailable() ? LIVE_REFRESH_MS : DEMO_REFRESH_MS) / 1000} seconds.
+                        </p>
+                        <ul className="live-counts">
+                          {(["waiting", "with-agent", "wrap-up"] as const).map((status) => (
+                            <li key={status}><span className="dot" style={{ background: CONVERSATION_COLORS[status] }} />{activity.open.filter((c) => c.status === status).length} {CONVERSATION_LABELS[status]}</li>
+                          ))}
+                          <li className="muted">{[...activity.recent.entries()].filter(([k]) => k.startsWith("workstream:")).reduce((n, [, c]) => n + c, 0)} in the last 24 hours</li>
+                        </ul>
+                        <ul className="live-counts">
+                          {(Object.keys(PRESENCE_LABELS) as Presence[]).map((p) => (
+                            <li key={p}><span className="dot" style={{ background: PRESENCE_COLORS[p] }} />{presenceCounts.get(p) ?? 0} {PRESENCE_LABELS[p].toLowerCase()}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : !liveError && <p className="muted small">Reading live activity…</p>}
+                    {liveError && <p className="muted small error-text">Couldn't read live activity: {liveError}</p>}
+                  </>
+                )}
+              </div>
+            )}
+
+            </>
+          )}
+          {tab === "health" && (
+            <>
+            {graph && (
+              <div className="health">
+                <label className="toggle">
+                  <input type="checkbox" checked={showHealth} onChange={(e) => setShowHealth(e.target.checked)} />
+                  <span>Show problems</span>
+                  <span className="badge problem" title="Problems">{problemCount}</span>
+                  <span className="badge warning" title="Warnings">{issues.length - problemCount}</span>
+                </label>
+                {showHealth && (
+                  <>
+                    <label className="toggle"><input type="checkbox" checked={problemsOnly} onChange={(e) => setProblemsOnly(e.target.checked)} /> Only records with an issue</label>
+                    {issues.length === 0 ? <p className="muted small">No problems found.</p> : (
+                      <ul className="issue-list">
+                        {issues.slice(0, MAX_ISSUES_LISTED).map((i) => (
+                          <li key={`${i.key}:${i.check}`}>
+                            <button onClick={() => select(i.key)}>
+                              <span className="dot" style={{ background: SEVERITY_COLORS[i.severity] }} />
+                              <span className="name">{nodeByKey.get(i.key)?.name}</span>
+                              <span className="relation">{i.title}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {issues.length > MAX_ISSUES_LISTED && <p className="muted small">and {issues.length - MAX_ISSUES_LISTED} more</p>}
+                    {skipped.length > 0 && <p className="muted small">Not checked, because a table couldn't be read: {skipped.join("; ")}.</p>}
+                  </>
+                )}
+              </div>
+            )}
+
+            </>
+          )}
+          {tab === "help" && (
+            <>
+            <dl className="help">
+              {mode === "orbit" ? (
+                <><dt>Drag</dt><dd>rotate</dd><dt>Scroll</dt><dd>zoom</dd><dt>Right-drag</dt><dd>pan</dd></>
+              ) : (
+                <><dt>Drag</dt><dd>look around</dd></>
+              )}
+              <dt>W A S D</dt><dd>move (Shift: faster)</dd>
+              <dt>E / Q</dt><dd>up / down</dd>
+              <dt>Click</dt><dd>focus a record</dd>
+              <dt>M</dt><dd>switch orbit / walk</dd>
+          <dt>F</dt><dd>full screen</dd>
+              <dt>Esc</dt><dd>clear focus</dd>
+            </dl>
+
+            {graph && graph.warnings.length > 0 && (
+              <div className="warnings">
+                <button onClick={() => setShowWarnings((s) => !s)}>{graph.warnings.length} thing{graph.warnings.length === 1 ? "" : "s"} couldn't be read</button>
+                {showWarnings && <ul>{graph.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>}
+              </div>
+            )}
+            <button className="link" onClick={() => void load()} disabled={loading}>Read the environment again</button>
+            </>
+          )}
+        </div>
       </aside>
 
       {selectedNode && (
