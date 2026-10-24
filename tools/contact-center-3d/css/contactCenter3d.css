@@ -228,3 +228,9 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .legend-box ul { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
 .legend-box li { display: flex; align-items: center; gap: 8px; color: #334155; }
 .legend-box svg { flex-shrink: 0; }
+
+/* Smaller labels, one size at any distance. */
+.building-label { padding: 3px 10px; font-size: 12px; border-width: 2px; }
+.area-label { padding: 1px 5px; font-size: 10px; }
+.fixture-label { padding: 0 4px; font-size: 9px; border-radius: 2px; }
+.wing-label { padding: 2px 8px; font-size: 10px; }

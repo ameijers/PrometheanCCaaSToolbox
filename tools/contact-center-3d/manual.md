@@ -18,7 +18,7 @@ To demonstrate or try it without your own data, click **Use sample data** next t
 - **Walk**: drag to look around; walk through the building with W A S D.
 - **Campus** flies back to the view of all buildings. **Full screen** (or F) hides the app's menu; Esc goes back.
 - **Wings**: show the rooms of one wing only (Phone, Chat & messaging, Email & records), or All.
-- Click a building's name to fly to it. Inside, the rooms, counters, signposts and signs get their names; they grow as you come closer.
+- Click a building's name to fly to it. Inside, the rooms, counters, signposts and signs get their names; they appear as you come closer, and stay small.
 
 ![A customer center from above](images/01-building.png)
 

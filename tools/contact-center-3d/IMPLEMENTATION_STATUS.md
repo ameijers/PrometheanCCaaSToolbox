@@ -43,6 +43,7 @@ First version: the campus, a building per customer center, combine / split / mov
 - **Follow a call walks like a caller** (\src/walk.ts\): after review it waited in the middle of a room (the queue's spot) and cut straight through walls. It now follows the line on the floor to the room's door, goes in, and waits in front of the bench until an agent is chosen; to overflow by the front door it walks back out first.
 - **A desk in every room an agent is in** (2026-10-24, from live data: an agent in several queues showed in only one room, so a queue looked empty). Desks are kept per room and agent (`plan.desks`); the ride walks to the agent's desk in the room it waits in, a live caller stands at the desk in the room of the call's queue.
 - **Selecting the desk you click**: an agent with several desks used to fly to their first one. A click now keeps the clicked desk (camera and ring stay there), a room's member links go to that member's desk in the room, and Follow a call from a desk starts at that desk; reached from a room, the ride always goes to the desk in that room.
+- **Labels one small size**, shown by distance (rooms and wings within 150 m, signs 90 m, counters and phone numbers 60 m) instead of scaling with distance: after review, scaled labels became huge while exploring close up. They're placed once and shown or hidden a few times a second, without re-rendering.
 - A **Lines** legend explains the four styles, from the same list the scene draws with.
 
 ## Next ideas

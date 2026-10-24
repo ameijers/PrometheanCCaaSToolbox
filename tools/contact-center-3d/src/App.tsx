@@ -264,7 +264,6 @@ export function App(): React.ReactElement {
   const selectedCenter: Center | undefined = selected?.startsWith("center:")
     ? grouping.centers.find((c) => `center:${c.id}` === selected) ?? (selected === `center:${UNROUTED_CENTER}` ? { id: UNROUTED_CENTER, name: "Not routed", color: "#64748b", workstreams: [] } : undefined)
     : undefined;
-  const focusCenter = selected ? centerOfKey(selected) : undefined;
   const openUrl = live && selectedNode?.recordId && KINDS[selectedNode.kind].table ? recordUrl(KINDS[selectedNode.kind].table!, selectedNode.recordId) : undefined;
   const linked = (edges: GraphEdge[], side: "from" | "to") => edges.map((e) => ({ e, n: nodeByKey.get(e[side]) })).filter((x) => x.n);
   const upstream = selectedNode ? linked(graph.edges.filter((e) => e.to === selectedNode.key), "from") : [];
@@ -293,7 +292,7 @@ export function App(): React.ReactElement {
 
   return (
     <div className="campus">
-      <CampusScene plan={plan} mode={mode} goal={goal} selected={selected} selectedSpot={selectedSpot} focusCenter={focusCenter} wing={wing} showUnits={showUnits}
+      <CampusScene plan={plan} mode={mode} goal={goal} selected={selected} selectedSpot={selectedSpot} wing={wing} showUnits={showUnits}
         issues={showHealth ? worst : undefined} screens={screens} callers={callers} walkers={walkers} labelSuffix={labelSuffix} ride={sceneRide} handle={sceneHandle} onSelect={select} />
 
       <aside className="panel left">

@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 import * as React from "react";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { Canvas, ThreeEvent, useFrame } from "@react-three/fiber";
+import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Html, Line, OrbitControls } from "@react-three/drei";
 import { Severity } from "../../environment-3d-explorer/src/health";
 import { hash } from "../../environment-3d-explorer/src/layout";
@@ -32,9 +32,11 @@ export const PATH_STYLE: Record<PathKind, { color: string; dashed: boolean; widt
   default: { color: "#ca8a04", dashed: true, width: 1.2, label: "Workstream's default queue" },
   transfer: { color: "#dc2626", dashed: true, width: 1.6, label: "Overflow: transfer to another queue" }
 };
-// Labels inside a building shrink with distance (full size about this far away), so a big center
-// isn't a heap of labels from afar and they read well when you come close.
-const LABEL_DISTANCE = 60;
+// Labels keep one small size. Inside a building they only show when the camera is this close (metres),
+// so the campus from afar isn't a heap of labels and labels near you stay readable while exploring.
+const ROOM_LABEL_RANGE = 150;
+const SIGN_LABEL_RANGE = 90;
+const SMALL_LABEL_RANGE = 60;
 const LABELLED: FixtureKind[] = ["signpost", "numbers", "hours", "mailbox", "booth", "exit", "transfer", "hold", "kiosk", "counter", "portal"];
 const PALETTE = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#a78bfa", "#f472b6", "#94a3b8", "#c084fc"];
 export const colorFor = (name: string) => PALETTE[Math.floor(((hash(name, 21) + 1) / 2) * PALETTE.length) % PALETTE.length];
@@ -47,8 +49,6 @@ interface Props {
   mode: Mode;
   goal?: CameraGoal;
   selected?: string;
-  // The center whose details are labelled (rooms, counters, signs); every building's name always is.
-  focusCenter?: string;
   // Only this wing's rooms (the reception and corridor always show).
   wing?: Wing;
   showUnits?: boolean;
@@ -224,6 +224,50 @@ export function alongLine(points: Vec3[], t: number): { at: Vec3; direction: Vec
   return { at: points[points.length - 1], direction: [0, 0, 1] };
 }
 
+// The labels inside buildings, near the camera only. They're all placed once; a few times a second
+// each is shown or hidden by its distance to the camera, without redrawing anything.
+interface NearLabel { key: string; at: Vec3; range: number; className: string; style?: React.CSSProperties; text: React.ReactNode }
+
+function NearbyLabels({ plan, shown, labelSuffix }: { plan: Plan; shown(item: { wing?: Wing }): boolean; labelSuffix?: Map<string, string> }) {
+  const camera = useThree((st) => st.camera);
+  const nodes = useRef(new Map<string, HTMLDivElement>());
+  const last = useRef(-1);
+  const heightOf = (kind: FixtureKind) => (kind === "numbers" ? 3.4 : kind === "signpost" ? 2.5 : kind === "counter" ? 1.9 : kind === "portal" ? 3.8 : 2.6);
+  const labels = useMemo((): NearLabel[] => [
+    ...plan.areas.filter((a) => a.kind === "wing" && shown(a)).map((a) => ({
+      key: `wing:${a.centerId}:${a.wing}`, at: [a.x, 0.3, a.z + a.d / 2 - 1.2] as Vec3, range: ROOM_LABEL_RANGE,
+      className: "wing-label", style: { background: WING_COLORS[a.wing!] }, text: a.name
+    })),
+    ...plan.areas.filter((a) => a.kind === "room" && shown(a)).map((a) => ({
+      key: `room:${a.key}`, at: [a.x, 0.2, a.z + a.d / 2 - 0.8] as Vec3, range: ROOM_LABEL_RANGE, className: "area-label room",
+      text: <>{a.name}{labelSuffix?.get(a.key ?? "") && <span className="suffix"> · {labelSuffix.get(a.key ?? "")}</span>}</>
+    })),
+    ...plan.fixtures.filter((f) => LABELLED.includes(f.kind) && f.label && shown(f)).map((f, i) => ({
+      key: `label:${f.kind}:${f.key ?? i}:${f.x}:${f.z}`, at: [f.x, f.y + heightOf(f.kind), f.z] as Vec3,
+      range: f.kind === "numbers" || f.kind === "counter" ? SMALL_LABEL_RANGE : SIGN_LABEL_RANGE, className: `fixture-label ${f.kind}`, text: f.label
+    }))
+  ], [plan, shown, labelSuffix]);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (t - last.current < 0.2 && last.current >= 0) return;
+    last.current = t;
+    const p = camera.position;
+    labels.forEach((l) => {
+      const node = nodes.current.get(l.key);
+      if (node) node.style.display = Math.hypot(l.at[0] - p.x, l.at[1] - p.y, l.at[2] - p.z) < l.range ? "" : "none";
+    });
+  });
+  return (
+    <>
+      {labels.map((l) => (
+        <Html key={l.key} position={l.at} center zIndexRange={[15, 5]} style={{ pointerEvents: "none" }}>
+          <div ref={(el) => { if (el) nodes.current.set(l.key, el); else nodes.current.delete(l.key); }} className={l.className} style={{ display: "none", ...l.style }}>{l.text}</div>
+        </Html>
+      ))}
+    </>
+  );
+}
+
 function PathLine({ path }: { path: Path }) {
   const style = PATH_STYLE[path.kind];
   // A line that leaves the floor (between buildings) gets arrowheads in its own colour.
@@ -245,8 +289,8 @@ function PathLine({ path }: { path: Path }) {
   );
 }
 
-export function CampusScene({ plan, mode, goal, selected, selectedSpot, focusCenter, wing, showUnits, issues, screens, callers, walkers, labelSuffix, ride, handle, onSelect }: Props): React.ReactElement {
-  const shown = (item: { wing?: Wing }) => !wing || !item.wing || item.wing === wing;
+export function CampusScene({ plan, mode, goal, selected, selectedSpot, wing, showUnits, issues, screens, callers, walkers, labelSuffix, ride, handle, onSelect }: Props): React.ReactElement {
+  const shown = useMemo(() => (item: { wing?: Wing }) => !wing || !item.wing || item.wing === wing, [wing]);
   const floors = useMemo(() => plan.areas.filter(shown).map((a) => ({
     x: a.x, y: a.y + (a.kind === "building" ? 0 : a.kind === "wing" ? 0.015 : 0.03), z: a.z, w: a.w, h: a.kind === "building" ? 0.08 : 0.04, d: a.d,
     color: a.kind === "wing" && a.wing ? tint(WING_COLORS[a.wing], 0.82) : tint(a.color, AREA_TINT[a.kind]),
@@ -257,8 +301,6 @@ export function CampusScene({ plan, mode, goal, selected, selectedSpot, focusCen
   const others = useMemo(() => plan.fixtures.filter((f) => f.kind !== "desk" && f.kind !== "numbers" && shown(f)), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
   const paths = useMemo(() => plan.paths.filter(shown), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
   const wingOfRoom = useMemo(() => new Map(plan.areas.filter((a) => a.kind === "room").map((a) => [a.key, a.wing])), [plan]);
-  const centerOf = (x: number, z: number) => plan.buildings.find((b) => x >= b.x && x <= b.x + b.w && z <= b.z && z >= b.z - b.d)?.centerId;
-  const showDetail = (x: number, z: number) => plan.buildings.length <= 2 || centerOf(x, z) === focusCenter;
 
   const selectedAt = selected ? selectedSpot ?? plan.anchors.get(selected) : undefined;
   const markers = useMemo(() => [...(issues ?? new Map<string, Severity>()).entries()].map(([k, s]) => ({ key: k, severity: s, at: plan.anchors.get(k) })).filter((m): m is { key: string; severity: Severity; at: Vec3 } => !!m.at), [issues, plan]);
@@ -290,22 +332,7 @@ export function CampusScene({ plan, mode, goal, selected, selectedSpot, focusCen
           <button className="building-label" style={{ borderColor: b.color }} onClick={() => onSelect(`center:${b.centerId}`)}>{b.name}</button>
         </Html>
       ))}
-      {plan.areas.filter((a) => a.kind === "wing" && shown(a)).map((a) => (
-        <Html key={`wing:${a.centerId}:${a.wing}`} position={[a.x, 0.3, a.z + a.d / 2 - 1.2]} center distanceFactor={LABEL_DISTANCE * 1.8} zIndexRange={[16, 6]} style={{ pointerEvents: "none" }}>
-          <div className="wing-label" style={{ background: WING_COLORS[a.wing!] }}>{a.name}</div>
-        </Html>
-      ))}
-      {plan.areas.filter((a) => a.kind === "room" && shown(a) && showDetail(a.x, a.z)).map((a) => (
-        <Html key={`room:${a.key}`} position={[a.x, 0.2, a.z + a.d / 2 - 0.8]} center distanceFactor={LABEL_DISTANCE * 1.4} zIndexRange={[15, 5]} style={{ pointerEvents: "none" }}>
-          <div className="area-label room">{a.name}{labelSuffix?.get(a.key ?? "") && <span className="suffix"> · {labelSuffix.get(a.key ?? "")}</span>}</div>
-        </Html>
-      ))}
-      {plan.fixtures.filter((f) => LABELLED.includes(f.kind) && f.label && shown(f) && showDetail(f.x, f.z)).map((f, i) => (
-        <Html key={`label:${f.kind}:${f.key ?? i}:${i}`} position={[f.x, f.y + (f.kind === "numbers" ? 3.4 : f.kind === "signpost" ? 2.5 : f.kind === "counter" ? 1.9 : f.kind === "portal" ? 3.8 : 2.6), f.z]} center
-          distanceFactor={LABEL_DISTANCE * (f.kind === "numbers" ? 0.55 : f.kind === "counter" ? 0.75 : 1)} zIndexRange={[15, 5]} style={{ pointerEvents: "none" }}>
-          <div className={`fixture-label ${f.kind}`}>{f.label}</div>
-        </Html>
-      ))}
+      <NearbyLabels plan={plan} shown={shown} labelSuffix={labelSuffix} />
 
       {markers.map((m) => (
         <mesh key={m.key} position={[m.at[0], m.at[1] + 2.6, m.at[2]]} raycast={() => null} rotation={[Math.PI, 0, 0]}>
