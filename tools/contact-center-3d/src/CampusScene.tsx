@@ -385,7 +385,8 @@ function FixtureModel({ f, onPick }: { f: Fixture; onPick(key: string): void }) 
         {/* The context variables a call brings: a clipboard on the counter. */}
         {(f.variables?.length ?? 0) > 0 && <>{box([0.9, 1.24, 0.35], [0.45, 0.04, 0.6], "#f8fafc")}{box([0.9, 1.27, 0.12], [0.2, 0.03, 0.08], "#475569")}</>}
       </>}
-      {kind === "portal" && <>{box([0, 2, 0], [6, 2.6, 0.2], "#1e293b")}{box([0, 2, 0.12], [5.6, 2.2, 0.05], "#38bdf8", { emissive: "#38bdf8", emissiveIntensity: 0.5 })}</>}
+      {/* The digital channels' screen, just inside the front wall, lit side facing into the lobby. */}
+      {kind === "portal" && <>{box([0, 2, 0], [6, 2.6, 0.2], "#1e293b")}{box([0, 2, -0.12], [5.6, 2.2, 0.05], "#38bdf8", { emissive: "#38bdf8", emissiveIntensity: 0.5 })}</>}
       {kind === "kiosk" && <>{box([0, 0.7, 0], [0.7, 1.4, 0.5], "#a855f7")}{box([0, 1.55, 0.1], [0.8, 0.55, 0.08], "#ede9fe", { emissive: "#c4b5fd", emissiveIntensity: 0.6 })}</>}
       {kind === "signpost" && <>{box([0, 1, 0], [0.12, 2, 0.12], "#475569")}{box([0, 1.85, 0], [1.6, 0.5, 0.08], "#be123c")}</>}
       {kind === "hours" && box([0, 2.1, 0.05], [0.9, 0.6, 0.06], "#0f172a")}
