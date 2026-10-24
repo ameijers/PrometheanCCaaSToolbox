@@ -39,7 +39,15 @@ const IN_THE_BUILDING: Record<string, string> = {
 };
 
 export function App(): React.ReactElement {
-  const live = isDataverseAvailable();
+  // Inside Dataverse the tool reads the environment, unless you ask for the sample (button or ?demo=1),
+  // which is handy to demonstrate or test. Outside Dataverse it's always the sample.
+  const inDataverse = isDataverseAvailable();
+  const [useSample, setUseSample] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const asked = params.get("demo") ?? new URLSearchParams(params.get("data") ?? "").get("demo");
+    return asked !== null && !/^(0|false|no|off)$/i.test(asked);
+  });
+  const live = inDataverse && !useSample;
   const environment = live ? environmentLabel() : "the sample environment";
   const store = useMemo(() => browserStore(), []);
 
@@ -79,6 +87,7 @@ export function App(): React.ReactElement {
       setLoading(false);
     }
   }, [live, store, environment]);
+  const switchSource = (sample: boolean) => { started.current = false; setGraph(undefined); setGrouping(undefined); setUseSample(sample); };
   useEffect(() => { void load(); }, [load]);
 
   // Every change to the centers is remembered straight away.
@@ -174,7 +183,10 @@ export function App(): React.ReactElement {
             <h1>3D Contact Center</h1>
           </div>
         </header>
-        <p className="target"><span className={`status-dot${live ? " live" : ""}`} />{environment}</p>
+        <p className="target">
+          <span className={`status-dot${live ? " live" : ""}`} />{environment}
+          {inDataverse && <button className="link source" onClick={() => switchSource(live)}>{live ? "Use sample data" : "Back to live data"}</button>}
+        </p>
 
         <div className="search">
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a room, desk, lobby…" aria-label="Search" />

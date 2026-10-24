@@ -203,3 +203,4 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .ws-list li.hidden .eye, .center-list li.all-hidden .eye { color: #94a3b8; }
 .campus .panel.left { width: 330px; }
 .eye { display: inline-grid; place-items: center; height: 22px; }
+.target .source { margin: 0 0 0 10px; font-size: 11.5px; }
