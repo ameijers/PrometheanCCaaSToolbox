@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import * as fs from "fs";
+import * as path from "path";
 import * as THREE from "three";
 import { GLTFLoader } from "three-stdlib";
 import { toModel } from "../src/models";
@@ -19,7 +20,7 @@ function reach(model: ReturnType<typeof toModel>, below: number): number {
 describe("toModel", () => {
   test("each pose starts from the rest pose: standing after sitting has its legs down", async () => {
     (globalThis as unknown as { self: unknown }).self = globalThis;
-    const buf = fs.readFileSync("tools/contact-center-3d/models/character-male-a.glb");
+    const buf = fs.readFileSync(path.join(__dirname, "../models/character-male-a.glb"));
     const gltf = await new Promise<{ scene: THREE.Group; animations: THREE.AnimationClip[] }>((ok, no) =>
       new GLTFLoader().parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength), "", ok as never, no));
     const sit = toModel(gltf, { yaw: Math.PI, pose: "sit" });

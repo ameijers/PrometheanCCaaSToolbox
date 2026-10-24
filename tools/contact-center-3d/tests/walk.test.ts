@@ -6,7 +6,7 @@ import { demoRaw } from "../../environment-3d-explorer/src/demoData";
 import { extendRide } from "../../environment-3d-explorer/src/ride";
 import { defaultGrouping } from "../src/centers";
 import { buildPlan } from "../src/floorplan";
-import { walkRoute } from "../src/walk";
+import { walkInRoute, walkRoute, walkSeconds } from "../src/walk";
 
 const graph = buildGraph(demoRaw());
 const plan = buildPlan(graph, defaultGrouping(graph));
@@ -55,5 +55,39 @@ describe("walkRoute", () => {
     const start = graph.nodes.find((n) => n.kind === "phone" && plan.anchors.has(n.key))!.key;
     const { path } = extendRide(graph, [start]);
     expect(walkRoute(plan, path).length).toBeGreaterThanOrEqual(path.length);
+  });
+});
+
+describe("walkInRoute", () => {
+  const atDoor = (q: number[], queueKey: string) => { const d = plan.doors.get(queueKey)!; return Math.abs(q[0] - d[0]) < 0.05 && Math.abs(q[2] - d[2]) < 0.05; };
+  // Every workstream to every room its calls can go to: its rules' rooms and its default queue.
+  const calls = graph.nodes.filter((n) => n.kind === "workstream" && plan.anchors.has(n.key)).flatMap((ws) => {
+    const ruleKeys = graph.edges.filter((e) => e.kind === "routes" && e.from === ws.key).map((e) => e.to);
+    const queues = [...ruleKeys.flatMap((r) => graph.edges.filter((e) => e.kind === "routes" && e.from === r).map((e) => e.to)), ...graph.edges.filter((e) => e.kind === "default" && e.from === ws.key).map((e) => e.to)];
+    return queues.filter((q) => plan.doors.has(q)).map((queueKey) => ({ workstreamKey: ws.key, queueKey, ruleKeys }));
+  });
+
+  test("follows the line on the floor in straight walkways at right angles, and ends on a waiting seat", () => {
+    expect(calls.length).toBeGreaterThan(5);
+    calls.forEach((call) => {
+      const route = walkInRoute(plan, call)!;
+      expect(route).toBeDefined();
+      route.slice(1).forEach((q, i) => {
+        const p = route[i];
+        // On the floor: never diagonal. (Over a curved line between centers it's up in the air.)
+        if (p[1] === 0 && q[1] === 0) expect(Math.min(Math.abs(q[0] - p[0]), Math.abs(q[2] - p[2]))).toBeLessThan(0.01);
+      });
+      const line = plan.paths.find((p) => [call.workstreamKey, ...call.ruleKeys].includes(p.key ?? "") && atDoor(p.points[p.points.length - 1], call.queueKey))!;
+      line.points.forEach((q) => expect(route.some((r) => Math.abs(r[0] - q[0]) < 0.01 && Math.abs(r[2] - q[2]) < 0.01)).toBe(true));
+      const seat = plan.chairs.get(call.queueKey)!.slice(-1)[0];
+      expect(route[route.length - 1]).toEqual([seat[0], 0, seat[2]]);
+      expect(walkSeconds(route)).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  test("to a room in another customer center it goes over the curved line", () => {
+    const across = calls.find((call) => plan.paths.some((p) => [call.workstreamKey, ...call.ruleKeys].includes(p.key ?? "") && p.kind === "skybridge" && atDoor(p.points[p.points.length - 1], call.queueKey)));
+    expect(across).toBeDefined();
+    expect(Math.max(...walkInRoute(plan, across!)!.map((p) => p[1]))).toBeGreaterThan(5);
   });
 });

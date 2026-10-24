@@ -60,7 +60,7 @@ The left panel keeps search, the camera buttons (**Orbit**, **Walk**, **Campus**
 
 - **Centers**: making and filling customer centers (above).
 - **Explore**: **Follow a call** walks the route like a caller: from the entrance past the front desk and a signpost, along the line on the floor (corridor, aisle) and in at the room's front door, then waits at the room's bench until you choose the agent, and walks to that desk. It asks at each fork where the call goes. Also: business units as carpet.
-- **Live**: live activity, read every 15 seconds (every 5 in the sample). Waiting callers sit on the bench inside a room's door (and queue up outside the door when it's full); a caller with an agent stands at the desk; new callers walk in through the entrance; desk screens light up in the agent's presence colour; rooms say "3 waiting".
+- **Live**: live activity, read every 15 seconds (every 5 in the sample). Waiting callers sit on the waiting chairs inside a room's door (and stand beside them when they're full); a caller with an agent stands across the desk; new callers walk in through the entrance, past their counter and along their call's line on the floor (over the curved line to another customer center) to the room; desk screens light up in the agent's presence colour; rooms say "3 waiting".
 - **Health**: the explorer's checks, as warning cones over the records.
 - **Help**: the controls and what everything means.
 

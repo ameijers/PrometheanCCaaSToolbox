@@ -19,7 +19,7 @@ import { Caller, CampusScene, colorFor, PATH_STYLE, SEVERITY_COLORS, Walker } fr
 import { Center, CENTER_COLORS, createCenter, deleteCenter, Grouping, moveWorkstream, recolor, reconcile, rename, setHidden } from "./centers";
 import { buildPlan, UNROUTED_CENTER, Vec3, Wing, WING_COLORS, WING_LABELS, WING_ORDER } from "./floorplan";
 import { browserStore } from "./store";
-import { walkRoute } from "./walk";
+import { walkInRoute, walkRoute, walkSeconds } from "./walk";
 
 type Tab = "centers" | "explore" | "live" | "health" | "help";
 const TABS: { id: Tab; label: string }[] = [
@@ -131,19 +131,21 @@ export function App(): React.ReactElement {
       try {
         const next = buildLive(graph, await readRows(new Date(Date.now() - LIVE_WINDOW_MS).toISOString()), new Date().toISOString());
         if (cancelled) return;
-        // New callers walk in: from their way in, past the front desk, to the room's door.
+        // New callers walk in: from their way in, past the front desk and along their call's line to the room.
         const p = planRef.current;
+        const now = Date.now();
         const arriving = newArrivals(previous, next).flatMap((c): Walker[] => {
-          const from = c.workstreamKey ? p?.entrances.get(c.workstreamKey) : undefined;
-          const counter = c.workstreamKey ? p?.anchors.get(c.workstreamKey) : undefined;
-          const door = c.queueKey ? p?.doors.get(c.queueKey) : undefined;
-          const seat = c.queueKey ? p?.chairs.get(c.queueKey)?.[3] : undefined;
-          // Past the front desk, to the room's door, in, and to the bench.
-          return from && counter && door && seat ? [{ id: `${c.id}:${next.readAt}`, color: CONVERSATION_COLORS.waiting, points: [from, [counter[0], 0, counter[2] + 2], [door[0], 0, door[2] + 2.5], door, [door[0], 0, door[2] - 1.2], seat] }] : [];
+          if (!p || !c.workstreamKey || !c.queueKey) return [];
+          const ruleKeys = graph.edges.filter((e) => e.kind === "routes" && e.from === c.workstreamKey).map((e) => e.to);
+          const points = walkInRoute(p, { workstreamKey: c.workstreamKey, queueKey: c.queueKey, ruleKeys });
+          if (!points) return [];
+          const seconds = walkSeconds(points);
+          return [{ id: `${c.id}:${next.readAt}`, color: CONVERSATION_COLORS.waiting, points, seconds, until: now + seconds * 1000 }];
         });
         previous = next;
         setActivity(next);
-        setWalkers(arriving);
+        // Walkers already on their way keep walking until they're there.
+        setWalkers((walking) => [...walking.filter((w) => w.until > now), ...arriving]);
         setLiveError("");
       } catch (e) {
         if (!cancelled) setLiveError(e instanceof Error ? e.message : String(e));

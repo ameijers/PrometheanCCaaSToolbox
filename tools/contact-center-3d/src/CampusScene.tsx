@@ -45,7 +45,8 @@ export const colorFor = (name: string) => PALETTE[Math.floor(((hash(name, 21) + 
 
 // turn: which way they face (0: into the room, away from its front; Math.PI: towards it, e.g. across an agent's desk).
 export interface Caller { key: string; at: Vec3; color: string; standing: boolean; turn?: number }
-export interface Walker { id: string; points: Vec3[]; color: string }
+// seconds: how long the walk takes; until: when it's there (ms since 1970), for the page to let it go.
+export interface Walker { id: string; points: Vec3[]; color: string; seconds: number; until: number }
 
 interface Props {
   plan: Plan;
@@ -271,7 +272,6 @@ function BoxCallers({ callers }: { callers: Caller[] }) {
 }
 
 // A new caller walking from the way in to the room, then gone.
-const WALK_SECONDS = 5;
 function WalkerFigure({ walker }: { walker: Walker }) {
   return (
     <ModelsOrBoxes fallback={<WalkerMover walker={walker}><WalkerBoxes color={walker.color} /></WalkerMover>}>
@@ -304,11 +304,17 @@ function WalkerBoxes({ color }: { color: string }) {
 function WalkerMover({ walker, turn, children }: { walker: Walker; turn?: boolean; children: React.ReactNode }) {
   const ref = useRef<THREE.Group>(null);
   const start = useRef<number | undefined>(undefined);
-  const curve = useMemo(() => new THREE.CatmullRomCurve3(walker.points.map((p) => new THREE.Vector3(...p)), false, "catmullrom", 0.1), [walker.points]);
+  // Straight from point to point, the way the lines go (a smooth curve would cut corners through walls).
+  const curve = useMemo(() => {
+    const way = new THREE.CurvePath<THREE.Vector3>();
+    const points = walker.points.map((p) => new THREE.Vector3(...p));
+    points.slice(1).forEach((q, i) => way.add(new THREE.LineCurve3(points[i], q)));
+    return way;
+  }, [walker.points]);
   useFrame(({ clock }) => {
     if (!ref.current) return;
     if (start.current === undefined) start.current = clock.getElapsedTime();
-    const t = Math.min(1, (clock.getElapsedTime() - start.current) / WALK_SECONDS);
+    const t = Math.min(1, (clock.getElapsedTime() - start.current) / walker.seconds);
     ref.current.position.copy(curve.getPointAt(t));
     ref.current.position.y += Math.abs(Math.sin(clock.getElapsedTime() * 9)) * 0.08;
     if (turn) { const d = curve.getTangentAt(Math.min(t, 0.999)); ref.current.rotation.y = Math.atan2(-d.x, -d.z); }

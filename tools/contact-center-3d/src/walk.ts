@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Alexander Meijers
 // SPDX-License-Identifier: MIT
 
-import { Plan, Vec3 } from "./floorplan";
+import { PATH_Y, Plan, Vec3 } from "./floorplan";
 
 // Following a call through the building the way a caller would walk it, rather than in straight lines
 // from record to record: from a signpost (or the front desk, or a transfer door) along the same
@@ -51,5 +51,46 @@ export function walkRoute(plan: Plan, path: string[], startAt?: Vec3): Vec3[] {
     if (prevDoor && at[2] > prevDoor[2]) { add(inside(prevDoor)); add(prevDoor); add(outside(prevDoor)); }
     add(at);
   });
+  return points;
+}
+
+// A new caller walking in, live: in through their way in, to the front of their workstream's counter,
+// through it, and along the line on the floor their call takes to the room (from a signpost of one of
+// the workstream's rules, or the default queue's line from the counter), over the curved line when
+// the room is in another customer center, in at its door and to a waiting seat. Straight walkways at
+// right angles, the same as the lines. ruleKeys: the workstream's routing rules, to find the line by.
+// On the floor (y 0); over a curved line, its height above the floor. Undefined when there's no line.
+// How long a walk takes, in seconds: a brisk pace, so a long way doesn't take all day.
+export const WALK_SPEED = 6;
+export function walkSeconds(points: Vec3[]): number {
+  const length = points.slice(1).reduce((s, q, i) => s + Math.hypot(q[0] - points[i][0], q[1] - points[i][1], q[2] - points[i][2]), 0);
+  return Math.min(30, Math.max(3, length / WALK_SPEED));
+}
+
+export function walkInRoute(plan: Plan, call: { workstreamKey: string; queueKey: string; ruleKeys: string[] }): Vec3[] | undefined {
+  const from = plan.entrances.get(call.workstreamKey);
+  const counter = plan.anchors.get(call.workstreamKey);
+  const door = plan.doors.get(call.queueKey);
+  const seats = plan.chairs.get(call.queueKey);
+  if (!from || !counter || !door || !seats?.length) return undefined;
+  const keys = [call.workstreamKey, ...call.ruleKeys];
+  const line = plan.paths.find((p) => p.key && keys.includes(p.key) && close(p.points[p.points.length - 1], door));
+  if (!line) return undefined;
+  const floor = (p: Vec3): Vec3 => [p[0], p[1] > 1.5 ? p[1] - PATH_Y : 0, p[2]];
+  const points: Vec3[] = [];
+  const add = (p: Vec3) => { const last = points[points.length - 1]; if (!last || !close(last, p) || Math.abs(last[1] - p[1]) > 0.05) points.push(p); };
+  const front = counter[2] + 2, behind = counter[2] - 1;
+  add([from[0], 0, from[2]]);
+  add([from[0], 0, front]);
+  add([counter[0], 0, front]);
+  add([counter[0], 0, behind]);
+  // To the line's start (a signpost; the default queue's line starts right behind the counter).
+  const start = line.points[0];
+  add([counter[0], 0, start[2]]);
+  line.points.forEach((q) => add(floor(q)));
+  const seat = seats[seats.length - 1];
+  add([door[0], 0, door[2] - 1.2]);
+  add([seat[0], 0, door[2] - 1.2]);
+  add([seat[0], 0, seat[2]]);
   return points;
 }
