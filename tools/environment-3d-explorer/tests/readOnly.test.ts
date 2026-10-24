@@ -34,8 +34,10 @@ describe("read-only guarantee", () => {
       const graph = await loadGraph();
       expect(graph.nodes).toEqual([]);
       expect(reads.map((r) => r.split("?")[0]).sort()).toEqual([
-        "msdyn_liveworkstream", "msdyn_ocphonenumber", "msdyn_ocvoicechannelsetting", "msdyn_routingconfiguration",
-        "msdyn_routingconfigurationstep", "queue", "queuemembership", "systemuser"
+        "businessunit", "msdyn_capacityprofile", "msdyn_liveworkstream", "msdyn_liveworkstreamcapacityprofile",
+        "msdyn_ocliveworkstreamcontextvariable", "msdyn_ocphonenumber", "msdyn_ocvoicechannelsetting", "msdyn_operatinghour",
+        "msdyn_overflowactionconfig", "msdyn_routingconfiguration", "msdyn_routingconfigurationstep", "queue", "queuemembership",
+        "systemuser", "team"
       ]);
     } finally {
       delete (global as any).Xrm;

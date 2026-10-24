@@ -92,7 +92,75 @@ export function demoRaw(): RawEnvironment {
   });
 
   addProblems(raw, queueId);
+  addMoreConfiguration(raw, queueId);
   return raw;
+}
+
+// The configuration around the call path: a bot, overflow, operating hours, context variables,
+// capacity profiles, teams and business units.
+function addMoreConfiguration(raw: RawEnvironment, queueId: Map<string, string>): void {
+  const workstream = (name: string) => raw.workstreams.find((w) => w.msdyn_name === name)!;
+  const voice = raw.workstreams.filter((w) => w.msdyn_streamsource === VOICE);
+
+  // The customer service line is answered by an IVR bot first.
+  const bot = guid("a5", 1);
+  workstream("Customer Service – Voice")._msdyn_bot_user_value = bot;
+  raw.botUsers = [{ systemuserid: bot, fullname: "Contoso Service IVR (Microsoft Copilot Studio)" }];
+
+  // Context variables the IVR fills in.
+  raw.variables = voice.flatMap((w, i) => [
+    { msdyn_ocliveworkstreamcontextvariableid: guid("a6", i * 2 + 1), msdyn_name: "SelectedMenuItem", msdyn_datatype: 192350000, _msdyn_liveworkstreamid_value: w.msdyn_liveworkstreamid },
+    { msdyn_ocliveworkstreamcontextvariableid: guid("a6", i * 2 + 2), msdyn_name: "CustomerLanguage", msdyn_datatype: 192350000, _msdyn_liveworkstreamid_value: w.msdyn_liveworkstreamid }
+  ]);
+
+  // Opening hours on the sales and billing queues, weekend hours on the Dutch desk.
+  const businessHours = guid("a7", 1), weekend = guid("a7", 2);
+  raw.operatingHours = [{ msdyn_operatinghourid: businessHours, msdyn_name: "Business hours" }, { msdyn_operatinghourid: weekend, msdyn_name: "Weekend desk" }];
+  const queue = (name: string) => raw.queues.find((q) => q.name === name)!;
+  ["Sales", "Billing", "Enterprise Sales"].forEach((n) => { queue(n)._msdyn_operatinghourid_value = businessHours; });
+  queue("Dutch Desk")._msdyn_operatinghourid_value = weekend;
+
+  // Overflow: voicemail after hours, a callback when the wait is long, and Tier 1 handing over to Tier 2.
+  const voicemail = guid("a8", 1), callback = guid("a8", 2), toTier2 = guid("a8", 3);
+  raw.overflowActions = [
+    { msdyn_overflowactionconfigid: voicemail, msdyn_name: "Voicemail", msdyn_overflowactiontype: 192350004 },
+    { msdyn_overflowactionconfigid: callback, msdyn_name: "Callback", msdyn_overflowactiontype: 192350003 },
+    { msdyn_overflowactionconfigid: toTier2, msdyn_name: "QueueTransfer_Tier2", msdyn_overflowactiontype: 192350005, msdyn_overflowactiondata: queueId.get("Tier 2 Support") }
+  ];
+  const overflowXml = (rules: [string, string, string][]) => `<decision hit-policy="first"><rules>${rules.map(([ruleId, flag, action]) =>
+    `<rule id="${ruleId}" name="${ruleId}"><action><setattribute><lhs>overflow.${flag}overflow</lhs><rhs>true</rhs></setattribute><setattribute><lhs>overflowaction.msdyn_overflowactionconfig.msdyn_overflowactionconfigid</lhs><rhs>${action}</rhs></setattribute></action></rule>`).join("")}</rules></decision>`;
+  raw.overflowRulesets = [
+    { msdyn_decisionrulesetid: guid("a9", 1), msdyn_rulesetdefinition: overflowXml([["o1", "operatinghour", voicemail], ["o2", "estimatedwaittime", callback]]) },
+    { msdyn_decisionrulesetid: guid("a9", 2), msdyn_rulesetdefinition: overflowXml([["o3", "operatinghour", voicemail]]) },
+    { msdyn_decisionrulesetid: guid("a9", 3), msdyn_rulesetdefinition: overflowXml([["o4", "lapsedwaittime", toTier2]]) }
+  ];
+  queue("Sales")._msdyn_prequeueoverflowrulesetid_value = guid("a9", 1);
+  queue("Billing")._msdyn_prequeueoverflowrulesetid_value = guid("a9", 2);
+  queue("Tier 1 Support")._msdyn_inqueueoverflowrulesetid_value = guid("a9", 3);
+
+  // Capacity profiles for voice and messaging, on the workstreams and on every agent.
+  const voiceProfile = guid("aa", 1), messagingProfile = guid("aa", 2);
+  raw.capacityProfiles = [{ msdyn_capacityprofileid: voiceProfile, msdyn_name: "Default voice inbound" }, { msdyn_capacityprofileid: messagingProfile, msdyn_name: "Default messaging" }];
+  raw.workstreamCapacity = raw.workstreams.map((w) => ({ _msdyn_workstream_id_value: w.msdyn_liveworkstreamid, _msdyn_capacityprofile_id_value: w.msdyn_streamsource === VOICE ? voiceProfile : messagingProfile }));
+  raw.resourceCapacity = raw.resources.flatMap((r, i) => [
+    { _msdyn_bookableresourceid_value: r.bookableresourceid, _msdyn_capacityprofileid_value: voiceProfile },
+    ...(i % 3 === 0 ? [{ _msdyn_bookableresourceid_value: r.bookableresourceid, _msdyn_capacityprofileid_value: messagingProfile }] : [])
+  ]);
+
+  // Business units and teams.
+  const units = [guid("ab", 1), guid("ab", 2), guid("ab", 3)];
+  raw.businessUnits = [{ businessunitid: units[0], name: "Contoso" }, { businessunitid: units[1], name: "Contoso Sales" }, { businessunitid: units[2], name: "Contoso Support" }];
+  raw.users.forEach((u, i) => { u._businessunitid_value = units[i < 18 ? 1 : i < 50 ? 2 : 0]; });
+  raw.teams = [
+    { teamid: guid("ac", 1), name: "Contoso", isdefault: true },
+    { teamid: guid("ac", 2), name: "Evening shift", isdefault: false },
+    { teamid: guid("ac", 3), name: "Escalation team", isdefault: false }
+  ];
+  raw.teamMemberships = raw.users.flatMap((u, i) => [
+    { systemuserid: u.systemuserid, teamid: guid("ac", 1) },
+    ...(i % 4 === 0 ? [{ systemuserid: u.systemuserid, teamid: guid("ac", 2) }] : []),
+    ...(i % 7 === 3 ? [{ systemuserid: u.systemuserid, teamid: guid("ac", 3) }] : [])
+  ]);
 }
 
 // A few things that are wrong, so the health overlay has something to show.

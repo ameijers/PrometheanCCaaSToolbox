@@ -71,7 +71,7 @@ export function App(): React.ReactElement {
   const [graph, setGraph] = useState<Graph | undefined>(undefined);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [hiddenKinds, setHiddenKinds] = useState<Set<NodeKind>>(new Set());
+  const [hiddenKinds, setHiddenKinds] = useState<Set<NodeKind>>(() => new Set(KIND_ORDER.filter((k) => KINDS[k].hiddenAtFirst)));
   const [selected, setSelected] = useState<string | undefined>(undefined);
   const [hovered, setHovered] = useState<string | undefined>(undefined);
   const [chainOnly, setChainOnly] = useState(false);

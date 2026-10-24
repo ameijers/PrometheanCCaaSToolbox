@@ -84,7 +84,7 @@ describe("buildGraph", () => {
   test("the sample environment builds into a connected graph", () => {
     const graph = buildGraph(demoRaw());
     const kinds = new Set(graph.nodes.map((n) => n.kind));
-    expect([...kinds].sort()).toEqual(["agent", "channel", "phone", "queue", "rule", "skill", "workstream"]);
+    expect([...kinds].sort()).toEqual(["agent", "bot", "businessunit", "capacity", "channel", "hours", "overflow", "phone", "queue", "rule", "skill", "team", "variable", "workstream"]);
     const keys = new Set(graph.nodes.map((n) => n.key));
     graph.edges.forEach((e) => { expect(keys.has(e.from)).toBe(true); expect(keys.has(e.to)).toBe(true); });
     expect(graph.warnings).toEqual([]);

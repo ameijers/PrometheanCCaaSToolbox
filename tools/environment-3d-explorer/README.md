@@ -11,12 +11,21 @@ Each record type sits on its own depth layer. Front to back follows the way a co
 | Layer (front → back) | Shape | Linked to the next layer by |
 | --- | --- | --- |
 | Phone numbers | small sphere | the voice channel that uses the number |
-| Voice channels | diamond | the channel's workstream |
+| Voice channels | diamond | the channel's workstream, or its bot when the workstream has one |
+| Bots | knot | the workstream the bot (a Copilot Studio agent) hands over to |
 | Workstreams | large ball | the route-to-queue rules of the active routing configuration, and the default queue |
+| *Context variables* | small cone | — (beside their workstream) |
 | Routing rules | pyramid | the queue(s) the rule routes to (weighted distributions show the percentage) |
-| Queues | cube | the queue's members |
-| Agents | small sphere | the agent's skills (with rating) |
+| Operating hours | ring | the queues that use them |
+| Queues | cube | the queue's members, and its overflow actions |
+| Overflow actions | cone | for a queue transfer, the queue it transfers to |
+| Agents | small sphere | the agent's skills (with rating), capacity profiles, teams and business unit |
+| *Capacity profiles* | cylinder | — (also linked from the workstreams that use them) |
 | Skills | dodecahedron | — |
+| *Teams* | octahedron | — (not the business units' default teams, which every user is in) |
+| *Business units* | flat block | — |
+
+The types in *italics* start hidden, because they can add a lot of records: tick them in the legend. Context variables, operating hours, overflow actions, capacity profiles, teams and business units sit on half layers next to the records they belong to; their layer name is on the other side of the ring. Overflow actions are drawn per queue, with when they apply (for example "Out of operating hours (before queuing)") in their details.
 
 A faint ring marks each layer. Within a layer, a record sits near the records it's linked to, so connected things line up front to back.
 
@@ -28,7 +37,7 @@ A faint ring marks each layer. Within a layer, a record sits near the records it
 - **Walk mode**: drag to look around. You turn the view by dragging, without pointer lock, so walk mode also works inside the model-driven app's frame.
 - **Both modes**: W A S D or the arrow keys move, E/Q go up and down, Shift moves faster. M switches mode, Esc clears the focus.
 - The checkboxes in the legend hide or show a layer.
-- **Follow the call** rides along the lines a call takes, from the selected record (or, with nothing selected, the first phone number): phone number → voice channel → workstream → routing rule → queue → agent. A bright point travels the route and the camera rides behind it, looking ahead. Where there's one way the ride goes on by itself; at a fork (a workstream's rules and default queue, a queue's agents) it slows down and asks where the call goes next. Everything else is dimmed; tick **Show only the route** to hide it. Pause, start again and stop are in the ride bar; Esc also stops it.
+- **Follow the call** rides along the lines a call takes, from the selected record (or, with nothing selected, the first phone number): phone number → voice channel → bot (if there is one) → workstream → routing rule → queue → agent, or an overflow action (a queue transfer rides on to its queue). A bright point travels the route and the camera rides behind it, looking ahead. Where there's one way the ride goes on by itself; at a fork (a workstream's rules and default queue, a queue's agents) it slows down and asks where the call goes next. Everything else is dimmed; tick **Show only the route** to hide it. Pause, start again and stop are in the ride bar; Esc also stops it.
 - **Size by connections** makes each record's size show how many links it has, so busy queues and big workstreams stand out.
 - **Save view** keeps the current camera position under a name; click a saved view to fly back to it. Saved views stay in this browser, per environment.
 - **Screenshot** downloads the current view as a PNG (without the name labels, which are HTML on top of the scene).
@@ -81,7 +90,7 @@ The last 24 hours are there because a test environment often has nothing open. I
 
 ### Tables read
 
-`msdyn_ocphonenumber`, `msdyn_ocvoicechannelsetting`, `msdyn_liveworkstream` (active), `msdyn_routingconfiguration`, `msdyn_routingconfigurationstep`, `msdyn_decisionruleset` (the route-to-queue rulesets only), `queue` (active omnichannel queues, not `<CDS System>`), `queuemembership`, `systemuser` (interactive users), `bookableresource`, `bookableresourcecharacteristic` (with its characteristic and rating). With live activity on, also `msdyn_agentstatus` (with `msdyn_presence`) for the agents, and `msdyn_ocliveworkitem` for conversations open now or created in the last 24 hours.
+`msdyn_ocphonenumber`, `msdyn_ocvoicechannelsetting`, `msdyn_liveworkstream` (active), `msdyn_routingconfiguration`, `msdyn_routingconfigurationstep`, `msdyn_decisionruleset` (the route-to-queue rulesets only), `queue` (active omnichannel queues, not `<CDS System>`), `queuemembership`, `systemuser` (interactive users), `bookableresource`, `bookableresourcecharacteristic` (with its characteristic and rating). Around the call path, each optional: the workstreams' bot users (`systemuser`), `msdyn_ocliveworkstreamcontextvariable`, `msdyn_operatinghour`, the queues' overflow rulesets (`msdyn_decisionruleset`) and `msdyn_overflowactionconfig`, `msdyn_capacityprofile`, `msdyn_liveworkstreamcapacityprofile`, `msdyn_bookableresourcecapacityprofile`, `team`, `teammembership`, `businessunit`. With live activity on, also `msdyn_agentstatus` (with `msdyn_presence`) for the agents, and `msdyn_ocliveworkitem` for conversations open now or created in the last 24 hours.
 
 Agents are the users who are a member of at least one omnichannel queue.
 
