@@ -16,7 +16,7 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 | Signpost at the corridor, with a red line on the floor to its room | routing rule |
 | Wing behind the corridor: **Phone**, **Chat & messaging**, **Email & records**, side by side | the kind of work: a queue's room is in the wing of its type |
 | Room, with a blue waiting bench inside, beside the door | queue |
-| Desk with a person behind it, small badges on its front | agent and their skills |
+| Desk with a monitor, an office chair and an agent sitting at it, small badges on its front | agent and their skills; with live activity the screen shows their presence colour |
 | Carpet under a desk (when switched on) | the agent's business unit |
 | Sign by the room's door | operating hours |
 | Outside the room's front door | overflow: a mailbox (voicemail), a phone booth (callback or transfer to phone), an exit (end conversation), an amber block (remain in queue) |
@@ -28,6 +28,8 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 | "Not routed" building | queues no shown workstream routes to; hidden until you tick **Show queues nothing routes to** on the Centers tab |
 
 ![Inside a customer center, with live activity](images/02-room.png)
+
+![Desks: an agent at each, the screen in their presence colour](images/04-desks.png)
 
 ## Customer centers
 
@@ -73,7 +75,8 @@ It reuses the explorer's code rather than copying it: the Dataverse reads and th
 - `src/centers.ts`: the customer centers (create, move, delete, rename, recolour, hide, and matching a saved grouping to today's workstreams).
 - `src/store.ts`: where the grouping is kept.
 - `src/floorplan.ts`: the plan, from graph and grouping to buildings, wings, areas, walls, fixtures, paths, anchors, waiting-bench seats, room doors and ways in. Pure.
-- `src/CampusScene.tsx`: draws it. Floors, walls, desks and people are instanced boxes, so large centers stay smooth.
+- `src/CampusScene.tsx`: draws it. Floors and walls are instanced boxes; the desks are 3D models, drawn as one instanced mesh per model part, so large centers stay smooth.
+- `src/models.ts`: the 3D models, from `models/` (Kenney's Furniture Kit and Mini Characters, CC0, see the licence files there). They're inlined in the bundle as data URLs (a web resource can't be a `.glb` file), and the characters are put in their sitting pose once, when they load. While they load, or if they can't, the desks are boxes.
 
 Tables read: the same as the explorer (with live activity: `msdyn_agentstatus` and `msdyn_ocliveworkitem`). Written: nothing; `tests/floorplan.test.ts` includes the read-only check.
 

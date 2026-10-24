@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import * as React from "react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Html, Line, OrbitControls } from "@react-three/drei";
@@ -10,6 +10,7 @@ import { Severity } from "../../environment-3d-explorer/src/health";
 import { hash } from "../../environment-3d-explorer/src/layout";
 import { CameraGoal, CameraRig, Mode, Ride, SceneHandle } from "../../environment-3d-explorer/src/Scene";
 import { Area, Fixture, FixtureKind, Path, PathKind, Plan, Vec3, Wall, Wing, WING_COLORS } from "./floorplan";
+import { Model, useDeskModels } from "./models";
 
 // The campus in 3D: open-roofed buildings seen from above, like a doll's house. Floors, walls, desks
 // and people are instanced boxes, so a large center stays smooth.
@@ -103,9 +104,100 @@ function Boxes({ items, color, opacity = 1, emissive, onPick }: { items: BoxItem
   );
 }
 
-// Desks with a person behind each, the screen in the agent's presence colour, skill badges on the
-// front edge and, when asked, a carpet tile in the business unit's colour.
-function Desks({ desks, screens, showUnits, onPick }: { desks: Fixture[]; screens?: Map<string, string>; showUnits?: boolean; onPick(key: string, at: Vec3): void }) {
+interface DesksProps { desks: Fixture[]; screens?: Map<string, string>; showUnits?: boolean; onPick(key: string, at: Vec3): void }
+
+// Which desk was clicked: the agent may sit in several rooms.
+function pickDesk(desks: Fixture[], onPick: DesksProps["onPick"]) {
+  return (key: string | undefined, item: { x: number; z: number }) => {
+    const desk = desks.find((d) => d.key === key && Math.abs(d.x - item.x) < 1 && Math.abs(d.z - item.z) < 1.2);
+    if (key) onPick(key, desk ? [desk.x, 1.4, desk.z + 0.6] : [item.x, 1.4, item.z]);
+  };
+}
+
+// Desks: the 3D models, or the box desks while they load (or if they can't).
+function Desks(props: DesksProps) {
+  return (
+    <ModelsOrBoxes fallback={<BoxDesks {...props} />}>
+      <ModelDesks {...props} />
+    </ModelsOrBoxes>
+  );
+}
+
+// Shows the fallback while the models load, and keeps it if loading fails.
+class ModelsOrBoxes extends React.Component<{ fallback: React.ReactNode; children: React.ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? this.props.fallback : <Suspense fallback={this.props.fallback}>{this.props.children}</Suspense>; }
+}
+
+interface ModelItem { x: number; y: number; z: number; key?: string }
+
+// Many copies of one model: an instanced mesh per part, each copy moved to its spot.
+function ModelInstances({ model, items, onPick }: { model: Model; items: ModelItem[]; onPick?: (key: string | undefined, item: ModelItem) => void }) {
+  const refs = useRef<(THREE.InstancedMesh | null)[]>([]);
+  useLayoutEffect(() => {
+    const m = new THREE.Matrix4();
+    refs.current.forEach((mesh) => {
+      if (!mesh) return;
+      items.forEach((it, i) => { m.makeTranslation(it.x, it.y, it.z); mesh.setMatrixAt(i, m); });
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+    });
+  }, [items, model]);
+  if (!items.length) return null;
+  return (
+    <>
+      {model.parts.map((part, p) => (
+        <instancedMesh
+          key={`${p}:${items.length}`} ref={(el) => { refs.current[p] = el; }} args={[part.geometry, part.material, items.length]}
+          onClick={onPick ? (e: ThreeEvent<MouseEvent>) => { if (e.delta > 4 || e.instanceId === undefined) return; e.stopPropagation(); onPick(items[e.instanceId]?.key, items[e.instanceId]); } : undefined}
+          raycast={onPick ? undefined : () => null}
+        />
+      ))}
+    </>
+  );
+}
+
+// Desks from the models: a desk, a screen and keyboard on it, an office chair and an agent sitting
+// on it, facing the screen. The screen glows in the agent's presence colour; skill badges and the
+// business unit carpet as with the box desks.
+function ModelDesks({ desks, screens, showUnits, onPick }: DesksProps) {
+  const models = useDeskModels();
+  const parts = useMemo(() => {
+    const top = models.desk.size.y;
+    const screen = models.screen.size;
+    const at = (f: Fixture, dx: number, dy: number, dz: number, extra: Partial<ModelItem> = {}): ModelItem => ({ x: f.x + dx, y: f.y + dy, z: f.z + dz, key: f.key, ...extra });
+    const box = (f: Fixture, dx: number, dy: number, dz: number, w: number, h: number, d: number, extra: Partial<BoxItem> = {}): BoxItem => ({ x: f.x + dx, y: f.y + dy, z: f.z + dz, w, h, d, key: f.key, ...extra });
+    return {
+      desks: desks.map((f) => at(f, 0, 0, 0)),
+      screens: desks.map((f) => at(f, 0, top, -0.2)),
+      keyboards: desks.map((f) => at(f, 0, top, 0.2, { key: undefined })),
+      chairs: desks.map((f) => at(f, 0, 0, 0.95, { key: undefined })),
+      agents: models.agents.map((_, i) => desks.filter((f) => (hash(f.key ?? "") > 0 ? 1 : 0) === i).map((f) => at(f, 0, 0.5, 0.95))),
+      // The presence glow: a panel on the screen's front.
+      glows: desks.map((f) => box(f, 0, top + screen.y * 0.3, -0.2 + screen.z / 2 + 0.02, screen.x * 0.85, screen.y * 0.6, 0.02, { color: new THREE.Color(screens?.get(f.key ?? "") ?? SCREEN) })),
+      badges: desks.flatMap((f) => (f.skills ?? []).slice(0, 3).map((s, i) => box(f, -0.5 + i * 0.5, top - 0.25, 0.42, 0.3, 0.18, 0.04, { color: new THREE.Color(colorFor(s)) }))),
+      carpets: showUnits ? desks.filter((f) => f.unit).map((f) => box(f, 0, 0.03, 0.3, 3, 0.02, 3, { color: new THREE.Color(colorFor(f.unit!)), key: undefined })) : []
+    };
+  }, [desks, screens, showUnits, models]);
+  const pick = pickDesk(desks, onPick);
+  return (
+    <>
+      <Boxes items={parts.carpets} />
+      <ModelInstances model={models.desk} items={parts.desks} onPick={pick} />
+      <ModelInstances model={models.screen} items={parts.screens} onPick={pick} />
+      <ModelInstances model={models.keyboard} items={parts.keyboards} />
+      <ModelInstances model={models.chair} items={parts.chairs} />
+      {models.agents.map((m, i) => <ModelInstances key={i} model={m} items={parts.agents[i]} onPick={pick} />)}
+      <Boxes items={parts.glows} emissive={!!screens} onPick={pick} />
+      <Boxes items={parts.badges} emissive />
+    </>
+  );
+}
+
+// The box desks: a person behind each, the screen in the agent's presence colour, skill badges on
+// the front edge and, when asked, a carpet tile in the business unit's colour.
+function BoxDesks({ desks, screens, showUnits, onPick }: DesksProps) {
   const parts = useMemo(() => {
     const at = (f: Fixture, dx: number, dy: number, dz: number, w: number, h: number, d: number, extra: Partial<BoxItem> = {}): BoxItem => ({ x: f.x + dx, y: f.y + dy, z: f.z + dz, w, h, d, key: f.key, ...extra });
     return {
@@ -119,11 +211,7 @@ function Desks({ desks, screens, showUnits, onPick }: { desks: Fixture[]; screen
       carpets: showUnits ? desks.filter((f) => f.unit).map((f) => at(f, 0, 0.03, 0.3, 3, 0.02, 3, { color: new THREE.Color(colorFor(f.unit!)), key: undefined })) : []
     };
   }, [desks, screens, showUnits]);
-  // Which desk was clicked: the agent may sit in several rooms.
-  const pick = (key: string | undefined, item: BoxItem) => {
-    const desk = desks.find((d) => d.key === key && Math.abs(d.x - item.x) < 1 && Math.abs(d.z - item.z) < 1.2);
-    if (key) onPick(key, desk ? [desk.x, 1.4, desk.z + 0.6] : [item.x, 1.4, item.z]);
-  };
+  const pick = pickDesk(desks, onPick);
   return (
     <>
       <Boxes items={parts.carpets} />

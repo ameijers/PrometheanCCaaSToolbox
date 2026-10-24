@@ -33,6 +33,10 @@ module.exports = {
   },
   resolve: { extensions: [".ts", ".tsx", ".js"] },
   module: {
-    rules: [{ test: /\.tsx?$/, use: "ts-loader", exclude: /node_modules/ }]
+    rules: [
+      { test: /\.tsx?$/, use: "ts-loader", exclude: /node_modules/ },
+      // 3D models go inside the bundle as data: URLs (a web resource can't be a .glb file).
+      { test: /\.glb$/, type: "asset/inline" }
+    ]
   }
 };

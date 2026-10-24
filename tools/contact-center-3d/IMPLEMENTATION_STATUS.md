@@ -49,8 +49,15 @@ First version: the campus, a building per customer center, combine / split / mov
 - **Black background, no ground** (after review): the buildings float on near black; the ground plane is gone and the line colours are brighter so they read on the dark.
 - A **Lines** legend explains the four styles, from the same list the scene draws with.
 
+## 3D models (2026-10-24)
+
+- Desks are models from Kenney (CC0): `desk`, `chairDesk`, `computerScreen`, `computerKeyboard` (Furniture Kit) and two Mini Characters, slimmed to their `sit` animation (gltf-transform: other animations removed, texture embedded, pruned). About 400 KB of models; the bundle went from 1.1 to 1.6 MB.
+- Webpack inlines `.glb` as data URLs (`asset/inline`); jest maps `.glb` to a stub. `useGLTF` loads them (no Draco or meshopt); `toModel` bakes the sitting pose into plain geometry, centres it and scales it (furniture 2.5x; characters 0.65 of that, their heads are big). One instanced mesh per model part.
+- Agents sit on the +z side of the desk, facing the screen; the presence glow is a panel on the screen's front. The box desks stay as the fallback.
+- Next candidates for models: waiting callers and walkers, the front desk, the bench, the kiosk, overflow fixtures, plants.
+
 ## Next ideas
 
 - Shared customer centers in Dataverse (needs a table in the solution; the store interface is ready).
-- More recognisable 3D objects (the user wants to come back to this), and fewer overlapping labels in a big center.
+- More recognisable 3D objects beyond the desks (see above), and fewer overlapping labels in a big center.
 - Teams as zones.
