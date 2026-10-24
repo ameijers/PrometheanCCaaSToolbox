@@ -42,7 +42,8 @@ Workstreams in no customer center are listed under it, each standing as a buildi
 
 - One front desk per center, a counter per workstream; the signposts of all its workstreams share one corridor.
 - A queue's room is in the wing of its type (a voice queue in the phone wing) of the center that routes to it most (ties: the first center in the list). Other centers reach it over a skybridge. A queue only reached by another queue's overflow transfer sits with that queue.
-- Wings stand side by side; their rooms are in a grid about as wide as it's deep (4 rooms are 2 × 2, 9 are 3 × 3).
+- Wings stand side by side; their rooms are in a grid about as wide as it's deep (4 rooms are 2 × 2, 9 are 3 × 3), in straight columns with aisles between them.
+- Lines on the floor keep to the walkways: along the corridor, down the aisle beside a room, along the walkway in front of its row, in at its front door. They never cross a room.
 - An agent who is a member of several queues has **one** desk, in the first of those queues by name. The other rooms show "Desk in another room" in their details.
 - The same environment and grouping always give the same plan.
 

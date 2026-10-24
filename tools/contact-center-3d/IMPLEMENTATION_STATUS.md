@@ -34,6 +34,12 @@ First version: the campus, a building per customer center, combine / split / mov
 - **Follow a call** with the explorer's `ride.ts` and camera rig; the rig now takes a `rideScale` (0.3 here, so it rides close behind the call inside a building).
 - **Skills** as badges on the desk (and listed with their rating in the details), **business units** as carpet (switch on the Explore tab), **context variables** as a clipboard on the counter.
 
+## Lines (2026-10-24)
+
+- The white edge under the lines is gone; lines run 0.5 m above the floor instead, so floor tiles can't hide them. Widths halved after review (they're screen pixels, doubled on high-DPI displays).
+- Lines keep to the walkways: rooms are in straight columns (each as wide as its widest room), and a line goes along the corridor, down the aisle left of its room, along the walkway in front of the row, in at the door. A test walks every line and checks it never enters a room.
+- A **Lines** legend explains the four styles, from the same list the scene draws with.
+
 ## Next ideas
 
 - Shared customer centers in Dataverse (needs a table in the solution; the store interface is ready).

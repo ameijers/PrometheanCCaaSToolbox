@@ -66,8 +66,21 @@ describe("buildPlan", () => {
     expect(plan.fixtures.filter((f) => ["mailbox", "booth", "transfer"].includes(f.kind)).map((f) => f.kind).sort()).toEqual(["booth", "mailbox", "mailbox", "transfer"]);
   });
 
-  test("routes in the same building run along the corridor; a shared queue gets a skybridge", () => {
-    expect(plan.paths.filter((p) => p.kind === "route").every((p) => p.points.length === 4)).toBe(true);
+  test("routes in the same building keep to the corridor and aisles, never through a room; a shared queue gets a skybridge", () => {
+    const routes = plan.paths.filter((p) => p.kind === "route" || p.kind === "default" || p.kind === "transfer").filter((p) => p.points.every((q) => q[1] < 1));
+    expect(routes.length).toBeGreaterThan(0);
+    const roomsHere = plan.areas.filter((a) => a.kind === "room");
+    routes.forEach((p) => {
+      // Every leg but the last (in at the door) stays out of every room.
+      for (let i = 0; i < p.points.length - 2; i++) {
+        const [a, b] = [p.points[i], p.points[i + 1]];
+        for (let t = 0; t <= 1; t += 0.05) {
+          const x = a[0] + (b[0] - a[0]) * t, z = a[2] + (b[2] - a[2]) * t;
+          const inside = roomsHere.find((r) => Math.abs(x - r.x) < r.w / 2 - 0.1 && Math.abs(z - r.z) < r.d / 2 - 0.1);
+          expect(inside?.name ?? "outside").toBe("outside");
+        }
+      }
+    });
     const bridges = plan.paths.filter((p) => p.kind === "skybridge");
     expect(bridges.length).toBeGreaterThan(0);
     expect(bridges.every((p) => Math.max(...p.points.map((q) => q[1])) > 5)).toBe(true);

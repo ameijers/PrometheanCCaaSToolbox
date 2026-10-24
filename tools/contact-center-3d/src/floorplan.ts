@@ -10,7 +10,8 @@ import { Grouping } from "./centers";
 //   entrance  - a door per voice channel with its phone numbers above it, and a screen for the
 //               digital channels when the center has any
 //   reception - one front desk for the whole center, a counter on it per workstream; bots as kiosks in front
-//   corridor  - a signpost per routing rule; paths on the floor lead from each sign to its room
+//   corridor  - a signpost per routing rule; paths lead from each sign along the corridor, then down the
+//               aisle beside the room and along the walkway in front of its row to its door
 //   wings     - one per kind of work (phone, chat & messaging, email & records), side by side, each with
 //               its rooms in a grid: desks with an agent behind each, chairs to wait on by the door,
 //               opening hours on a sign, overflow (mailbox, phone booth, exit, door through) outside
@@ -156,16 +157,18 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
         const rows = Math.max(1, Math.ceil(desks.length / cols));
         return { key: q.key, name: q.name, desks, w: Math.max(ROOM_MIN_W, cols * DESK + 3), d: rows * DESK + WAITING + 2, x: 0, dz: 0 };
       });
-      // Rooms in a grid about as wide as it's deep: 4 rooms are 2 x 2, 9 are 3 x 3.
+      // Rooms in a grid about as wide as it's deep (4 rooms are 2 x 2, 9 are 3 x 3), in columns as wide
+      // as their widest room, so the aisles between the columns run straight from front to back.
       const cols = Math.max(1, Math.ceil(Math.sqrt(rooms.length)));
-      let dz = ROOMS_FROM, w = 0;
+      const colWidths = Array.from({ length: cols }, (_, c) => Math.max(0, ...rooms.filter((_, i) => i % cols === c).map((room) => room.w)));
+      const colX = colWidths.map((_, c) => 2 + colWidths.slice(0, c).reduce((s, cw) => s + cw + ROOM_GAP, 0));
+      let dz = ROOMS_FROM;
       for (let r = 0; r < rooms.length; r += cols) {
         const row = rooms.slice(r, r + cols);
-        let x = 2;
-        row.forEach((room) => { room.x = x; room.dz = dz; x += room.w + ROOM_GAP; });
-        w = Math.max(w, x - ROOM_GAP + 2);
+        row.forEach((room, c) => { room.x = colX[c]; room.dz = dz; });
         dz += Math.max(...row.map((room) => room.d)) + ROOM_GAP;
       }
+      const w = colX[cols - 1] + colWidths[cols - 1] + 2;
       return { kind, rooms, w, d: dz - ROOM_GAP };
     }).filter((wing) => wing.rooms.length);
     const wingsWidth = wings.reduce((s, wing) => s + wing.w, 0) + WING_GAP * Math.max(0, wings.length - 1);
@@ -176,8 +179,9 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
   }).filter((l) => l.center.workstreams.length || l.wings.length);
 
   const plan: Plan = { buildings: [], areas: [], walls: [], fixtures: [], paths: [], anchors: new Map(), elsewhere, chairs: new Map(), entrances: new Map(), bounds: { x: 0, z: 0, w: 0, d: 0, h: 0 } };
-  const doorOf = new Map<string, { at: Vec3; building: string; wing: Wing }>();
-  const pending: { kind: PathKind; from: Vec3; building: string; to: string; key?: string; corridor?: number }[] = [];
+  // A room's door, and the way to it: the aisle on its left and the walkway in front of its row.
+  const doorOf = new Map<string, { at: Vec3; building: string; wing: Wing; aisleX: number; walkZ: number; corridorZ: number }>();
+  const pending: { kind: PathKind; from: Vec3; building: string; to: string; key?: string; corridor?: number; fromRoom?: string }[] = [];
 
   // The campus: buildings in rows, front facing the viewer (+z).
   const rowLimit = Math.max(120, Math.sqrt(layouts.reduce((s, l) => s + l.width * l.depth, 0)) * 1.6);
@@ -259,7 +263,7 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
         const rx = box.x + r.x - 2, front = r.dz, doorX = rx + r.w / 2;
         area("room", rx + r.w / 2, wz(front + r.d / 2), r.w, r.d, r.key, r.name, wing.kind);
         plan.anchors.set(r.key, [rx + r.w / 2, 0, wz(front + r.d / 2)]);
-        doorOf.set(r.key, { at: [doorX, PATH_Y, wz(front)], building: center.id, wing: wing.kind });
+        doorOf.set(r.key, { at: [doorX, PATH_Y, wz(front)], building: center.id, wing: wing.kind, aisleX: rx - ROOM_GAP / 2, walkZ: wz(front - ROOM_GAP / 2), corridorZ: wz(ENTRANCE_D + LOBBY_D + CORRIDOR_D / 2) });
         plan.walls.push(...wallAlongX(rx, rx + r.w, wz(front), ROOM_WALL_H, [doorX], wing.kind), ...wallAlongX(rx, rx + r.w, wz(front + r.d), ROOM_WALL_H, [], wing.kind));
         plan.walls.push({ x: rx, y, z: wz(front + r.d / 2), w: 0.2, d: r.d, h: ROOM_WALL_H, wing: wing.kind }, { x: rx + r.w, y, z: wz(front + r.d / 2), w: 0.2, d: r.d, h: ROOM_WALL_H, wing: wing.kind });
 
@@ -285,7 +289,7 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
           const fx = doorX + (k % 2 === 0 ? -1 : 1) * (DOOR_W / 2 + 1.2 + Math.floor(k / 2) * 1.6);
           fixture({ kind: OVERFLOW_FIXTURES[node?.name ?? ""] ?? "hold", key: e.to, x: fx, z: wz(front - 1.2), label: node?.name, wing: wing.kind });
           plan.anchors.set(e.to, [fx, 1.2, wz(front - 1.2)]);
-          out(e.to, "transfer").forEach((t) => pending.push({ kind: "transfer", from: [fx, PATH_Y, wz(front - 1.2)], building: center.id, to: t.to, key: e.to }));
+          out(e.to, "transfer").forEach((t) => pending.push({ kind: "transfer", from: [fx, PATH_Y, wz(front - 1.2)], building: center.id, to: t.to, key: e.to, fromRoom: r.key }));
         });
       });
     });
@@ -295,13 +299,23 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
     plan.walls.push({ x: x0, y, z: wz(depth / 2), w: 0.25, d: depth, h: WALL_H }, { x: x0 + width, y, z: wz(depth / 2), w: 0.25, d: depth, h: WALL_H });
   });
 
-  // Paths to the rooms: along the corridor in the same building, over a skybridge to another one.
+  // Paths to the rooms. In the same building they keep to the walkways: along the corridor, down the
+  // aisle beside the room, along the walkway in front of its row, in at the door; an overflow transfer
+  // first walks out of its own room's row the same way. To another building: over a skybridge.
+  const y = PATH_Y;
+  const inTo = (door: NonNullable<ReturnType<typeof doorOf.get>>, corridor: number): Vec3[] =>
+    [[door.aisleX, y, corridor], [door.aisleX, y, door.walkZ], [door.at[0], y, door.walkZ], door.at];
+  const withoutRepeats = (points: Vec3[]) => points.filter((q, i) => i === 0 || Math.hypot(q[0] - points[i - 1][0], q[2] - points[i - 1][2]) > 0.01);
   pending.forEach((p) => {
     const door = doorOf.get(p.to);
     if (!door) return;
     if (door.building === p.building) {
-      const corridor = p.corridor ?? p.from[2];
-      plan.paths.push({ kind: p.kind, key: p.key, wing: door.wing, points: [p.from, [p.from[0], p.from[1], corridor], [door.at[0], p.from[1], corridor], [door.at[0], p.from[1], door.at[2]]] });
+      const source = p.fromRoom ? doorOf.get(p.fromRoom) : undefined;
+      const corridor = p.corridor ?? door.corridorZ;
+      const out: Vec3[] = source
+        ? [p.from, [p.from[0], y, source.walkZ], [source.aisleX, y, source.walkZ], [source.aisleX, y, corridor]]
+        : [p.from, [p.from[0], y, corridor]];
+      plan.paths.push({ kind: p.kind, key: p.key, wing: door.wing, points: withoutRepeats([...out, ...inTo(door, corridor)]) });
       return;
     }
     const points: Vec3[] = [];
