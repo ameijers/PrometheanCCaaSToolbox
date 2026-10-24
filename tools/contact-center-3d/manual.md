@@ -34,7 +34,7 @@ From the front (the entrance) to the back:
 6. **Rooms**: the queues. Chairs by the door are where callers wait. Each **desk** has the agent behind it; the small coloured badges on the desk are the agent's skills.
 7. **By a room's door**: its opening hours (dark sign) and its overflow: a red mailbox for voicemail, a glass phone booth for a callback, a green exit for ending the conversation, a purple door for a transfer to another queue.
 
-A blue **skybridge** goes to a room in another customer center. A faint dashed yellow line goes to a workstream's default queue.
+A blue **skybridge** goes to a room in another customer center. A faint dashed yellow line goes to a workstream's default queue, a dashed red one is an overflow transfer to another queue. The **Lines** legend in the bottom-right corner shows them all; click it to fold it away.
 
 Click anything to see what it is, its details, and what it's linked to. Click a link to go there.
 

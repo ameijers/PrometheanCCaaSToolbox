@@ -15,7 +15,7 @@ import { EDGE_LABELS, Graph, GraphEdge, KINDS } from "../../environment-3d-explo
 import { defaultRideStart, extendRide, RideOption } from "../../environment-3d-explorer/src/ride";
 import { CameraGoal, Mode, Ride, SceneHandle } from "../../environment-3d-explorer/src/Scene";
 import { readUrlOptions } from "../../environment-3d-explorer/src/urlOptions";
-import { Caller, CampusScene, colorFor, SEVERITY_COLORS, Walker } from "./CampusScene";
+import { Caller, CampusScene, colorFor, PATH_STYLE, SEVERITY_COLORS, Walker } from "./CampusScene";
 import { Center, CENTER_COLORS, createCenter, deleteCenter, Grouping, moveWorkstream, recolor, reconcile, rename, setHidden } from "./centers";
 import { buildPlan, UNROUTED_CENTER, Vec3, Wing, WING_COLORS, WING_LABELS, WING_ORDER } from "./floorplan";
 import { browserStore } from "./store";
@@ -74,6 +74,7 @@ export function App(): React.ReactElement {
   const [newName, setNewName] = useState("");
   const [renaming, setRenaming] = useState<{ id: string; name: string } | undefined>(undefined);
   const [dragging, setDragging] = useState<string | undefined>(undefined);
+  const [legendOpen, setLegendOpen] = useState(true);
   // ?wing=voice (or messaging, records; floor= from before still works) shows one wing.
   const [wing, setWing] = useState<Wing | undefined>(() => WING_ORDER.find((k) => k === (asked("wing") ?? asked("floor"))));
   const [liveOn, setLiveOn] = useState(() => isOn(asked("live")));
@@ -501,6 +502,20 @@ export function App(): React.ReactElement {
           )}
         </aside>
       )}
+
+      <div className={`legend-box${legendOpen ? "" : " closed"}`}>
+        <button className="legend-toggle" onClick={() => setLegendOpen((o) => !o)} aria-expanded={legendOpen}>Lines {legendOpen ? "▾" : "▸"}</button>
+        {legendOpen && (
+          <ul>
+            {(Object.keys(PATH_STYLE) as (keyof typeof PATH_STYLE)[]).map((k) => (
+              <li key={k}>
+                <svg width="34" height="10" aria-hidden="true"><line x1="1" y1="5" x2="33" y2="5" stroke={PATH_STYLE[k].color} strokeWidth={Math.max(2, PATH_STYLE[k].width * 0.8)} strokeDasharray={PATH_STYLE[k].dashed ? "5 3" : undefined} strokeLinecap="round" /></svg>
+                {PATH_STYLE[k].label}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {ride && (
         <div className="ride">

@@ -79,6 +79,8 @@ const WING_GAP = 4;
 const DOOR_W = 2.4;
 export const WALL_H = 3.5, ROOM_WALL_H = 2.6, PARTITION_H = 1.6;
 const CAMPUS_GAP = 18;
+// Paths run this high above the floor, clear of the floor tiles, so they're never hidden in them.
+export const PATH_Y = 0.5;
 const MIN_W = 24;
 
 const OVERFLOW_FIXTURES: Record<string, FixtureKind> = {
@@ -228,7 +230,7 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
         // Callers come in through the workstream's first door, or the digital screen.
         const way = streamOf(k) === "voice" ? doors.find((d) => into(k, "channel").some((e) => e.from === d) || into(k, "handoff").some((b) => into(b.from, "bot").some((e) => e.from === d))) : undefined;
         plan.entrances.set(k, way ? [doorXs[doors.indexOf(way)], 0, wz(-1)] : [x0 + width - 6, 0, wz(-1)]);
-        out(k, "default").forEach((e) => pending.push({ kind: "default", from: [counterX, 0.1, deskZ - 1], building: center.id, to: e.to, key: k, corridor: wz(ENTRANCE_D + LOBBY_D + CORRIDOR_D / 2 + 1) }));
+        out(k, "default").forEach((e) => pending.push({ kind: "default", from: [counterX, PATH_Y, deskZ - 1], building: center.id, to: e.to, key: k, corridor: wz(ENTRANCE_D + LOBBY_D + CORRIDOR_D / 2 + 1) }));
       });
       const bots = center.workstreams.flatMap((k) => into(k, "handoff").map((e) => e.from));
       bots.forEach((bot, i) => {
@@ -244,7 +246,7 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
       const sx = x0 + 2 + ((width - 4) * (k + 1)) / (rules.length + 1);
       fixture({ kind: "signpost", key: rule.key, x: sx, z: wz(signZ), label: rule.name });
       plan.anchors.set(rule.key, [sx, 1.8, wz(signZ)]);
-      out(rule.key, "routes").forEach((e) => pending.push({ kind: "route", from: [sx, 0.15, wz(signZ)], building: center.id, to: e.to, key: rule.key, corridor: wz(ENTRANCE_D + LOBBY_D + CORRIDOR_D / 2) }));
+      out(rule.key, "routes").forEach((e) => pending.push({ kind: "route", from: [sx, PATH_Y, wz(signZ)], building: center.id, to: e.to, key: rule.key, corridor: wz(ENTRANCE_D + LOBBY_D + CORRIDOR_D / 2) }));
     });
 
     // The wings and their rooms.
@@ -257,7 +259,7 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
         const rx = box.x + r.x - 2, front = r.dz, doorX = rx + r.w / 2;
         area("room", rx + r.w / 2, wz(front + r.d / 2), r.w, r.d, r.key, r.name, wing.kind);
         plan.anchors.set(r.key, [rx + r.w / 2, 0, wz(front + r.d / 2)]);
-        doorOf.set(r.key, { at: [doorX, 0.15, wz(front)], building: center.id, wing: wing.kind });
+        doorOf.set(r.key, { at: [doorX, PATH_Y, wz(front)], building: center.id, wing: wing.kind });
         plan.walls.push(...wallAlongX(rx, rx + r.w, wz(front), ROOM_WALL_H, [doorX], wing.kind), ...wallAlongX(rx, rx + r.w, wz(front + r.d), ROOM_WALL_H, [], wing.kind));
         plan.walls.push({ x: rx, y, z: wz(front + r.d / 2), w: 0.2, d: r.d, h: ROOM_WALL_H, wing: wing.kind }, { x: rx + r.w, y, z: wz(front + r.d / 2), w: 0.2, d: r.d, h: ROOM_WALL_H, wing: wing.kind });
 
@@ -283,7 +285,7 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
           const fx = doorX + (k % 2 === 0 ? -1 : 1) * (DOOR_W / 2 + 1.2 + Math.floor(k / 2) * 1.6);
           fixture({ kind: OVERFLOW_FIXTURES[node?.name ?? ""] ?? "hold", key: e.to, x: fx, z: wz(front - 1.2), label: node?.name, wing: wing.kind });
           plan.anchors.set(e.to, [fx, 1.2, wz(front - 1.2)]);
-          out(e.to, "transfer").forEach((t) => pending.push({ kind: "transfer", from: [fx, 0.15, wz(front - 1.2)], building: center.id, to: t.to, key: e.to }));
+          out(e.to, "transfer").forEach((t) => pending.push({ kind: "transfer", from: [fx, PATH_Y, wz(front - 1.2)], building: center.id, to: t.to, key: e.to }));
         });
       });
     });
@@ -305,7 +307,7 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
     const points: Vec3[] = [];
     for (let i = 0; i <= 16; i++) {
       const t = i / 16;
-      points.push([p.from[0] + (door.at[0] - p.from[0]) * t, 0.15 + Math.sin(Math.PI * t) * 9, p.from[2] + (door.at[2] - p.from[2]) * t]);
+      points.push([p.from[0] + (door.at[0] - p.from[0]) * t, PATH_Y + Math.sin(Math.PI * t) * 9, p.from[2] + (door.at[2] - p.from[2]) * t]);
     }
     plan.paths.push({ kind: p.kind === "route" ? "skybridge" : p.kind, key: p.key, wing: door.wing, points });
   });

@@ -25,12 +25,12 @@ const SKIN = "#f1c7a4";
 export const SEVERITY_COLORS: Record<Severity, string> = { problem: "#ef4444", warning: "#f59e0b" };
 
 const AREA_TINT: Record<Area["kind"], number> = { building: 0.8, entrance: 0.6, lobby: 0.45, corridor: 0.72, wing: 0.72, room: 0.55 };
-// Route lines are drawn twice: a white edge underneath, the colour on top, so they stand out on any floor.
-const PATH_STYLE: Record<PathKind, { color: string; dashed: boolean; width: number; edge: boolean }> = {
-  route: { color: "#be123c", dashed: false, width: 4, edge: true },
-  default: { color: "#ca8a04", dashed: true, width: 1.6, edge: false },
-  transfer: { color: "#dc2626", dashed: true, width: 2.6, edge: true },
-  skybridge: { color: "#0284c7", dashed: false, width: 3.6, edge: true }
+// The lines' looks; the page's legend explains them from the same list.
+export const PATH_STYLE: Record<PathKind, { color: string; dashed: boolean; width: number; label: string }> = {
+  route: { color: "#be123c", dashed: false, width: 4, label: "Routing rule to its room" },
+  skybridge: { color: "#0284c7", dashed: false, width: 3.6, label: "Routing rule to a room in another customer center (skybridge)" },
+  default: { color: "#ca8a04", dashed: true, width: 1.6, label: "Workstream's default queue" },
+  transfer: { color: "#dc2626", dashed: true, width: 2.6, label: "Overflow: transfer to another queue" }
 };
 // Labels inside a building shrink with distance (full size about this far away), so a big center
 // isn't a heap of labels from afar and they read well when you come close.
@@ -199,7 +199,6 @@ function PathLine({ path }: { path: Path }) {
   const style = PATH_STYLE[path.kind];
   return (
     <>
-      {style.edge && <Line points={path.points} color="#ffffff" lineWidth={style.width + 3} transparent opacity={0.9} />}
       <Line points={path.points} color={style.color} lineWidth={style.width} dashed={style.dashed} dashSize={1} gapSize={0.6} transparent opacity={path.kind === "default" ? 0.6 : 1} />
     </>
   );
