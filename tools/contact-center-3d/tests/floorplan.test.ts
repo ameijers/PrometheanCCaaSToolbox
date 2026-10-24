@@ -79,6 +79,31 @@ describe("buildPlan", () => {
     expect(plan.fixtures.filter((f) => ["mailbox", "booth", "transfer"].includes(f.kind)).map((f) => f.kind).sort()).toEqual(["booth", "mailbox", "mailbox", "transfer"]);
   });
 
+  test("lines in a building only run straight along x or z, never diagonally", () => {
+    plan.paths.filter((p) => p.kind !== "skybridge" && p.points.every((q) => q[1] < 1)).forEach((p) => {
+      for (let i = 1; i < p.points.length; i++) {
+        const [a, b] = [p.points[i - 1], p.points[i]];
+        expect(Math.min(Math.abs(a[0] - b[0]), Math.abs(a[2] - b[2]))).toBeLessThan(0.01);
+      }
+    });
+  });
+
+  test("a front-row room is reached straight from the corridor; one further back over the nearer aisle", () => {
+    const g = createCenter(defaultGrouping(graph), "Contoso", "contoso");
+    let grouped = g;
+    ["Retail Sales – Voice", "Technical Support – Voice", "Customer Service – Voice"].forEach((name) => { grouped = moveWorkstream(grouped, node("workstream", name).recordId!, "contoso", graph); });
+    const p = buildPlan(graph, grouped);
+    const rooms = p.areas.filter((a) => a.kind === "room" && a.centerId === "contoso");
+    const front = Math.max(...rooms.map((r) => r.z + r.d / 2));
+    p.paths.filter((path) => path.kind === "route").forEach((path) => {
+      const door = path.points[path.points.length - 1];
+      const room = rooms.find((r) => Math.abs(r.z + r.d / 2 - door[2]) < 0.01 && Math.abs(r.x - door[0]) < 0.01);
+      if (!room) return;
+      // In front: corridor, then straight to the door. Further back: never more than corridor, aisle, walkway, door.
+      expect(path.points.length).toBeLessThanOrEqual(Math.abs(room.z + room.d / 2 - front) < 0.01 ? 4 : 6);
+    });
+  });
+
   test("routes in the same building keep to the corridor and aisles, never through a room; a shared queue gets a skybridge", () => {
     const routes = plan.paths.filter((p) => p.kind === "route" || p.kind === "default" || p.kind === "transfer").filter((p) => p.points.every((q) => q[1] < 1));
     expect(routes.length).toBeGreaterThan(0);
