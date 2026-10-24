@@ -30,6 +30,13 @@ describe("buildPlan", () => {
     expect(plan.buildings.some((b) => b.name === "Legacy Email")).toBe(false);
   });
 
+  test("the Not routed building can be left out", () => {
+    const without = buildPlan(graph, grouping, { unrouted: false });
+    expect(without.buildings.some((b) => b.centerId === UNROUTED_CENTER)).toBe(false);
+    expect(without.areas.some((a) => a.kind === "room" && a.name === "Social Media")).toBe(false);
+    expect(without.buildings).toHaveLength(plan.buildings.length - 1);
+  });
+
   test("a building per shown center, plus one for queues no workstream routes to", () => {
     expect(plan.buildings.map((b) => b.centerId)).toEqual([...grouping.centers.filter((c) => c.name !== "Legacy Email").map((c) => c.id), UNROUTED_CENTER]);
     expect(rooms.filter((r) => r.centerId === UNROUTED_CENTER).map((r) => r.name)).toEqual(["Social Media"]);

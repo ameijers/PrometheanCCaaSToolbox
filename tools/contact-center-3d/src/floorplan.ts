@@ -97,7 +97,13 @@ const OVERFLOW_FIXTURES: Record<string, FixtureKind> = {
 interface Room { key: string; name: string; desks: string[]; w: number; d: number; x: number; dz: number; colW: number; row: number }
 interface WingLayout { kind: Wing; rooms: Room[]; w: number; d: number }
 
-export function buildPlan(graph: Graph, grouping: Grouping): Plan {
+export interface PlanOptions {
+  // The "Not routed" building with the queues no shown workstream routes to (the page hides it at first).
+  unrouted?: boolean;
+}
+
+export function buildPlan(graph: Graph, grouping: Grouping, options: PlanOptions = {}): Plan {
+  const showUnrouted = options.unrouted ?? true;
   const nodeByKey = new Map(graph.nodes.map((n) => [n.key, n]));
   const out = (key: string, kind?: GraphEdge["kind"]) => graph.edges.filter((e) => e.from === key && (!kind || e.kind === kind));
   const into = (key: string, kind?: GraphEdge["kind"]) => graph.edges.filter((e) => e.to === key && (!kind || e.kind === kind));
@@ -140,7 +146,7 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
 
 
   const centers = grouping.centers.map((c) => ({ id: c.id, name: c.name, color: c.color, workstreams: c.workstreams.map((id) => `workstream:${id}`).filter((k) => centerOfWorkstream.has(k)) }));
-  if ([...ownerOf.values()].includes(UNROUTED_CENTER)) centers.push({ id: UNROUTED_CENTER, name: "Not routed", color: UNROUTED_COLOR, workstreams: [] });
+  if (showUnrouted && [...ownerOf.values()].includes(UNROUTED_CENTER)) centers.push({ id: UNROUTED_CENTER, name: "Not routed", color: UNROUTED_COLOR, workstreams: [] });
 
   // Every building sized: its reception, its signposts, its wings side by side.
   const layouts = centers.map((c) => {

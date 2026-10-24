@@ -23,7 +23,7 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 | Purple door in the room's back wall | overflow: a transfer to another queue, with a dashed red line to that room |
 | Blue skybridge | a routing rule to a room in another customer center |
 | Faint dashed yellow line | a workstream's default queue |
-| "Not routed" building | queues no shown workstream routes to |
+| "Not routed" building | queues no shown workstream routes to; hidden until you tick **Show queues nothing routes to** on the Centers tab |
 
 ![Inside a customer center, with live activity](images/02-room.png)
 
@@ -62,7 +62,7 @@ Curved lines between buildings carry arrowheads in their own colour, pointing to
 
 ![Following a call from the entrance](images/03-follow-a-call.png)
 
-**Use sample data** (next to the environment name) shows the sample environment inside the app, to demonstrate or try the tool; it keeps its own saved customer centers. The page address can ask for `demo=1`, `focus=<name>` (a customer center or a record), `wing=voice` (or `messaging`, `records`), `live=1` and `ride=1`; in a Site Map subarea, put them in the web resource's data parameter.
+**Use sample data** (next to the environment name) shows the sample environment inside the app, to demonstrate or try the tool; it keeps its own saved customer centers. The page address can ask for `demo=1`, `focus=<name>` (a customer center or a record), `wing=voice` (or `messaging`, `records`), `unrouted=1` (show the Not routed building), `live=1` and `ride=1`; in a Site Map subarea, put them in the web resource's data parameter.
 
 ## How it works
 

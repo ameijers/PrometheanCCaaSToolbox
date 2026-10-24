@@ -73,6 +73,8 @@ export function App(): React.ReactElement {
   const [search, setSearch] = useState("");
   const [showHealth, setShowHealth] = useState(false);
   const [showUnits, setShowUnits] = useState(false);
+  // The "Not routed" building is hidden until asked for (checkbox, or ?unrouted=1).
+  const [showUnrouted, setShowUnrouted] = useState(() => isOn(asked("unrouted")));
   const [newName, setNewName] = useState("");
   const [renaming, setRenaming] = useState<{ id: string; name: string } | undefined>(undefined);
   const [dragging, setDragging] = useState<string | undefined>(undefined);
@@ -109,7 +111,7 @@ export function App(): React.ReactElement {
   // Every change to the centers is remembered straight away.
   const change = (next: Grouping) => { setGrouping(next); void store.save(environment, next); };
 
-  const plan = useMemo(() => (graph && grouping ? buildPlan(graph, grouping) : undefined), [graph, grouping]);
+  const plan = useMemo(() => (graph && grouping ? buildPlan(graph, grouping, { unrouted: showUnrouted }) : undefined), [graph, grouping, showUnrouted]);
   const nodeByKey = useMemo(() => new Map((graph?.nodes ?? []).map((n) => [n.key, n])), [graph]);
   const issues = useMemo(() => (graph ? findIssues(graph) : []), [graph]);
   const worst = useMemo(() => worstByKey(issues), [issues]);
@@ -377,6 +379,8 @@ export function App(): React.ReactElement {
                   </li>
                 ))}
               </ul>
+
+              <label className="toggle unrouted"><input type="checkbox" checked={showUnrouted} onChange={(e) => setShowUnrouted(e.target.checked)} /> Show queues nothing routes to (the "Not routed" building)</label>
 
               <h3>Workstreams not in a customer center</h3>
               <p className="muted small">Each stands as a building of its own. Hide what you don't need with the eye; workstreams linked to nothing start hidden. {store.where}.</p>

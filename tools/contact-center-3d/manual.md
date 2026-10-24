@@ -48,6 +48,7 @@ Open the **Centers** tab.
 4. **✎** (or double-click the name) renames a center, the coloured square picks its colour, and **×** deletes it (its workstreams stay, each in a building of its own).
 5. The **eye** hides a workstream (click again to show it). Workstreams linked to nothing start hidden. **Show all … hidden workstreams** brings them all back.
 6. **Start again** removes every customer center.
+7. **Show queues nothing routes to** shows the "Not routed" building, with the rooms of queues that no shown workstream routes to. It's hidden at first.
 
 Your centers are remembered in this browser, for this environment.
 
@@ -77,4 +78,4 @@ Open the **Health** tab and tick **Show problems**. Records with a problem get a
 
 ## 8. Opening from a link
 
-Add `focus=<name>` to the page address to open on the customer center (or a record) with that name, `wing=voice` (or `messaging`, `records`) for one wing, `live=1` for live activity, `ride=1` to follow a call from the focused record, and `demo=1` for the sample. In a Site Map subarea, put them in the web resource's **data** parameter.
+Add `focus=<name>` to the page address to open on the customer center (or a record) with that name, `wing=voice` (or `messaging`, `records`) for one wing, `unrouted=1` for the Not routed building, `live=1` for live activity, `ride=1` to follow a call from the focused record, and `demo=1` for the sample. In a Site Map subarea, put them in the web resource's **data** parameter.
