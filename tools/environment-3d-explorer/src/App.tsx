@@ -106,7 +106,8 @@ export function App(): React.ReactElement {
   const [views, setViews] = useState<SavedView[]>(() => loadViews(environment));
   const [viewName, setViewName] = useState("");
   const sceneHandle = useRef<SceneHandle | null>(null);
-  const [tab, setTab] = useState<Tab>("layers");
+  // Open on the tab asked for, or on the one that goes with what the address switched on.
+  const [tab, setTab] = useState<Tab>(() => TABS.find((t) => t.id === urlOptions.tab)?.id ?? (urlOptions.health ? "health" : urlOptions.live ? "live" : urlOptions.ride ? "explore" : "layers"));
   const [depth, setDepth] = useState(urlOptions.depth ?? 1);
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState("");
