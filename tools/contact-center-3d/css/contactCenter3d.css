@@ -237,3 +237,8 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .toggle.unrouted { margin: 12px 0 0; font-size: 12px; }
 .fixture-label.notice { background: #b45309; }
 .area-label .tag { color: #b45309; font-weight: 700; }
+
+/* Long sign and room labels wrap onto centred lines; short ones stay one line. */
+.fixture-label, .area-label { width: max-content; white-space: normal; text-align: center; line-height: 1.25; overflow-wrap: break-word; }
+.fixture-label { max-width: 110px; padding: 1px 5px; }
+.area-label { max-width: 140px; }
