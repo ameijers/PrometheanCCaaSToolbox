@@ -38,6 +38,7 @@ First version: the campus, a building per customer center, combine / split / mov
 
 - The white edge under the lines is gone; lines run 0.5 m above the floor instead, so floor tiles can't hide them. Widths halved after review (they're screen pixels, doubled on high-DPI displays).
 - Lines keep to the walkways: rooms are in straight columns (each as wide as its widest room), and a line goes along the corridor, down the aisle left of its room, along the walkway in front of the row, in at the door. A test walks every line and checks it never enters a room.
+- A queue transfer is a **door in the back wall** of its room (after review: outside the front it read as something to walk past); its line leaves through that door and along the walkway behind the room. The other overflow stays outside the front door. Waiting chairs have a seat and back, on a mat, so they read as chairs.
 - A **Lines** legend explains the four styles, from the same list the scene draws with.
 
 ## Next ideas

@@ -15,11 +15,12 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 | Purple kiosk in front of the front desk | a workstream's bot (automated reception) |
 | Signpost at the corridor, with a red line on the floor to its room | routing rule |
 | Wing behind the corridor: **Phone**, **Chat & messaging**, **Email & records**, side by side | the kind of work: a queue's room is in the wing of its type |
-| Room, with chairs to wait on by the door | queue |
+| Room, with blue waiting chairs on a mat just inside the door | queue |
 | Desk with a person behind it, small badges on its front | agent and their skills |
 | Carpet under a desk (when switched on) | the agent's business unit |
 | Sign by the room's door | operating hours |
-| Outside the room's door | overflow: a mailbox (voicemail), a phone booth (callback or transfer to phone), an exit (end conversation), a purple door (queue transfer, with a dashed line to the other room), an amber block (remain in queue) |
+| Outside the room's front door | overflow: a mailbox (voicemail), a phone booth (callback or transfer to phone), an exit (end conversation), an amber block (remain in queue) |
+| Purple door in the room's back wall | overflow: a transfer to another queue, with a dashed red line to that room |
 | Blue skybridge | a routing rule to a room in another customer center |
 | Faint dashed yellow line | a workstream's default queue |
 | "Not routed" building | queues no shown workstream routes to |

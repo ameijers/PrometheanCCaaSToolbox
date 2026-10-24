@@ -59,6 +59,19 @@ describe("buildPlan", () => {
     shownWorkstreams.forEach((w) => expect(plan.entrances.has(w.key)).toBe(true));
   });
 
+  test("a queue transfer is a door in the back wall of its room, the other overflow sits outside the front door", () => {
+    const tier1 = plan.areas.find((a) => a.kind === "room" && a.name === "Tier 1 Support")!;
+    const transfer = plan.fixtures.find((f) => f.kind === "transfer")!;
+    expect(transfer.z).toBeCloseTo(tier1.z - tier1.d / 2);
+    expect(Math.abs(transfer.x - tier1.x)).toBeLessThan(tier1.w / 2);
+    // There's an opening in the back wall where the door is.
+    const backWalls = plan.walls.filter((w) => Math.abs(w.z - transfer.z) < 0.01 && w.d < 1);
+    expect(backWalls.some((w) => Math.abs(w.x - transfer.x) < w.w / 2)).toBe(false);
+    const mailbox = plan.fixtures.find((f) => f.kind === "mailbox")!;
+    const room = plan.areas.find((a) => a.kind === "room" && Math.abs(a.x - mailbox.x) < a.w / 2 + 3 && mailbox.z > a.z + a.d / 2 && mailbox.z < a.z + a.d / 2 + 2)!;
+    expect(room).toBeDefined();
+  });
+
   test("the bot is a kiosk in front of its counter; overflow sits by its room's door", () => {
     const counter = plan.fixtures.find((f) => f.kind === "counter" && f.key === node("workstream", "Customer Service – Voice").key)!;
     const kiosk = plan.fixtures.find((f) => f.kind === "kiosk")!;

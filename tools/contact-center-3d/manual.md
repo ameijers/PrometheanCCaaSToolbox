@@ -31,8 +31,8 @@ From the front (the entrance) to the back:
 3. **Front desk**: one per customer center. Each **blue counter** on it is a workstream; a clipboard on a counter means the workstream has context variables.
 4. **Signposts** at the corridor: the routing rules. A red line on the floor leads to the room each rule sends calls to.
 5. **Wings**, side by side: **Phone**, **Chat & messaging** and **Email & records**, each with its name on the floor. A queue's room is in the wing of its type.
-6. **Rooms**: the queues. Chairs by the door are where callers wait. Each **desk** has the agent behind it; the small coloured badges on the desk are the agent's skills.
-7. **By a room's door**: its opening hours (dark sign) and its overflow: a red mailbox for voicemail, a glass phone booth for a callback, a green exit for ending the conversation, a purple door for a transfer to another queue.
+6. **Rooms**: the queues. The blue chairs just inside the door are where callers wait. Each **desk** has the agent behind it; the small coloured badges on the desk are the agent's skills.
+7. **By a room's door**: its opening hours (dark sign) and its overflow: a red mailbox for voicemail, a glass phone booth for a callback, a green exit for ending the conversation. A **purple door in the back wall** is an overflow transfer to another queue: the dashed red line leads from it to that room.
 
 A blue **skybridge** goes to a room in another customer center. A faint dashed yellow line goes to a workstream's default queue, a dashed red one is an overflow transfer to another queue. The **Lines** legend in the bottom-right corner shows them all; click it to fold it away.
 
