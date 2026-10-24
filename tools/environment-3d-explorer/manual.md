@@ -7,6 +7,7 @@ Part of the [Promethean CCaaS Toolbox](../../Readme.md). For what the tool shows
 1. In the Promethean CCaaS Toolbox model-driven app, open **3D → 3D Explorer** from the Site Map.
 2. The tool reads the environment straight away. The left panel shows which environment it's reading. If it says **the sample environment**, the page isn't running inside the app and shows made-up data.
 3. Nothing is changed. The tool only reads.
+4. To demonstrate or try it without your own data, click **Use sample data** next to the environment name (or add `demo=1` to the page address). **Back to live data** returns to your environment.
 
 When the scene appears, you look at the environment from the front and a little to the side. Each record type is on its own layer, marked by a faint ring and a label. Front to back: phone numbers, voice channels, bots, workstreams, routing rules, queues, overflow actions, agents, skills. Settings that belong to a record (context variables, operating hours, capacity profiles, teams, business units) sit on half layers next to it. Lines connect records that are linked.
 

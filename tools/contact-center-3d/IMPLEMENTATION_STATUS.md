@@ -24,9 +24,18 @@ First version: the campus, a building per customer center, combine / split / mov
 - **Hiding workstreams**, saved with the grouping (`hidden`). Unlinked workstreams (no channel or bot in, no rules or default queue out) start hidden; a grouping saved earlier hides nothing it didn't know about. Rooms only hidden workstreams route to are left out, not moved to "Not routed".
 - Labels inside a building scale with distance. Overlap in a big center is better but not gone; the user wants to revisit the 3D objects and their recognisability later.
 
+## Second review (2026-10-24)
+
+- **Wings instead of floors.** Stacked floors hid each other from above. Options weighed: wings, departments on one floor, separate entrances per channel, annex buildings, terraced floors; the user chose wings. One reception, then a wing per kind of work side by side, each with its own tinted floor and sign; the Floors switch became a Wings filter (`wing=`, and `floor=` from before still works). The explorer's graph keeps carrying the stream per workstream and queue.
+- **Routing lines** drawn thicker and darker, over a white edge, and slightly above the floor.
+- **Customer centers made by hand**: create a named center (it stays while empty), move workstreams in by drag & drop or Move to…, move them out, delete a center. Combine and Split are gone. A grouping saved before this keeps its combined centers as the viewer's own.
+- **Sample data** inside Dataverse (button, `demo=1`), in this tool and in the explorer.
+- **Live activity** from the explorer's `live.ts`: waiting callers on the room's chairs (then a line at the door), callers with an agent at the desk, new callers walking in from the workstream's way in, desk screens in the presence colour, "n waiting" on the room.
+- **Follow a call** with the explorer's `ride.ts` and camera rig; the rig now takes a `rideScale` (0.3 here, so it rides close behind the call inside a building).
+- **Skills** as badges on the desk (and listed with their rating in the details), **business units** as carpet (switch on the Explore tab), **context variables** as a clipboard on the counter.
+
 ## Next ideas
 
-- Live activity: callers as figures waiting on the chairs or standing at a desk, agents' desk lamps in their presence colour, new calls walking in through the door.
-- Follow the call as a figure walking from the entrance through the lobby to a desk.
-- Shared customer centers in Dataverse.
-- Skills as badges, teams and business units as carpet zones, context variables on the reception's clipboard.
+- Shared customer centers in Dataverse (needs a table in the solution; the store interface is ready).
+- More recognisable 3D objects (the user wants to come back to this), and fewer overlapping labels in a big center.
+- Teams as zones.

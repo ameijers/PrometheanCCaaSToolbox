@@ -8,59 +8,70 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 
 | In the building | CCaaS record |
 | --- | --- |
-| Building | a customer center: one or more workstreams |
-| Floor | the kind of work: **Phone** (voice), **Chat & messaging**, **Email & records**. A center gets a floor for each kind it has, stacked. |
-| Entrance door, with the phone numbers on a sign above it | voice channel and its phone numbers (phone floor) |
-| Screen at the entrance | the digital channels of the floor's workstreams (other floors) |
-| One front desk per floor, with a blue counter per workstream | workstream |
+| Building | a customer center: the workstreams you put in it (or one workstream, while it's in no center) |
+| Entrance door, with the phone numbers on a sign above it | voice channel and its phone numbers |
+| Screen at the entrance | the digital channels of the center's chat and email workstreams |
+| One front desk, with a blue counter per workstream | workstream; a clipboard on the counter means it has context variables |
 | Purple kiosk in front of the front desk | a workstream's bot (automated reception) |
-| Signpost at the corridor, with a line on the floor to its room | routing rule |
+| Signpost at the corridor, with a red line on the floor to its room | routing rule |
+| Wing behind the corridor: **Phone**, **Chat & messaging**, **Email & records**, side by side | the kind of work: a queue's room is in the wing of its type |
 | Room, with chairs to wait on by the door | queue |
-| Desk with a person behind it | agent |
+| Desk with a person behind it, small badges on its front | agent and their skills |
+| Carpet under a desk (when switched on) | the agent's business unit |
 | Sign by the room's door | operating hours |
 | Outside the room's door | overflow: a mailbox (voicemail), a phone booth (callback or transfer to phone), an exit (end conversation), a purple door (queue transfer, with a dashed line to the other room), an amber block (remain in queue) |
 | Blue skybridge | a routing rule to a room in another customer center |
 | Faint dashed yellow line | a workstream's default queue |
 | "Not routed" building | queues no shown workstream routes to |
 
-![Inside a customer center](images/02-room.png)
+![Inside a customer center, with live activity](images/02-room.png)
 
 ## Customer centers
 
-Dataverse doesn't know which workstreams belong together, so every workstream starts as a customer center of its own. On the **Customer centers** tab you can:
+Dataverse doesn't know which workstreams belong together, so you make the customer centers. On the **Centers** tab:
 
-- tick two or more centers and **Combine** them into one building, with a name of your choice;
-- **Split** a combined center back into one per workstream;
-- **Move** one workstream to another center, or to a center of its own;
-- rename a center (✎, or double-click its name) and pick its colour (the swatch).
+- type a name and click **Create**: a new, empty customer center;
+- move workstreams into it: **drag** a workstream onto the center, or pick the center in its **Move to…** list;
+- **Move to… → Out of this center** puts a workstream back in a building of its own;
+- rename a center (✎, or double-click its name), pick its colour (the swatch), or delete it (×; its workstreams stay, each in a building of its own);
+- hide a workstream with the eye (and show it again). **Workstreams linked to nothing start hidden**: no channel or bot leads to them and they route nowhere. A room only hidden workstreams route to is hidden too.
 
-- hide a workstream with the eye (and show it again). **Workstreams linked to nothing start hidden**: no channel or bot leads to them and they route nowhere. A room that only hidden workstreams route to is hidden too.
-
-Every change is remembered straight away, **in this browser, for this environment** (local storage). A shared store in Dataverse, so colleagues see the same centers, is planned: the page reads and saves through one small interface (`src/store.ts`), so it can be swapped in without changing the rest.
+Workstreams in no customer center are listed under it, each standing as a building of its own. Every change is remembered straight away, **in this browser, for this environment** (local storage). A shared store in Dataverse, so colleagues see the same centers, is planned: the page reads and saves through one small interface (`src/store.ts`).
 
 ## Rules of the layout
 
-- A workstream is on the floor of its channel; a queue's room is on the floor of its type (a voice queue on the phone floor). Floors are stacked with room to look in between; the **Floors** switch shows one kind at ground level.
-- Rooms are laid out in a grid about as wide as it's deep: 4 rooms are 2 × 2, 9 are 3 × 3.
-- A queue's room is in the center that routes to it most (ties: the first center in the list). Other centers, or another floor, reach it over a skybridge.
-- A queue only reached by another queue's overflow transfer sits with that queue.
+- One front desk per center, a counter per workstream; the signposts of all its workstreams share one corridor.
+- A queue's room is in the wing of its type (a voice queue in the phone wing) of the center that routes to it most (ties: the first center in the list). Other centers reach it over a skybridge. A queue only reached by another queue's overflow transfer sits with that queue.
+- Wings stand side by side; their rooms are in a grid about as wide as it's deep (4 rooms are 2 × 2, 9 are 3 × 3).
 - An agent who is a member of several queues has **one** desk, in the first of those queues by name. The other rooms show "Desk in another room" in their details.
-- Rooms grow with their desks; buildings grow with their lobbies and rooms. The same environment and grouping always give the same plan.
+- The same environment and grouping always give the same plan.
 
 ## Using it
 
-The left panel keeps search, the camera buttons (**Orbit**, **Walk**, **Campus**, **Full screen**) and the **Floors** switch (All, Phone, Chat & messaging, Email & records) on top, with tabs below: **Customer centers**, **Health** (the explorer's checks, as warning cones over the records) and **Help**. Click a building's name to fly to it; click a room, desk, signpost, door or kiosk to see what it is. **Use sample data** (next to the environment name, or `demo=1` in the page address) shows the sample environment inside the app, to demonstrate or try the tool; it keeps its own saved customer centers. `focus=<name>` in the page address opens on a customer center (or a record) with that name, `floor=voice` (or `messaging`, `records`) on one floor. Labels inside a building grow as you come closer, so a big center isn't a heap of labels from afar.
+The left panel keeps search, the camera buttons (**Orbit**, **Walk**, **Campus**, **Full screen**) and the **Wings** filter (All, Phone, Chat & messaging, Email & records: shows one wing's rooms) on top, with tabs below:
+
+- **Centers**: making and filling customer centers (above).
+- **Explore**: **Follow a call** walks the route from the entrance past the front desk and a signpost into a room and to a desk, asking at each fork where the call goes; and business units as carpet.
+- **Live**: live activity, read every 15 seconds (every 5 in the sample). Waiting callers sit on the chairs by a room's door (and queue up at the door when the chairs are full); a caller with an agent stands at the desk; new callers walk in through the entrance; desk screens light up in the agent's presence colour; rooms say "3 waiting".
+- **Health**: the explorer's checks, as warning cones over the records.
+- **Help**: the controls and what everything means.
+
+Click a building's name to fly to it; click a room, desk, counter, signpost, door or kiosk to see what it is (and follow a call from there). Labels inside a building grow as you come closer.
+
+![Following a call from the entrance](images/03-follow-a-call.png)
+
+**Use sample data** (next to the environment name) shows the sample environment inside the app, to demonstrate or try the tool; it keeps its own saved customer centers. The page address can ask for `demo=1`, `focus=<name>` (a customer center or a record), `wing=voice` (or `messaging`, `records`), `live=1` and `ride=1`; in a Site Map subarea, put them in the web resource's data parameter.
 
 ## How it works
 
-It reuses the explorer's code rather than copying it: the Dataverse reads and the graph (`environment-3d-explorer/src/dataverse.ts`, `graph.ts`), the health checks, the sample environment, the camera rig and full screen. What's new:
+It reuses the explorer's code rather than copying it: the Dataverse reads and the graph (`environment-3d-explorer/src/dataverse.ts`, `graph.ts`), the health checks, live activity (`live.ts`, `demoLive.ts`), the follow-the-call route (`ride.ts`), the sample environment, the camera rig and full screen. What's new:
 
-- `src/centers.ts`: the grouping (combine, split, move, rename, recolour, and matching a saved grouping to today's workstreams).
+- `src/centers.ts`: the customer centers (create, move, delete, rename, recolour, hide, and matching a saved grouping to today's workstreams).
 - `src/store.ts`: where the grouping is kept.
-- `src/floorplan.ts`: the plan, from graph and grouping to buildings, areas, walls, fixtures, paths and anchors. Pure.
+- `src/floorplan.ts`: the plan, from graph and grouping to buildings, wings, areas, walls, fixtures, paths, anchors, waiting chairs and ways in. Pure.
 - `src/CampusScene.tsx`: draws it. Floors, walls, desks and people are instanced boxes, so large centers stay smooth.
 
-Tables read: the same as the explorer. Written: nothing; `tests/floorplan.test.ts` includes the read-only check.
+Tables read: the same as the explorer (with live activity: `msdyn_agentstatus` and `msdyn_ocliveworkitem`). Written: nothing; `tests/floorplan.test.ts` includes the read-only check.
 
 ## Build, run, deploy
 

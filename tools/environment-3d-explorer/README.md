@@ -46,6 +46,7 @@ The left panel keeps the search box, the camera buttons (**Orbit**, **Walk**, **
 - **Size by connections** makes each record's size show how many links it has, so busy queues and big workstreams stand out.
 - **Save view** keeps the current camera position under a name; click a saved view to fly back to it. Saved views stay in this browser, per environment.
 - **Screenshot** downloads the current view as a PNG (without the name labels, which are HTML on top of the scene).
+- **Use sample data** (next to the environment name, or `demo=1` in the page address) shows the sample environment inside the app, to demonstrate or try the tool; **Back to live data** returns.
 - The page address can ask for `focus=<name>`, `health=1`, `live=1`, `depth=<1 to 3>` (layer distance), `tab=<layers, explore, live, health or help>` and `ride=1` (start following the call when the page opens, from the focused record if there is one). On a Site Map subarea, put them in the web resource's data parameter, for example `focus=Sales&ride=1`; a plain data value is read as a record name.
 
 ![A workstream in focus](images/01-workstream-focus.png)
