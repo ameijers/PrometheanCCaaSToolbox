@@ -54,7 +54,9 @@ First version: the campus, a building per customer center, combine / split / mov
 - Desks are models from Kenney (CC0): `desk`, `chairDesk`, `computerScreen`, `computerKeyboard` (Furniture Kit) and two Mini Characters, slimmed to their `sit` animation (gltf-transform: other animations removed, texture embedded, pruned). About 400 KB of models; the bundle went from 1.1 to 1.6 MB.
 - Webpack inlines `.glb` as data URLs (`asset/inline`); jest maps `.glb` to a stub. `useGLTF` loads them (no Draco or meshopt); `toModel` bakes the sitting pose into plain geometry, centres it and scales it (furniture 2.5x; characters 0.65 of that, their heads are big). One instanced mesh per model part.
 - Agents sit on the +z side of the desk, facing the screen; the presence glow is a panel on the screen's front. The box desks stay as the fallback.
-- Next candidates for models: waiting callers and walkers, the front desk, the bench, the kiosk, overflow fixtures, plants.
+- Then the rest (after review: "looks good, let's do the rest"): waiting chairs (`chairModernCushion`, one per bench seat) instead of the bench, a receptionist behind each counter, potted plants in the lobby corners, callers (sitting on the chairs, standing beside them when full, or across the agent's desk facing them) and walking callers in the walk pose, turned the way they go. Characters keep three animations (`sit`, `idle`, `walk`), each baked once; sitting people are 0.65 scale, standing 0.95.
+- Callers talking to an agent used to stand inside the desk; they now stand across it, facing the agent.
+- Still simple shapes: doors, signposts, the bot kiosk, mailbox, phone booth, exit, remain-in-queue; the Furniture Kit and Mini Characters have nothing that fits.
 
 ## Next ideas
 

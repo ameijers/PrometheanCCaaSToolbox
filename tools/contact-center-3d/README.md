@@ -11,11 +11,11 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 | Building | a customer center: the workstreams you put in it (or one workstream, while it's in no center) |
 | Entrance door, with the phone numbers on a sign above it | voice channel and its phone numbers |
 | Screen at the entrance | the digital channels of the center's chat and email workstreams |
-| One front desk, with a blue counter per workstream | workstream; a clipboard on the counter means it has context variables |
+| One front desk, with a blue counter and a receptionist per workstream; plants in the lobby corners | workstream; a clipboard on the counter means it has context variables |
 | Purple kiosk in front of the front desk | a workstream's bot (automated reception) |
 | Signpost at the corridor, with a red line on the floor to its room | routing rule |
 | Wing behind the corridor: **Phone**, **Chat & messaging**, **Email & records**, side by side | the kind of work: a queue's room is in the wing of its type |
-| Room, with a blue waiting bench inside, beside the door | queue |
+| Room, with four waiting chairs inside, beside the door | queue; with live activity, waiting callers sit on the chairs (and stand beside them when they're full) |
 | Desk with a monitor, an office chair and an agent sitting at it, small badges on its front | agent and their skills; with live activity the screen shows their presence colour |
 | Carpet under a desk (when switched on) | the agent's business unit |
 | Sign by the room's door | operating hours |
@@ -30,6 +30,8 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 ![Inside a customer center, with live activity](images/02-room.png)
 
 ![Desks: an agent at each, the screen in their presence colour](images/04-desks.png)
+
+![Callers waiting in a room](images/05-waiting.png)
 
 ## Customer centers
 
@@ -75,8 +77,8 @@ It reuses the explorer's code rather than copying it: the Dataverse reads and th
 - `src/centers.ts`: the customer centers (create, move, delete, rename, recolour, hide, and matching a saved grouping to today's workstreams).
 - `src/store.ts`: where the grouping is kept.
 - `src/floorplan.ts`: the plan, from graph and grouping to buildings, wings, areas, walls, fixtures, paths, anchors, waiting-bench seats, room doors and ways in. Pure.
-- `src/CampusScene.tsx`: draws it. Floors and walls are instanced boxes; the desks are 3D models, drawn as one instanced mesh per model part, so large centers stay smooth.
-- `src/models.ts`: the 3D models, from `models/` (Kenney's Furniture Kit and Mini Characters, CC0, see the licence files there). They're inlined in the bundle as data URLs (a web resource can't be a `.glb` file), and the characters are put in their sitting pose once, when they load. While they load, or if they can't, the desks are boxes.
+- `src/CampusScene.tsx`: draws it. Floors and walls are instanced boxes; the desks, waiting chairs, plants and people are 3D models, drawn as one instanced mesh per model part, so large centers stay smooth.
+- `src/models.ts`: the 3D models, from `models/` (Kenney's Furniture Kit and Mini Characters, CC0, see the licence files there). They're inlined in the bundle as data URLs (a web resource can't be a `.glb` file), and the characters are put in their sitting, standing and walking poses once, when they load. While they load, or if they can't, everything is boxes as before. The doors, signposts, kiosks and overflow fixtures (mailbox, phone booth, exit) stay simple shapes: the two kits have nothing that fits.
 
 Tables read: the same as the explorer (with live activity: `msdyn_agentstatus` and `msdyn_ocliveworkitem`). Written: nothing; `tests/floorplan.test.ts` includes the read-only check.
 

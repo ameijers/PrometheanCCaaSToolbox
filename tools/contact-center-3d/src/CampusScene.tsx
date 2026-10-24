@@ -10,7 +10,7 @@ import { Severity } from "../../environment-3d-explorer/src/health";
 import { hash } from "../../environment-3d-explorer/src/layout";
 import { CameraGoal, CameraRig, Mode, Ride, SceneHandle } from "../../environment-3d-explorer/src/Scene";
 import { Area, Fixture, FixtureKind, Path, PathKind, Plan, Vec3, Wall, Wing, WING_COLORS } from "./floorplan";
-import { Model, useDeskModels } from "./models";
+import { lookOf, Model, Models, useModels } from "./models";
 
 // The campus in 3D: open-roofed buildings seen from above, like a doll's house. Floors, walls, desks
 // and people are instanced boxes, so a large center stays smooth.
@@ -43,7 +43,8 @@ const LABELLED: FixtureKind[] = ["signpost", "numbers", "hours", "mailbox", "boo
 const PALETTE = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#a78bfa", "#f472b6", "#94a3b8", "#c084fc"];
 export const colorFor = (name: string) => PALETTE[Math.floor(((hash(name, 21) + 1) / 2) * PALETTE.length) % PALETTE.length];
 
-export interface Caller { key: string; at: Vec3; color: string; standing: boolean }
+// turn: which way they face (0: into the room, away from its front; Math.PI: towards it, e.g. across an agent's desk).
+export interface Caller { key: string; at: Vec3; color: string; standing: boolean; turn?: number }
 export interface Walker { id: string; points: Vec3[]; color: string }
 
 interface Props {
@@ -130,7 +131,10 @@ class ModelsOrBoxes extends React.Component<{ fallback: React.ReactNode; childre
   render() { return this.state.failed ? this.props.fallback : <Suspense fallback={this.props.fallback}>{this.props.children}</Suspense>; }
 }
 
-interface ModelItem { x: number; y: number; z: number; key?: string }
+// How high a sitting person is placed on a chair (their model's lowest point is the seat).
+const SEATED_Y = 0.5;
+
+interface ModelItem { x: number; y: number; z: number; key?: string; turn?: number; scale?: number }
 
 // Many copies of one model: an instanced mesh per part, each copy moved to its spot.
 function ModelInstances({ model, items, onPick }: { model: Model; items: ModelItem[]; onPick?: (key: string | undefined, item: ModelItem) => void }) {
@@ -139,7 +143,7 @@ function ModelInstances({ model, items, onPick }: { model: Model; items: ModelIt
     const m = new THREE.Matrix4();
     refs.current.forEach((mesh) => {
       if (!mesh) return;
-      items.forEach((it, i) => { m.makeTranslation(it.x, it.y, it.z); mesh.setMatrixAt(i, m); });
+      items.forEach((it, i) => { m.makeRotationY(it.turn ?? 0).scale(new THREE.Vector3(it.scale ?? 1, it.scale ?? 1, it.scale ?? 1)).setPosition(it.x, it.y, it.z); mesh.setMatrixAt(i, m); });
       mesh.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
     });
@@ -162,7 +166,7 @@ function ModelInstances({ model, items, onPick }: { model: Model; items: ModelIt
 // on it, facing the screen. The screen glows in the agent's presence colour; skill badges and the
 // business unit carpet as with the box desks.
 function ModelDesks({ desks, screens, showUnits, onPick }: DesksProps) {
-  const models = useDeskModels();
+  const models = useModels();
   const parts = useMemo(() => {
     const top = models.desk.size.y;
     const screen = models.screen.size;
@@ -173,7 +177,7 @@ function ModelDesks({ desks, screens, showUnits, onPick }: DesksProps) {
       screens: desks.map((f) => at(f, 0, top, -0.2)),
       keyboards: desks.map((f) => at(f, 0, top, 0.2, { key: undefined })),
       chairs: desks.map((f) => at(f, 0, 0, 0.95, { key: undefined })),
-      agents: models.agents.map((_, i) => desks.filter((f) => (hash(f.key ?? "") > 0 ? 1 : 0) === i).map((f) => at(f, 0, 0.5, 0.95))),
+      agents: models.people.sit.map((_, i) => desks.filter((f) => lookOf(f.key ?? "", hash) === i).map((f) => at(f, 0, SEATED_Y, 0.95))),
       // The presence glow: a panel on the screen's front.
       glows: desks.map((f) => box(f, 0, top + screen.y * 0.3, -0.2 + screen.z / 2 + 0.02, screen.x * 0.85, screen.y * 0.6, 0.02, { color: new THREE.Color(screens?.get(f.key ?? "") ?? SCREEN) })),
       badges: desks.flatMap((f) => (f.skills ?? []).slice(0, 3).map((s, i) => box(f, -0.5 + i * 0.5, top - 0.25, 0.42, 0.3, 0.18, 0.04, { color: new THREE.Color(colorFor(s)) }))),
@@ -188,7 +192,7 @@ function ModelDesks({ desks, screens, showUnits, onPick }: DesksProps) {
       <ModelInstances model={models.screen} items={parts.screens} onPick={pick} />
       <ModelInstances model={models.keyboard} items={parts.keyboards} />
       <ModelInstances model={models.chair} items={parts.chairs} />
-      {models.agents.map((m, i) => <ModelInstances key={i} model={m} items={parts.agents[i]} onPick={pick} />)}
+      {models.people.sit.map((m, i) => <ModelInstances key={i} model={m} items={parts.agents[i]} onPick={pick} />)}
       <Boxes items={parts.glows} emissive={!!screens} onPick={pick} />
       <Boxes items={parts.badges} emissive />
     </>
@@ -226,8 +230,33 @@ function BoxDesks({ desks, screens, showUnits, onPick }: DesksProps) {
   );
 }
 
-// Callers: sitting on a room's waiting bench, or standing at an agent's desk.
+// Callers: sitting on a room's waiting chairs, or standing (by the chairs when they're full, or across
+// an agent's desk), on a small mat in their state's colour.
 function Callers({ callers }: { callers: Caller[] }) {
+  return <ModelsOrBoxes fallback={<BoxCallers callers={callers} />}><ModelCallers callers={callers} /></ModelsOrBoxes>;
+}
+
+function ModelCallers({ callers }: { callers: Caller[] }) {
+  const models = useModels();
+  const parts = useMemo(() => {
+    const item = (c: Caller): ModelItem => ({ x: c.at[0], y: c.at[1] + (c.standing ? 0 : SEATED_Y), z: c.at[2], turn: c.turn });
+    const pose = (standing: boolean, look: number) => callers.filter((c, i) => c.standing === standing && lookOf(`${c.key}:${i}`, hash) === look).map(item);
+    return {
+      sit: [0, 1].map((look) => pose(false, look)),
+      stand: [0, 1].map((look) => pose(true, look)),
+      mats: callers.map((c) => ({ x: c.at[0], y: c.at[1] + 0.03, z: c.at[2], w: 0.9, h: 0.02, d: 0.9, color: new THREE.Color(c.color) }))
+    };
+  }, [callers]);
+  return (
+    <>
+      <Boxes items={parts.mats} emissive />
+      {models.people.sit.map((m, i) => <ModelInstances key={`sit${i}`} model={m} items={parts.sit[i]} />)}
+      {models.people.stand.map((m, i) => <ModelInstances key={`stand${i}`} model={m} items={parts.stand[i]} />)}
+    </>
+  );
+}
+
+function BoxCallers({ callers }: { callers: Caller[] }) {
   const parts = useMemo(() => ({
     bodies: callers.map((c) => ({ x: c.at[0], y: c.at[1] + (c.standing ? 0 : 0.45), z: c.at[2], w: 0.45, h: c.standing ? 1.2 : 0.75, d: 0.35, color: new THREE.Color(c.color) })),
     heads: callers.map((c) => ({ x: c.at[0], y: c.at[1] + (c.standing ? 1.25 : 1.22), z: c.at[2], w: 0.3, h: 0.3, d: 0.3, color: new THREE.Color(SKIN) }))
@@ -238,6 +267,35 @@ function Callers({ callers }: { callers: Caller[] }) {
 // A new caller walking from the way in to the room, then gone.
 const WALK_SECONDS = 5;
 function WalkerFigure({ walker }: { walker: Walker }) {
+  return (
+    <ModelsOrBoxes fallback={<WalkerMover walker={walker}><WalkerBoxes color={walker.color} /></WalkerMover>}>
+      <WalkerMover walker={walker} turn><WalkerModel walker={walker} /></WalkerMover>
+    </ModelsOrBoxes>
+  );
+}
+
+function WalkerModel({ walker }: { walker: Walker }) {
+  const models = useModels();
+  const model = models.people.walk[lookOf(walker.id, hash)];
+  return (
+    <>
+      {model.parts.map((p, i) => <mesh key={i} geometry={p.geometry} material={p.material} raycast={() => null} />)}
+      <mesh position={[0, 0.03, 0]} raycast={() => null}><boxGeometry args={[0.9, 0.02, 0.9]} /><meshBasicMaterial color={walker.color} /></mesh>
+    </>
+  );
+}
+
+function WalkerBoxes({ color }: { color: string }) {
+  return (
+    <>
+      <mesh position={[0, 0.6, 0]} raycast={() => null}><boxGeometry args={[0.45, 1.2, 0.35]} /><meshBasicMaterial color={color} /></mesh>
+      <mesh position={[0, 1.4, 0]} raycast={() => null}><boxGeometry args={[0.3, 0.3, 0.3]} /><meshBasicMaterial color={SKIN} /></mesh>
+    </>
+  );
+}
+
+// Moves its figure along the walker's way; turn: face the way it goes (the model faces -z unturned).
+function WalkerMover({ walker, turn, children }: { walker: Walker; turn?: boolean; children: React.ReactNode }) {
   const ref = useRef<THREE.Group>(null);
   const start = useRef<number | undefined>(undefined);
   const curve = useMemo(() => new THREE.CatmullRomCurve3(walker.points.map((p) => new THREE.Vector3(...p)), false, "catmullrom", 0.1), [walker.points]);
@@ -247,13 +305,64 @@ function WalkerFigure({ walker }: { walker: Walker }) {
     const t = Math.min(1, (clock.getElapsedTime() - start.current) / WALK_SECONDS);
     ref.current.position.copy(curve.getPointAt(t));
     ref.current.position.y += Math.abs(Math.sin(clock.getElapsedTime() * 9)) * 0.08;
+    if (turn) { const d = curve.getTangentAt(Math.min(t, 0.999)); ref.current.rotation.y = Math.atan2(-d.x, -d.z); }
     ref.current.visible = t < 1;
   });
+  return <group ref={ref}>{children}</group>;
+}
+
+// The waiting chairs by each room's door, the person behind each counter, and plants in the lobbies.
+function Furnishings({ plan, fixtures, onPick }: { plan: Plan; fixtures: Fixture[]; onPick(key: string): void }) {
+  const benches = useMemo(() => fixtures.filter((f) => f.kind === "bench"), [fixtures]);
+  const counters = useMemo(() => fixtures.filter((f) => f.kind === "counter"), [fixtures]);
+  const lobbies = useMemo(() => plan.areas.filter((a) => a.kind === "lobby"), [plan]);
   return (
-    <group ref={ref}>
-      <mesh position={[0, 0.6, 0]} raycast={() => null}><boxGeometry args={[0.45, 1.2, 0.35]} /><meshBasicMaterial color={walker.color} /></mesh>
-      <mesh position={[0, 1.4, 0]} raycast={() => null}><boxGeometry args={[0.3, 0.3, 0.3]} /><meshBasicMaterial color={SKIN} /></mesh>
-    </group>
+    <ModelsOrBoxes fallback={<BoxFurnishings benches={benches} counters={counters} onPick={onPick} />}>
+      <ModelFurnishings plan={plan} benches={benches} counters={counters} lobbies={lobbies} onPick={onPick} />
+    </ModelsOrBoxes>
+  );
+}
+
+function ModelFurnishings({ plan, benches, counters, lobbies, onPick }: { plan: Plan; benches: Fixture[]; counters: Fixture[]; lobbies: Area[]; onPick(key: string): void }) {
+  const models = useModels();
+  const parts = useMemo(() => {
+    // A chair per seat; narrower when the model is wider than the space a seat has.
+    const fit = Math.min(1, 0.78 / models.waitingChair.size.x);
+    const seats = benches.flatMap((f) => (plan.chairs.get(f.key ?? "") ?? []).map((s): ModelItem => ({ x: s[0], y: f.y, z: s[2], key: f.key, scale: fit })));
+    // The receptionist stands behind the counter, facing the entrance.
+    const staff = [0, 1].map((look) => counters.filter((f) => lookOf(f.key ?? "", hash) === look).map((f): ModelItem => ({ x: f.x, y: f.y, z: f.z - 1.1, key: f.key, turn: Math.PI })));
+    const plants = lobbies.flatMap((a) => [-1, 1].flatMap((sx) => [-1, 1].map((sz): ModelItem => ({ x: a.x + sx * (a.w / 2 - 1), y: a.y, z: a.z + sz * (a.d / 2 - 1) }))));
+    return { seats, staff, plants };
+  }, [plan, benches, counters, lobbies, models]);
+  const pick = (key: string | undefined) => { if (key) onPick(key); };
+  return (
+    <>
+      <ModelInstances model={models.waitingChair} items={parts.seats} onPick={pick} />
+      {models.people.stand.map((m, i) => <ModelInstances key={i} model={m} items={parts.staff[i]} onPick={pick} />)}
+      <ModelInstances model={models.plant} items={parts.plants} />
+    </>
+  );
+}
+
+// Without the models: a bench by each door and a block person behind each counter.
+function BoxFurnishings({ benches, counters, onPick }: { benches: Fixture[]; counters: Fixture[]; onPick(key: string): void }) {
+  const parts = useMemo(() => ({
+    seats: benches.flatMap((f): BoxItem[] => [
+      { x: f.x, y: f.y + 0.41, z: f.z, w: f.w ?? 3, h: 0.08, d: 0.55, key: f.key },
+      { x: f.x, y: f.y + 0.48, z: f.z + 0.25, w: f.w ?? 3, h: 0.55, d: 0.08, key: f.key }
+    ]),
+    legs: benches.flatMap((f): BoxItem[] => [-1, 1].map((sx) => ({ x: f.x + sx * ((f.w ?? 3) / 2 - 0.2), y: f.y, z: f.z, w: 0.1, h: 0.42, d: 0.45 }))),
+    bodies: counters.map((f): BoxItem => ({ x: f.x, y: f.y, z: f.z - 1.1, w: 0.5, h: 1.1, d: 0.4, key: f.key })),
+    heads: counters.map((f): BoxItem => ({ x: f.x, y: f.y + 1.1, z: f.z - 1.1, w: 0.3, h: 0.3, d: 0.3, key: f.key }))
+  }), [benches, counters]);
+  const pick = (key: string | undefined) => { if (key) onPick(key); };
+  return (
+    <>
+      <Boxes items={parts.seats} color="#0369a1" onPick={pick} />
+      <Boxes items={parts.legs} color="#334155" />
+      <Boxes items={parts.bodies} color={PERSON} onPick={pick} />
+      <Boxes items={parts.heads} color={SKIN} onPick={pick} />
+    </>
   );
 }
 
@@ -273,15 +382,12 @@ function FixtureModel({ f, onPick }: { f: Fixture; onPick(key: string): void }) 
       {kind === "reception" && <>{box([0, 0.55, 0], [f.w ?? 4.2, 1.1, 1], "#e2e8f0")}{box([0, 1.12, 0.1], [(f.w ?? 4.2) + 0.2, 0.06, 1.2], WOOD)}</>}
       {kind === "counter" && <>
         {box([0, 1.18, 0.15], [f.w ?? 3, 0.08, 0.9], "#0ea5e9", { emissive: "#0ea5e9", emissiveIntensity: 0.25 })}
-        {box([0, 0.55, -1.1], [0.5, 1.1, 0.4], PERSON)}{box([0, 1.25, -1.1], [0.3, 0.3, 0.3], SKIN)}
         {/* The context variables a call brings: a clipboard on the counter. */}
         {(f.variables?.length ?? 0) > 0 && <>{box([0.9, 1.24, 0.35], [0.45, 0.04, 0.6], "#f8fafc")}{box([0.9, 1.27, 0.12], [0.2, 0.03, 0.08], "#475569")}</>}
       </>}
       {kind === "portal" && <>{box([0, 2, 0], [6, 2.6, 0.2], "#1e293b")}{box([0, 2, 0.12], [5.6, 2.2, 0.05], "#38bdf8", { emissive: "#38bdf8", emissiveIntensity: 0.5 })}</>}
       {kind === "kiosk" && <>{box([0, 0.7, 0], [0.7, 1.4, 0.5], "#a855f7")}{box([0, 1.55, 0.1], [0.8, 0.55, 0.08], "#ede9fe", { emissive: "#c4b5fd", emissiveIntensity: 0.6 })}</>}
       {kind === "signpost" && <>{box([0, 1, 0], [0.12, 2, 0.12], "#475569")}{box([0, 1.85, 0], [1.6, 0.5, 0.08], "#be123c")}</>}
-      {/* A waiting bench: seat, a back against the wall behind it, two legs. */}
-      {kind === "bench" && <>{box([0, 0.45, 0], [f.w ?? 3, 0.08, 0.55], "#0369a1")}{box([0, 0.75, 0.25], [f.w ?? 3, 0.55, 0.08], "#0369a1")}{box([-(f.w ?? 3) / 2 + 0.2, 0.2, 0], [0.1, 0.42, 0.45], "#334155")}{box([(f.w ?? 3) / 2 - 0.2, 0.2, 0], [0.1, 0.42, 0.45], "#334155")}</>}
       {kind === "hours" && box([0, 2.1, 0.05], [0.9, 0.6, 0.06], "#0f172a")}
       {kind === "mailbox" && <>{box([0, 0.55, 0], [0.1, 1.1, 0.1], "#475569")}{box([0, 1.2, 0], [0.55, 0.4, 0.4], "#dc2626")}</>}
       {kind === "booth" && box([0, 1.2, 0], [1, 2.4, 1], "#38bdf8", { transparent: true, opacity: 0.55 })}
@@ -407,7 +513,8 @@ export function CampusScene({ plan, mode, goal, selected, selectedSpot, wing, sh
       <Boxes items={floors} onPick={pick} />
       <Boxes items={walls} color={WALL} opacity={0.92} />
       <Desks desks={desks} screens={screens} showUnits={showUnits} onPick={onSelect} />
-      {others.map((f, i) => <FixtureModel key={`${f.kind}:${f.key ?? i}:${i}`} f={f} onPick={onSelect} />)}
+      {others.filter((f) => f.kind !== "bench").map((f, i) => <FixtureModel key={`${f.kind}:${f.key ?? i}:${i}`} f={f} onPick={onSelect} />)}
+      <Furnishings plan={plan} fixtures={others} onPick={onSelect} />
       {paths.map((p, i) => <PathLine key={i} path={p} />)}
       {callers && <Callers callers={callers.filter((c) => shown({ wing: wingOfRoom.get(c.key) }))} />}
       {walkers?.map((w) => <WalkerFigure key={w.id} walker={w} />)}

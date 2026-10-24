@@ -177,7 +177,7 @@ export function App(): React.ReactElement {
       if (c.status === "with-agent" && c.agentKey) {
         // At the agent's desk in the room of the queue the call came from (an agent sits in each of their rooms).
         const seat = (c.queueKey && plan.desks.get(`${c.queueKey}|${c.agentKey}`)) || plan.anchors.get(c.agentKey);
-        return seat ? [{ key: (c.queueKey && plan.desks.has(`${c.queueKey}|${c.agentKey}`) ? c.queueKey : homeRoom(c.agentKey)) ?? "", at: [seat[0], 0, seat[2] - 0.5], color: CONVERSATION_COLORS["with-agent"], standing: true }] : [];
+        return seat ? [{ key: (c.queueKey && plan.desks.has(`${c.queueKey}|${c.agentKey}`) ? c.queueKey : homeRoom(c.agentKey)) ?? "", at: [seat[0], 0, seat[2] - 1.7], color: CONVERSATION_COLORS["with-agent"], standing: true, turn: Math.PI }] : [];
       }
       return [];
     });
