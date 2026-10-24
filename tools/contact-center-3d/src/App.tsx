@@ -66,6 +66,7 @@ export function App(): React.ReactElement {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | undefined>(undefined);
+  const [selectedSpot, setSelectedSpot] = useState<Vec3 | undefined>(undefined);
   const [mode, setMode] = useState<Mode>("orbit");
   const [goal, setGoal] = useState<CameraGoal | undefined>(undefined);
   const [tab, setTab] = useState<Tab>("centers");
@@ -82,7 +83,8 @@ export function App(): React.ReactElement {
   const [activity, setActivity] = useState<Live | undefined>(undefined);
   const [liveError, setLiveError] = useState("");
   const [walkers, setWalkers] = useState<Walker[]>([]);
-  const [ride, setRide] = useState<{ id: number; path: string[]; options: RideOption[]; playing: boolean } | undefined>(undefined);
+  // startAt: the desk a ride from an agent starts at (the one you were looking at).
+  const [ride, setRide] = useState<{ id: number; path: string[]; options: RideOption[]; playing: boolean; startAt?: Vec3 } | undefined>(undefined);
   const { fullscreen, error: fullscreenError, toggle: toggleFullscreen } = useFullscreen();
   const sceneHandle = useRef<SceneHandle | null>(null);
   const started = useRef(false);
@@ -185,16 +187,16 @@ export function App(): React.ReactElement {
   }, [activity]);
 
   // Follow the call: walking along the route from the entrance to a desk.
-  const startRide = (from?: string) => {
+  const startRide = (from?: string, startAt?: Vec3) => {
     if (!graph || !plan) return;
     const start = from ?? selected ?? defaultRideStart(graph);
     if (!start || !plan.anchors.has(start)) return;
-    setRide({ id: Date.now(), ...shownRide(extendRide(graph, [start])), playing: true });
+    setRide({ id: Date.now(), ...shownRide(extendRide(graph, [start])), playing: true, startAt });
   };
   const shownRide = (r: { path: string[]; options: RideOption[] }) => ({ path: r.path.filter((k) => plan?.anchors.has(k)), options: r.options.filter((o) => plan?.anchors.has(o.key)) });
   const choose = (o: RideOption) => { if (graph) setRide((r) => (r ? { ...r, ...shownRide(extendRide(graph, [...r.path, o.key])), playing: true } : r)); };
   // The ride walks the building like a caller: along the walkways, in at a room's door, waiting at the bench.
-  const sceneRide = useMemo<Ride | undefined>(() => (ride && plan ? { id: ride.id, playing: ride.playing, points: walkRoute(plan, ride.path) } : undefined), [ride, plan]);
+  const sceneRide = useMemo<Ride | undefined>(() => (ride && plan ? { id: ride.id, playing: ride.playing, points: walkRoute(plan, ride.path, ride.startAt) } : undefined), [ride, plan]);
 
   const flyTo = (position: Vec3, target: Vec3) => setGoal((g) => ({ position, target, serial: (g?.serial ?? 0) + 1 }));
   const overview = useCallback(() => {
@@ -207,9 +209,11 @@ export function App(): React.ReactElement {
     const at = plan?.anchors.get(key);
     return at ? plan?.buildings.find((b) => at[0] >= b.x && at[0] <= b.x + b.w && at[2] <= b.z && at[2] >= b.z - b.d)?.centerId : undefined;
   };
-  const select = useCallback((key: string) => {
+  // at: the spot that was clicked, for a record in more than one place (an agent's desks); otherwise its own.
+  const select = useCallback((key: string, clicked?: Vec3) => {
     setSelected(key);
-    const at = plan?.anchors.get(key);
+    setSelectedSpot(clicked);
+    const at = clicked ?? plan?.anchors.get(key);
     if (!at || !plan) return;
     if (key.startsWith("center:")) {
       const b = plan.buildings.find((x) => `center:${x.centerId}` === key)!;
@@ -289,7 +293,7 @@ export function App(): React.ReactElement {
 
   return (
     <div className="campus">
-      <CampusScene plan={plan} mode={mode} goal={goal} selected={selected} focusCenter={focusCenter} wing={wing} showUnits={showUnits}
+      <CampusScene plan={plan} mode={mode} goal={goal} selected={selected} selectedSpot={selectedSpot} focusCenter={focusCenter} wing={wing} showUnits={showUnits}
         issues={showHealth ? worst : undefined} screens={screens} callers={callers} walkers={walkers} labelSuffix={labelSuffix} ride={sceneRide} handle={sceneHandle} onSelect={select} />
 
       <aside className="panel left">
@@ -489,7 +493,7 @@ export function App(): React.ReactElement {
                 <div key={i.check} className={`finding ${i.severity}`}><strong>{SEVERITY_LABELS[i.severity]}: {i.title}</strong><p>{i.detail}</p><p className="fix">{i.fix}</p></div>
               ))}
               <div className="actions">
-                {plan.anchors.has(selectedNode.key) && <button className="link" onClick={() => { setTab("explore"); startRide(selectedNode.key); }}>Follow a call from here</button>}
+                {plan.anchors.has(selectedNode.key) && <button className="link" onClick={() => { setTab("explore"); startRide(selectedNode.key, selectedSpot); }}>Follow a call from here</button>}
                 {openUrl && <a href={openUrl} target="_blank" rel="noreferrer">Open record ↗</a>}
                 <button className="link" onClick={() => setSelected(undefined)}>Close</button>
               </div>
@@ -498,7 +502,7 @@ export function App(): React.ReactElement {
                   <h3>{title as string}</h3>
                   <ul className="link-list">
                     {(list as typeof upstream).slice(0, MAX_LISTED).map(({ e, n }) => (
-                      <li key={`${e.from}>${e.to}:${e.kind}`}><button onClick={() => plan.anchors.has(n!.key) && select(n!.key)}><span className="dot" style={{ background: KINDS[n!.kind].color }} />{n!.name}<small>{e.label ? `${EDGE_LABELS[e.kind]} · ${e.label}` : EDGE_LABELS[e.kind]}</small></button></li>
+                      <li key={`${e.from}>${e.to}:${e.kind}`}><button onClick={() => plan.anchors.has(n!.key) && select(n!.key, n!.kind === "agent" ? plan.desks.get(`${selectedNode.key}|${n!.key}`) : undefined)}><span className="dot" style={{ background: KINDS[n!.kind].color }} />{n!.name}<small>{e.label ? `${EDGE_LABELS[e.kind]} · ${e.label}` : EDGE_LABELS[e.kind]}</small></button></li>
                     ))}
                   </ul>
                 </div>

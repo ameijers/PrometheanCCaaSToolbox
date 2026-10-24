@@ -16,7 +16,9 @@ const EYE = 1.2;
 const lift = (p: Vec3, onLine: boolean): Vec3 => [p[0], onLine && p[1] > 1.5 ? p[1] + EYE : EYE, p[2]];
 const close = (a: Vec3, b: Vec3) => Math.abs(a[0] - b[0]) < 0.05 && Math.abs(a[2] - b[2]) < 0.05;
 
-export function walkRoute(plan: Plan, path: string[]): Vec3[] {
+// startAt: where the first record stands when it stands in more than one place (the agent's desk that
+// was clicked); an agent reached from a room is always at their desk in that room.
+export function walkRoute(plan: Plan, path: string[], startAt?: Vec3): Vec3[] {
   const points: Vec3[] = [];
   const add = (p: Vec3, onLine = false) => { const q = lift(p, onLine); if (!points.length || !close(points[points.length - 1], q) || Math.abs(points[points.length - 1][1] - q[1]) > 0.05) points.push(q); };
   // The spot in front of a room's waiting bench.
@@ -42,7 +44,7 @@ export function walkRoute(plan: Plan, path: string[]): Vec3[] {
       return;
     }
     // An agent after a room: their desk in that room.
-    const at = (prev && plan.desks.get(`${prev}|${key}`)) || plan.anchors.get(key);
+    const at = (i === 0 && startAt) || (prev && plan.desks.get(`${prev}|${key}`)) || plan.anchors.get(key);
     if (!at) return;
     // Leaving a room for an overflow outside its front door: back out through the door first.
     const prevDoor = prev ? plan.doors.get(prev) : undefined;

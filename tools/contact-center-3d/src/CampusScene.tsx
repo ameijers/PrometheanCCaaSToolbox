@@ -60,14 +60,17 @@ interface Props {
   labelSuffix?: Map<string, string>;
   ride?: Ride;
   handle?: React.MutableRefObject<SceneHandle | null>;
-  onSelect(key: string): void;
+  // at: where the record was clicked, when it stands in more than one place (an agent's desks).
+  onSelect(key: string, at?: Vec3): void;
+  // Where the selection ring goes, when that's not the record's own spot (the desk that was clicked).
+  selectedSpot?: Vec3;
 }
 
 const tint = (color: string, amount: number) => new THREE.Color(color).lerp(new THREE.Color("#ffffff"), amount);
 interface BoxItem { x: number; y: number; z: number; w: number; h: number; d: number; color?: THREE.Color; key?: string }
 
 // Boxes of any size from one unit cube: position, scale and colour per instance.
-function Boxes({ items, color, opacity = 1, emissive, onPick }: { items: BoxItem[]; color?: string; opacity?: number; emissive?: boolean; onPick?: (key: string | undefined) => void }) {
+function Boxes({ items, color, opacity = 1, emissive, onPick }: { items: BoxItem[]; color?: string; opacity?: number; emissive?: boolean; onPick?: (key: string | undefined, item: BoxItem) => void }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const geometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
   useEffect(() => () => geometry.dispose(), [geometry]);
@@ -89,7 +92,7 @@ function Boxes({ items, color, opacity = 1, emissive, onPick }: { items: BoxItem
   return (
     <instancedMesh
       key={items.length} ref={ref} args={[geometry, undefined, items.length]}
-      onClick={onPick ? (e: ThreeEvent<MouseEvent>) => { if (e.delta > 4 || e.instanceId === undefined) return; e.stopPropagation(); onPick(items[e.instanceId]?.key); } : undefined}
+      onClick={onPick ? (e: ThreeEvent<MouseEvent>) => { if (e.delta > 4 || e.instanceId === undefined) return; e.stopPropagation(); onPick(items[e.instanceId]?.key, items[e.instanceId]); } : undefined}
       raycast={onPick ? undefined : () => null}
     >
       {emissive
@@ -101,7 +104,7 @@ function Boxes({ items, color, opacity = 1, emissive, onPick }: { items: BoxItem
 
 // Desks with a person behind each, the screen in the agent's presence colour, skill badges on the
 // front edge and, when asked, a carpet tile in the business unit's colour.
-function Desks({ desks, screens, showUnits, onPick }: { desks: Fixture[]; screens?: Map<string, string>; showUnits?: boolean; onPick(key: string): void }) {
+function Desks({ desks, screens, showUnits, onPick }: { desks: Fixture[]; screens?: Map<string, string>; showUnits?: boolean; onPick(key: string, at: Vec3): void }) {
   const parts = useMemo(() => {
     const at = (f: Fixture, dx: number, dy: number, dz: number, w: number, h: number, d: number, extra: Partial<BoxItem> = {}): BoxItem => ({ x: f.x + dx, y: f.y + dy, z: f.z + dz, w, h, d, key: f.key, ...extra });
     return {
@@ -115,7 +118,11 @@ function Desks({ desks, screens, showUnits, onPick }: { desks: Fixture[]; screen
       carpets: showUnits ? desks.filter((f) => f.unit).map((f) => at(f, 0, 0.03, 0.3, 3, 0.02, 3, { color: new THREE.Color(colorFor(f.unit!)), key: undefined })) : []
     };
   }, [desks, screens, showUnits]);
-  const pick = (key: string | undefined) => { if (key) onPick(key); };
+  // Which desk was clicked: the agent may sit in several rooms.
+  const pick = (key: string | undefined, item: BoxItem) => {
+    const desk = desks.find((d) => d.key === key && Math.abs(d.x - item.x) < 1 && Math.abs(d.z - item.z) < 1.2);
+    if (key) onPick(key, desk ? [desk.x, 1.4, desk.z + 0.6] : [item.x, 1.4, item.z]);
+  };
   return (
     <>
       <Boxes items={parts.carpets} />
@@ -238,7 +245,7 @@ function PathLine({ path }: { path: Path }) {
   );
 }
 
-export function CampusScene({ plan, mode, goal, selected, focusCenter, wing, showUnits, issues, screens, callers, walkers, labelSuffix, ride, handle, onSelect }: Props): React.ReactElement {
+export function CampusScene({ plan, mode, goal, selected, selectedSpot, focusCenter, wing, showUnits, issues, screens, callers, walkers, labelSuffix, ride, handle, onSelect }: Props): React.ReactElement {
   const shown = (item: { wing?: Wing }) => !wing || !item.wing || item.wing === wing;
   const floors = useMemo(() => plan.areas.filter(shown).map((a) => ({
     x: a.x, y: a.y + (a.kind === "building" ? 0 : a.kind === "wing" ? 0.015 : 0.03), z: a.z, w: a.w, h: a.kind === "building" ? 0.08 : 0.04, d: a.d,
@@ -253,7 +260,7 @@ export function CampusScene({ plan, mode, goal, selected, focusCenter, wing, sho
   const centerOf = (x: number, z: number) => plan.buildings.find((b) => x >= b.x && x <= b.x + b.w && z <= b.z && z >= b.z - b.d)?.centerId;
   const showDetail = (x: number, z: number) => plan.buildings.length <= 2 || centerOf(x, z) === focusCenter;
 
-  const selectedAt = selected ? plan.anchors.get(selected) : undefined;
+  const selectedAt = selected ? selectedSpot ?? plan.anchors.get(selected) : undefined;
   const markers = useMemo(() => [...(issues ?? new Map<string, Severity>()).entries()].map(([k, s]) => ({ key: k, severity: s, at: plan.anchors.get(k) })).filter((m): m is { key: string; severity: Severity; at: Vec3 } => !!m.at), [issues, plan]);
   const pick = (key: string | undefined) => { if (key) onSelect(key); };
 

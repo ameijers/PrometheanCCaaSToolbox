@@ -43,6 +43,14 @@ describe("walkRoute", () => {
     expect([end[0], end[2]]).toEqual([desk[0], desk[2]]);
   });
 
+  test("a ride from an agent starts at the desk that was clicked", () => {
+    const twice = graph.nodes.find((n) => n.kind === "agent" && graph.edges.filter((e) => e.kind === "member" && e.to === n.key).length > 1)!;
+    const rooms = graph.edges.filter((e) => e.kind === "member" && e.to === twice.key).map((e) => e.from);
+    const second = plan.desks.get(`${rooms[1]}|${twice.key}`)!;
+    expect(walkRoute(plan, [twice.key], second)[0]).toEqual([second[0], 1.2, second[2]]);
+    expect(plan.desks.get(`${rooms[0]}|${twice.key}`)).not.toEqual(second);
+  });
+
   test("a full ride from a phone number walks from the entrance to the bench", () => {
     const start = graph.nodes.find((n) => n.kind === "phone" && plan.anchors.has(n.key))!.key;
     const { path } = extendRide(graph, [start]);
