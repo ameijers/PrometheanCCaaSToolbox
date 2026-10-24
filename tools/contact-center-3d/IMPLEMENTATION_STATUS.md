@@ -30,7 +30,7 @@ First version: the campus, a building per customer center, combine / split / mov
 - **Routing lines** drawn thicker and darker, over a white edge, and slightly above the floor.
 - **Customer centers made by hand**: create a named center (it stays while empty), move workstreams in by drag & drop or Move to…, move them out, delete a center. Combine and Split are gone. A grouping saved before this keeps its combined centers as the viewer's own.
 - **Sample data** inside Dataverse (button, `demo=1`), in this tool and in the explorer.
-- **Live activity** from the explorer's `live.ts`: waiting callers on the room's chairs (then a line at the door), callers with an agent at the desk, new callers walking in from the workstream's way in, desk screens in the presence colour, "n waiting" on the room.
+- **Live activity** from the explorer's `live.ts`: waiting callers on the room's bench (then a line outside the door), callers with an agent at the desk, new callers walking in from the workstream's way in, desk screens in the presence colour, "n waiting" on the room.
 - **Follow a call** with the explorer's `ride.ts` and camera rig; the rig now takes a `rideScale` (0.3 here, so it rides close behind the call inside a building).
 - **Skills** as badges on the desk (and listed with their rating in the details), **business units** as carpet (switch on the Explore tab), **context variables** as a clipboard on the counter.
 
@@ -38,8 +38,9 @@ First version: the campus, a building per customer center, combine / split / mov
 
 - The white edge under the lines is gone; lines run 0.5 m above the floor instead, so floor tiles can't hide them. Widths halved after review (they're screen pixels, doubled on high-DPI displays).
 - Lines keep to the walkways: rooms are in straight columns (each as wide as its widest room), and a line goes along the corridor, down the aisle left of its room, along the walkway in front of the row, in at the door. A test walks every line and checks it never enters a room.
-- A queue transfer is a **door in the back wall** of its room (after review: outside the front it read as something to walk past); its line leaves through that door and along the walkway behind the room. The other overflow stays outside the front door. Waiting chairs have a seat and back, on a mat, so they read as chairs.
+- A queue transfer is a **door in the back wall** of its room (after review: outside the front it read as something to walk past); its line leaves through that door and along the walkway behind the room. The other overflow stays outside the front door. Waiting is a bench inside the door, beside it, back against the front wall, seats facing into the room (after review: four chairs facing the door looked odd); new callers walk in through the door to it.
 - Lines take the **shortest** walkway route (after review: always using the left aisle made detours): a front-row room straight from the corridor, a room further back over the nearer of its two aisles (the right one measured from its column's edge, so a wider room in another row can't block it), a transfer out of the nearer aisle behind its room. Tests check every segment runs along x or z.
+- **Follow a call walks like a caller** (\src/walk.ts\): after review it waited in the middle of a room (the queue's spot) and cut straight through walls. It now follows the line on the floor to the room's door, goes in, and waits in front of the bench until an agent is chosen; to overflow by the front door it walks back out first.
 - A **Lines** legend explains the four styles, from the same list the scene draws with.
 
 ## Next ideas

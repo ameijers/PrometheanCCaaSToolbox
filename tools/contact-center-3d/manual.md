@@ -31,7 +31,7 @@ From the front (the entrance) to the back:
 3. **Front desk**: one per customer center. Each **blue counter** on it is a workstream; a clipboard on a counter means the workstream has context variables.
 4. **Signposts** at the corridor: the routing rules. A red line on the floor leads to the room each rule sends calls to.
 5. **Wings**, side by side: **Phone**, **Chat & messaging** and **Email & records**, each with its name on the floor. A queue's room is in the wing of its type.
-6. **Rooms**: the queues. The blue chairs just inside the door are where callers wait. Each **desk** has the agent behind it; the small coloured badges on the desk are the agent's skills.
+6. **Rooms**: the queues. The blue bench inside, beside the door, is where callers wait. Each **desk** has the agent behind it; the small coloured badges on the desk are the agent's skills.
 7. **By a room's door**: its opening hours (dark sign) and its overflow: a red mailbox for voicemail, a glass phone booth for a callback, a green exit for ending the conversation. A **purple door in the back wall** is an overflow transfer to another queue: the dashed red line leads from it to that room.
 
 A blue **skybridge** goes to a room in another customer center. A faint dashed yellow line goes to a workstream's default queue, a dashed red one is an overflow transfer to another queue. Arrowheads on the curved lines point the way they go, towards the room. The **Lines** legend in the bottom-right corner shows them all; click it to fold it away.
@@ -53,7 +53,7 @@ Your centers are remembered in this browser, for this environment.
 
 ## 5. Following a call
 
-On the **Explore** tab, click **Follow a call** (from the selected record, or from a phone number), or **Follow a call from here** in a record's details. The camera walks the route: in through the entrance, past the front desk and a signpost, into a room, to a desk. At a fork the bar at the bottom asks **Where does the call go next?**; **Pause**, **Start again** and **×** (or Esc) are there too.
+On the **Explore** tab, click **Follow a call** (from the selected record, or from a phone number), or **Follow a call from here** in a record's details. The camera walks the route the way a caller would: in through the entrance, past the front desk and a signpost, along the line on the floor and in at the room's front door. There it waits at the waiting bench until you choose an agent, then walks to that desk. At a fork the bar at the bottom asks **Where does the call go next?**; **Pause**, **Start again** and **×** (or Esc) are there too.
 
 ![Following a call: the route so far and the choice at the front desk](images/03-follow-a-call.png)
 
@@ -63,7 +63,7 @@ On the same tab, **Business units as carpet** puts a coloured carpet tile under 
 
 Open the **Live** tab and tick **Live activity**. It reads again every 15 seconds (every 5 in the sample).
 
-- Callers waiting in a queue sit on the chairs by its door; when the chairs are full, they queue up at the door.
+- Callers waiting in a queue sit on the bench inside its door; when the bench is full, they queue up outside the door.
 - A caller with an agent stands at the agent's desk.
 - A new caller walks in through the entrance, past the front desk, to the room.
 - Desk screens light up in the agent's presence colour: green available, red busy, dark red do not disturb, amber away, grey offline.

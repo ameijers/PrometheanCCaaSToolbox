@@ -15,7 +15,7 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 | Purple kiosk in front of the front desk | a workstream's bot (automated reception) |
 | Signpost at the corridor, with a red line on the floor to its room | routing rule |
 | Wing behind the corridor: **Phone**, **Chat & messaging**, **Email & records**, side by side | the kind of work: a queue's room is in the wing of its type |
-| Room, with blue waiting chairs on a mat just inside the door | queue |
+| Room, with a blue waiting bench inside, beside the door | queue |
 | Desk with a person behind it, small badges on its front | agent and their skills |
 | Carpet under a desk (when switched on) | the agent's business unit |
 | Sign by the room's door | operating hours |
@@ -53,8 +53,8 @@ Workstreams in no customer center are listed under it, each standing as a buildi
 The left panel keeps search, the camera buttons (**Orbit**, **Walk**, **Campus**, **Full screen**) and the **Wings** filter (All, Phone, Chat & messaging, Email & records: shows one wing's rooms) on top, with tabs below:
 
 - **Centers**: making and filling customer centers (above).
-- **Explore**: **Follow a call** walks the route from the entrance past the front desk and a signpost into a room and to a desk, asking at each fork where the call goes; and business units as carpet.
-- **Live**: live activity, read every 15 seconds (every 5 in the sample). Waiting callers sit on the chairs by a room's door (and queue up at the door when the chairs are full); a caller with an agent stands at the desk; new callers walk in through the entrance; desk screens light up in the agent's presence colour; rooms say "3 waiting".
+- **Explore**: **Follow a call** walks the route like a caller: from the entrance past the front desk and a signpost, along the line on the floor (corridor, aisle) and in at the room's front door, then waits at the room's bench until you choose the agent, and walks to that desk. It asks at each fork where the call goes. Also: business units as carpet.
+- **Live**: live activity, read every 15 seconds (every 5 in the sample). Waiting callers sit on the bench inside a room's door (and queue up outside the door when it's full); a caller with an agent stands at the desk; new callers walk in through the entrance; desk screens light up in the agent's presence colour; rooms say "3 waiting".
 - **Health**: the explorer's checks, as warning cones over the records.
 - **Help**: the controls and what everything means.
 
@@ -70,7 +70,7 @@ It reuses the explorer's code rather than copying it: the Dataverse reads and th
 
 - `src/centers.ts`: the customer centers (create, move, delete, rename, recolour, hide, and matching a saved grouping to today's workstreams).
 - `src/store.ts`: where the grouping is kept.
-- `src/floorplan.ts`: the plan, from graph and grouping to buildings, wings, areas, walls, fixtures, paths, anchors, waiting chairs and ways in. Pure.
+- `src/floorplan.ts`: the plan, from graph and grouping to buildings, wings, areas, walls, fixtures, paths, anchors, waiting-bench seats, room doors and ways in. Pure.
 - `src/CampusScene.tsx`: draws it. Floors, walls, desks and people are instanced boxes, so large centers stay smooth.
 
 Tables read: the same as the explorer (with live activity: `msdyn_agentstatus` and `msdyn_ocliveworkitem`). Written: nothing; `tests/floorplan.test.ts` includes the read-only check.

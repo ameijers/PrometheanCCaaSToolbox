@@ -19,6 +19,7 @@ import { Caller, CampusScene, colorFor, PATH_STYLE, SEVERITY_COLORS, Walker } fr
 import { Center, CENTER_COLORS, createCenter, deleteCenter, Grouping, moveWorkstream, recolor, reconcile, rename, setHidden } from "./centers";
 import { buildPlan, UNROUTED_CENTER, Vec3, Wing, WING_COLORS, WING_LABELS, WING_ORDER } from "./floorplan";
 import { browserStore } from "./store";
+import { walkRoute } from "./walk";
 
 type Tab = "centers" | "explore" | "live" | "health" | "help";
 const TABS: { id: Tab; label: string }[] = [
@@ -131,8 +132,10 @@ export function App(): React.ReactElement {
         const arriving = newArrivals(previous, next).flatMap((c): Walker[] => {
           const from = c.workstreamKey ? p?.entrances.get(c.workstreamKey) : undefined;
           const counter = c.workstreamKey ? p?.anchors.get(c.workstreamKey) : undefined;
-          const room = c.queueKey ? p?.chairs.get(c.queueKey)?.[0] : undefined;
-          return from && counter && room ? [{ id: `${c.id}:${next.readAt}`, color: CONVERSATION_COLORS.waiting, points: [from, [counter[0], 0, counter[2] + 2], [room[0], 0, room[2] + 3], room] }] : [];
+          const door = c.queueKey ? p?.doors.get(c.queueKey) : undefined;
+          const seat = c.queueKey ? p?.chairs.get(c.queueKey)?.[3] : undefined;
+          // Past the front desk, to the room's door, in, and to the bench.
+          return from && counter && door && seat ? [{ id: `${c.id}:${next.readAt}`, color: CONVERSATION_COLORS.waiting, points: [from, [counter[0], 0, counter[2] + 2], [door[0], 0, door[2] + 2.5], door, [door[0], 0, door[2] - 1.2], seat] }] : [];
         });
         previous = next;
         setActivity(next);
@@ -162,8 +165,9 @@ export function App(): React.ReactElement {
         if (!chairs) return [];
         const n = seated.get(c.queueKey) ?? 0;
         seated.set(c.queueKey, n + 1);
-        // Four chairs; anyone after that stands in line at the door.
-        const at: Vec3 = n < chairs.length ? chairs[n] : [chairs[0][0] + (n - chairs.length) * 0.8 - 1.5, 0, chairs[0][2] + 2.2];
+        // Four seats on the bench; anyone after that stands in line outside the door.
+        const door = plan.doors.get(c.queueKey);
+        const at: Vec3 = n < chairs.length ? chairs[n] : [(door?.[0] ?? chairs[0][0]) - 1.5 - (n - chairs.length) * 0.8, 0, (door?.[2] ?? chairs[0][2]) + 1.2];
         return [{ key: c.queueKey, at, color: CONVERSATION_COLORS.waiting, standing: n >= chairs.length }];
       }
       if (c.status === "with-agent" && c.agentKey) {
@@ -188,7 +192,8 @@ export function App(): React.ReactElement {
   };
   const shownRide = (r: { path: string[]; options: RideOption[] }) => ({ path: r.path.filter((k) => plan?.anchors.has(k)), options: r.options.filter((o) => plan?.anchors.has(o.key)) });
   const choose = (o: RideOption) => { if (graph) setRide((r) => (r ? { ...r, ...shownRide(extendRide(graph, [...r.path, o.key])), playing: true } : r)); };
-  const sceneRide = useMemo<Ride | undefined>(() => (ride && plan ? { id: ride.id, playing: ride.playing, points: ride.path.map((k) => plan.anchors.get(k)).filter((p): p is Vec3 => !!p).map((p) => [p[0], 1.2, p[2]] as Vec3) } : undefined), [ride, plan]);
+  // The ride walks the building like a caller: along the walkways, in at a room's door, waiting at the bench.
+  const sceneRide = useMemo<Ride | undefined>(() => (ride && plan ? { id: ride.id, playing: ride.playing, points: walkRoute(plan, ride.path) } : undefined), [ride, plan]);
 
   const flyTo = (position: Vec3, target: Vec3) => setGoal((g) => ({ position, target, serial: (g?.serial ?? 0) + 1 }));
   const overview = useCallback(() => {

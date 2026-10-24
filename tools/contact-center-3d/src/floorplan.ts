@@ -13,7 +13,7 @@ import { Grouping } from "./centers";
 //   corridor  - a signpost per routing rule; paths lead from each sign along the corridor, then down the
 //               aisle beside the room and along the walkway in front of its row to its door
 //   wings     - one per kind of work (phone, chat & messaging, email & records), side by side, each with
-//               its rooms in a grid: desks with an agent behind each, chairs to wait on by the door,
+//               its rooms in a grid: desks with an agent behind each, a bench to wait on inside the door,
 //               opening hours on a sign, overflow (mailbox, phone booth, exit) outside the front door, and a
 //               door in the back wall for each overflow transfer to another queue
 //
@@ -35,7 +35,7 @@ export interface Area { kind: AreaKind; key?: string; centerId: string; wing?: W
 // A wall piece, centred on (x, z), standing on the floor.
 export interface Wall { x: number; y: number; z: number; w: number; d: number; h: number; wing?: Wing }
 
-export type FixtureKind = "door" | "portal" | "numbers" | "reception" | "counter" | "kiosk" | "signpost" | "desk" | "chair" | "hours" | "mailbox" | "booth" | "exit" | "transfer" | "hold";
+export type FixtureKind = "door" | "portal" | "numbers" | "reception" | "counter" | "kiosk" | "signpost" | "desk" | "bench" | "hours" | "mailbox" | "booth" | "exit" | "transfer" | "hold";
 export interface Fixture {
   kind: FixtureKind; key?: string; x: number; y: number; z: number; w?: number; label?: string; wing?: Wing;
   // A desk's skills and business unit; a counter's context variables.
@@ -58,8 +58,10 @@ export interface Plan {
   anchors: Map<string, Vec3>;
   // Members of a queue who sit at a desk in another room.
   elsewhere: Map<string, number>;
-  // The waiting chairs per room (queue key), and the way in per workstream: for live callers.
+  // The seats on each room's waiting bench (queue key), and the way in per workstream: for live callers.
   chairs: Map<string, Vec3[]>;
+  // Each room's front door (queue key), on the floor.
+  doors: Map<string, Vec3>;
   entrances: Map<string, Vec3>;
   bounds: { x: number; z: number; w: number; d: number; h: number };
 }
@@ -79,6 +81,7 @@ const ROOMS_FROM = ENTRANCE_D + LOBBY_D + CORRIDOR_D + WING_SIGN;
 const ROOM_GAP = 3;
 const WING_GAP = 4;
 const DOOR_W = 2.4;
+const BENCH_W = 3.2;
 export const WALL_H = 3.5, ROOM_WALL_H = 2.6, PARTITION_H = 1.6;
 const CAMPUS_GAP = 18;
 // Paths run this high above the floor, clear of the floor tiles, so they're never hidden in them.
@@ -180,7 +183,7 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
     return { center: c, doors, digital, rules, wings, wingsWidth, width, depth };
   }).filter((l) => l.center.workstreams.length || l.wings.length);
 
-  const plan: Plan = { buildings: [], areas: [], walls: [], fixtures: [], paths: [], anchors: new Map(), elsewhere, chairs: new Map(), entrances: new Map(), bounds: { x: 0, z: 0, w: 0, d: 0, h: 0 } };
+  const plan: Plan = { buildings: [], areas: [], walls: [], fixtures: [], paths: [], anchors: new Map(), elsewhere, chairs: new Map(), doors: new Map(), entrances: new Map(), bounds: { x: 0, z: 0, w: 0, d: 0, h: 0 } };
   // A room's door, and the ways to it: the aisles left and right of its column, and the walkway in
   // front of its row (a room in the front row faces the corridor itself).
   const doorOf = new Map<string, { at: Vec3; building: string; wing: Wing; aisles: number[]; walkZ: number; corridorZ: number; frontRow: boolean }>();
@@ -273,9 +276,11 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
         plan.walls.push(...wallAlongX(rx, rx + r.w, wz(front), ROOM_WALL_H, [doorX], wing.kind), ...wallAlongX(rx, rx + r.w, wz(front + r.d), ROOM_WALL_H, backDoors, wing.kind));
         plan.walls.push({ x: rx, y, z: wz(front + r.d / 2), w: 0.2, d: r.d, h: ROOM_WALL_H, wing: wing.kind }, { x: rx + r.w, y, z: wz(front + r.d / 2), w: 0.2, d: r.d, h: ROOM_WALL_H, wing: wing.kind });
 
-        const chairs: Vec3[] = [-3, -1.5, 1.5, 3].map((off) => [doorX + off, 0, wz(front + 1.6)]);
-        chairs.forEach(([cx2, , cz2]) => fixture({ kind: "chair", key: r.key, x: cx2, z: cz2, wing: wing.kind }));
-        plan.chairs.set(r.key, chairs);
+        // A waiting bench inside the door, beside it, its back against the front wall: four seats facing into the room.
+        const benchX = doorX - DOOR_W / 2 - 0.5 - BENCH_W / 2, benchZ = wz(front + 0.55);
+        fixture({ kind: "bench", key: r.key, x: benchX, z: benchZ, w: BENCH_W, wing: wing.kind });
+        plan.chairs.set(r.key, [-1.2, -0.4, 0.4, 1.2].map((off): Vec3 => [benchX + off, 0, benchZ]));
+        plan.doors.set(r.key, [doorX, 0, wz(front)]);
         const cols = Math.max(2, Math.ceil(Math.sqrt(r.desks.length)));
         r.desks.forEach((agentKey, n) => {
           const dx = rx + 1.5 + DESK / 2 + (n % cols) * DESK + (r.w - 3 - cols * DESK) / 2;

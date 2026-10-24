@@ -130,7 +130,7 @@ function Desks({ desks, screens, showUnits, onPick }: { desks: Fixture[]; screen
   );
 }
 
-// Callers: sitting on a waiting chair, or standing at an agent's desk.
+// Callers: sitting on a room's waiting bench, or standing at an agent's desk.
 function Callers({ callers }: { callers: Caller[] }) {
   const parts = useMemo(() => ({
     bodies: callers.map((c) => ({ x: c.at[0], y: c.at[1] + (c.standing ? 0 : 0.45), z: c.at[2], w: 0.45, h: c.standing ? 1.2 : 0.75, d: 0.35, color: new THREE.Color(c.color) })),
@@ -184,8 +184,8 @@ function FixtureModel({ f, onPick }: { f: Fixture; onPick(key: string): void }) 
       {kind === "portal" && <>{box([0, 2, 0], [6, 2.6, 0.2], "#1e293b")}{box([0, 2, 0.12], [5.6, 2.2, 0.05], "#38bdf8", { emissive: "#38bdf8", emissiveIntensity: 0.5 })}</>}
       {kind === "kiosk" && <>{box([0, 0.7, 0], [0.7, 1.4, 0.5], "#a855f7")}{box([0, 1.55, 0.1], [0.8, 0.55, 0.08], "#ede9fe", { emissive: "#c4b5fd", emissiveIntensity: 0.6 })}</>}
       {kind === "signpost" && <>{box([0, 1, 0], [0.12, 2, 0.12], "#475569")}{box([0, 1.85, 0], [1.6, 0.5, 0.08], "#be123c")}</>}
-      {/* A waiting chair: seat, back and legs, on the waiting area's mat. */}
-      {kind === "chair" && <>{box([0, 0.012, 0.1], [1.45, 0.02, 1.2], "#bae6fd")}{box([0, 0.45, 0], [0.6, 0.08, 0.55], "#0369a1")}{box([0, 0.75, -0.25], [0.6, 0.55, 0.08], "#0369a1")}{box([0, 0.2, 0], [0.08, 0.42, 0.08], "#334155")}</>}
+      {/* A waiting bench: seat, a back against the wall behind it, two legs. */}
+      {kind === "bench" && <>{box([0, 0.45, 0], [f.w ?? 3, 0.08, 0.55], "#0369a1")}{box([0, 0.75, 0.25], [f.w ?? 3, 0.55, 0.08], "#0369a1")}{box([-(f.w ?? 3) / 2 + 0.2, 0.2, 0], [0.1, 0.42, 0.45], "#334155")}{box([(f.w ?? 3) / 2 - 0.2, 0.2, 0], [0.1, 0.42, 0.45], "#334155")}</>}
       {kind === "hours" && box([0, 2.1, 0.05], [0.9, 0.6, 0.06], "#0f172a")}
       {kind === "mailbox" && <>{box([0, 0.55, 0], [0.1, 1.1, 0.1], "#475569")}{box([0, 1.2, 0], [0.55, 0.4, 0.4], "#dc2626")}</>}
       {kind === "booth" && box([0, 1.2, 0], [1, 2.4, 1], "#38bdf8", { transparent: true, opacity: 0.55 })}
