@@ -17,7 +17,7 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 | [Context Variable Monitor](tools/context-variable-monitor/README.md) | Watches the actual context-variable values a real call captures, live, as it moves through the IVR and unified routing — for debugging against real traffic rather than simulated configuration. |
 | [Agent Readiness Checker](tools/agent-readiness-checker/README.md) | Answers "why isn't this agent receiving calls?" — checks one agent or the whole roster against every prerequisite for receiving voice work (account, roles, channel, queue membership, workstream reachability, capacity, skills, presence) with plain-language evidence and suggested fixes. |
 | [Environment Artifact Finder](tools/environment-artifact-finder/README.md) | Finds configuration you could clean up: records nothing active uses any more, records that are wired in but can never do anything (e.g. a voice workstream with no phone number, a queue no route reaches), broken references, and housekeeping items (old bulk-delete jobs, stale saved views). Recommends only. Every finding is a candidate for review, with its evidence and a confidence level. |
-| [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. A health overlay marks problems (an empty queue that is routed to, a rule to a deleted queue, a workstream that routes nowhere) in the picture. In the Site Map as **3D → 3D Explorer**. **New: deployed to `academyexperiment` and in solution 1.0.0.12, but not yet tested live.** |
+| [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. A health overlay marks problems (an empty queue that is routed to, a rule to a deleted queue, a workstream that routes nowhere) in the picture. Also: a health overlay for structural problems, follow-the-call rides, live presence and queue load, bots, overflow and operating hours, tabs, a layer distance slider and full screen. In the Site Map as **3D → 3D Explorer**; current version in solution 1.0.0.13. **Tried live in `academyexperiment`; live activity still to be seen with real traffic.** |
 
 ### Creation and provisioning tools
 
@@ -85,7 +85,7 @@ The Recording & Transcription Provisioner works on a selection instead of a file
 
 ### Live status
 
-All tools except the new Environment 3D Explorer have been built against schema read from a live environment (`academyexperiment`), run end to end in a browser against sample data, and tested against that live environment. They still need more testing in **other environments** — for example other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes. If a tool behaves differently in your environment, please report it.
+All tools have been built against schema read from a live environment (`academyexperiment`), run end to end in a browser against sample data, and tested against that live environment. They still need more testing in **other environments** — for example other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes. If a tool behaves differently in your environment, please report it.
 
 Worth knowing from the live tests: in **Voice Workstream Builder**, workstreams and channels without a phone number are created and completed by the platform, but routing rules are **not** created automatically — set them up in the admin center (the tool says so per workstream).
 
@@ -97,9 +97,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_12.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_12.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_13.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_13.zip)
 >
-> **Version 1.0.0.12 contains all seventeen tools**, already in the app's Site Map in five groups: **Tools** (the four diagnostic tools), **3D** (3D Explorer), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.13 contains all seventeen tools**, already in the app's Site Map in five groups: **Tools** (the four diagnostic tools), **3D** (3D Explorer), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -109,7 +109,7 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_12.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_13.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
@@ -128,7 +128,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.12 already has all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.13 already has all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
