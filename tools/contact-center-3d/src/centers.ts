@@ -17,6 +17,8 @@ export interface Center {
 export interface Grouping {
   version: 1;
   centers: Center[];
+  // Workstreams not drawn (record ids). Ones linked to nothing start hidden.
+  hidden?: string[];
 }
 
 // Building colours, picked in turn.
@@ -33,10 +35,19 @@ function centerFor(id: string, name: string, centers: Center[]): Center {
   return { id: `center-${id}`, name, color: freeColor(centers), workstreams: [id] };
 }
 
+// Linked to nothing: no channel or bot leads to it, and it routes nowhere (no rules, no default queue).
+// These only add clutter, so they start hidden.
+export function isUnlinked(graph: Graph, workstreamId: string): boolean {
+  const key = `workstream:${workstreamId}`;
+  const into = graph.edges.some((e) => e.to === key && (e.kind === "channel" || e.kind === "handoff"));
+  const out = graph.edges.some((e) => e.from === key && (e.kind === "routes" || e.kind === "default"));
+  return !into && !out;
+}
+
 export function defaultGrouping(graph: Graph): Grouping {
   const centers: Center[] = [];
   workstreamsOf(graph).forEach((w) => centers.push(centerFor(w.recordId!, w.name, centers)));
-  return { version: 1, centers };
+  return { version: 1, centers, hidden: workstreamsOf(graph).map((w) => w.recordId!).filter((id) => isUnlinked(graph, id)) };
 }
 
 // A saved grouping against today's environment: workstreams that are gone drop out, centers left
@@ -51,8 +62,11 @@ export function reconcile(saved: Grouping | undefined, graph: Graph): Grouping {
     workstreams.forEach((id) => placed.add(id));
     if (workstreams.length && typeof c.id === "string") centers.push({ id: c.id, name: String(c.name || known.get(workstreams[0])), color: String(c.color || freeColor(centers)), workstreams });
   });
-  known.forEach((name, id) => { if (!placed.has(id)) centers.push(centerFor(id, name, centers)); });
-  return { version: 1, centers };
+  const fresh: string[] = [];
+  known.forEach((name, id) => { if (!placed.has(id)) { centers.push(centerFor(id, name, centers)); fresh.push(id); } });
+  // A grouping saved before hiding existed hides nothing it didn't know about; new workstreams hide when unlinked.
+  const hidden = [...(Array.isArray(saved.hidden) ? saved.hidden.filter((id) => known.has(id)) : []), ...fresh.filter((id) => isUnlinked(graph, id))];
+  return { version: 1, centers, hidden };
 }
 
 // Puts the given centers' workstreams into the first one, under a new name.
@@ -101,4 +115,9 @@ export function rename(grouping: Grouping, centerId: string, name: string): Grou
 
 export function recolor(grouping: Grouping, centerId: string, color: string): Grouping {
   return { ...grouping, centers: grouping.centers.map((c) => (c.id === centerId ? { ...c, color } : c)) };
+}
+
+export function setHidden(grouping: Grouping, workstreamId: string, hidden: boolean): Grouping {
+  const rest = (grouping.hidden ?? []).filter((id) => id !== workstreamId);
+  return { ...grouping, hidden: hidden ? [...rest, workstreamId] : rest };
 }

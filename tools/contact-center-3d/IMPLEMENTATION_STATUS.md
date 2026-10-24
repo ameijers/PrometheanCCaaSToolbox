@@ -16,6 +16,14 @@ First version: the campus, a building per customer center, combine / split / mov
 - **Default-queue links** are faint dashed lines rather than skybridges: in the sample every workstream defaults to the same Overflow queue, and as skybridges they drowned the routing.
 - **Light, architectural look** (pale floors in the center's colour, white walls, wooden desks), so it reads as a building, not as the explorer's night sky.
 
+## After the first review (2026-10-24)
+
+- **Rooms in a grid** (⌈√n⌉ per row) instead of one row across the building.
+- **One front desk per floor**, a counter on it per workstream, so a center reads as one reception for business users; the signposts of all the floor's workstreams share the corridor.
+- **Floors per kind of work**: a workstream's floor follows its channel (`msdyn_streamsource`: voice, record, everything else messaging), a queue's room its type (`msdyn_queuetype`); the explorer's graph now carries this as `facts.stream`. Floors are stacked 16 m apart with glass slabs; the Floors switch (and `floor=`) shows one kind at ground level.
+- **Hiding workstreams**, saved with the grouping (`hidden`). Unlinked workstreams (no channel or bot in, no rules or default queue out) start hidden; a grouping saved earlier hides nothing it didn't know about. Rooms only hidden workstreams route to are left out, not moved to "Not routed".
+- Labels inside a building scale with distance. Overlap in a big center is better but not gone; the user wants to revisit the 3D objects and their recognisability later.
+
 ## Next ideas
 
 - Live activity: callers as figures waiting on the chairs or standing at a desk, agents' desk lamps in their presence colour, new calls walking in through the door.

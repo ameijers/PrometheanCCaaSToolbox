@@ -13,17 +13,28 @@ import { EDGE_LABELS, Graph, GraphEdge, KINDS } from "../../environment-3d-explo
 import { CameraGoal, Mode, SceneHandle } from "../../environment-3d-explorer/src/Scene";
 import { readUrlOptions } from "../../environment-3d-explorer/src/urlOptions";
 import { CampusScene, SEVERITY_COLORS } from "./CampusScene";
-import { CENTER_COLORS, combine, Grouping, moveWorkstream, recolor, reconcile, rename, split } from "./centers";
-import { buildPlan, UNROUTED_CENTER, Vec3 } from "./floorplan";
+import { CENTER_COLORS, combine, Grouping, moveWorkstream, recolor, reconcile, rename, setHidden, split } from "./centers";
+import { buildPlan, FLOOR_LABELS, FLOOR_ORDER, FloorKind, UNROUTED_CENTER, Vec3 } from "./floorplan";
 import { browserStore } from "./store";
 
 type Tab = "centers" | "health" | "help";
 const TABS: { id: Tab; label: string }[] = [{ id: "centers", label: "Customer centers" }, { id: "health", label: "Health" }, { id: "help", label: "Help" }];
 const MAX_LISTED = 40;
 
+// Show / hide, as an eye (struck through when hidden).
+function Eye({ off }: { off: boolean }): React.ReactElement {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <path d="M3 3l18 18" />}
+    </svg>
+  );
+}
+
 // What each record is in the building, for the details panel.
 const IN_THE_BUILDING: Record<string, string> = {
-  phone: "Phone line", channel: "Entrance", bot: "Automated reception", workstream: "Lobby and reception", rule: "Signpost",
+  phone: "Phone line", channel: "Entrance", bot: "Automated reception", workstream: "Counter at the front desk", rule: "Signpost",
   queue: "Room", agent: "Desk", hours: "Opening hours", overflow: "At the door"
 };
 
@@ -45,6 +56,12 @@ export function App(): React.ReactElement {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [combineName, setCombineName] = useState("");
   const [renaming, setRenaming] = useState<{ id: string; name: string } | undefined>(undefined);
+  // Every floor stacked, or one kind of floor at ground level.
+  // ?floor=voice (or messaging, records) opens on that floor.
+  const [floor, setFloor] = useState<FloorKind | undefined>(() => {
+    const asked = new URLSearchParams(window.location.search).get("floor") ?? new URLSearchParams(new URLSearchParams(window.location.search).get("data") ?? "").get("floor");
+    return FLOOR_ORDER.find((k) => k === asked);
+  });
   const { fullscreen, error: fullscreenError, toggle: toggleFullscreen } = useFullscreen();
   const sceneHandle = useRef<SceneHandle | null>(null);
 
@@ -67,7 +84,8 @@ export function App(): React.ReactElement {
   // Every change to the centers is remembered straight away.
   const change = (next: Grouping) => { setGrouping(next); void store.save(environment, next); };
 
-  const plan = useMemo(() => (graph && grouping ? buildPlan(graph, grouping) : undefined), [graph, grouping]);
+  const plan = useMemo(() => (graph && grouping ? buildPlan(graph, grouping, { floor }) : undefined), [graph, grouping, floor]);
+  const hidden = useMemo(() => new Set(grouping?.hidden ?? []), [grouping]);
   const nodeByKey = useMemo(() => new Map((graph?.nodes ?? []).map((n) => [n.key, n])), [graph]);
   const issues = useMemo(() => (graph ? findIssues(graph) : []), [graph]);
   const worst = useMemo(() => worstByKey(issues), [issues]);
@@ -76,7 +94,7 @@ export function App(): React.ReactElement {
   const flyTo = (position: Vec3, target: Vec3) => setGoal((g) => ({ position, target, serial: (g?.serial ?? 0) + 1 }));
   const overview = useCallback(() => {
     if (!plan) return;
-    const size = Math.max(plan.bounds.w, plan.bounds.d, 60);
+    const size = Math.max(plan.bounds.w, plan.bounds.d, 60) + plan.bounds.h;
     setGoal((g) => ({ position: [plan.bounds.x, size * 0.75, plan.bounds.z + size * 0.85], target: [plan.bounds.x, 0, plan.bounds.z], serial: (g?.serial ?? 0) + 1 }));
   }, [plan]);
 
@@ -92,7 +110,8 @@ export function App(): React.ReactElement {
     if (key.startsWith("center:")) {
       const b = plan.buildings.find((x) => `center:${x.centerId}` === key)!;
       const size = Math.max(b.w, b.d);
-      flyTo([at[0], size * 0.95, at[2] + size * 0.9], [at[0], 0, at[2]]);
+      const top = (b.floors.length - 1) * 16;
+      flyTo([at[0], size * 0.95 + top, at[2] + size * 0.9 + top * 0.6], [at[0], top / 2, at[2]]);
     } else {
       flyTo([at[0] + 7, at[1] + 13, at[2] + 15], at);
     }
@@ -175,6 +194,11 @@ export function App(): React.ReactElement {
           <button className={fullscreen ? "on" : ""} onClick={() => void toggleFullscreen()} title="Full screen (F)">{fullscreen ? "Exit full screen" : "Full screen"}</button>
         </div>
         {fullscreenError && <p className="muted small error-text">{fullscreenError}</p>}
+        <div className="floors" role="group" aria-label="Floors">
+          <span>Floors</span>
+          <button className={!floor ? "on" : ""} onClick={() => setFloor(undefined)}>All</button>
+          {FLOOR_ORDER.map((k) => <button key={k} className={floor === k ? "on" : ""} onClick={() => setFloor(k)}>{FLOOR_LABELS[k]}</button>)}
+        </div>
 
         <nav className="tabs" role="tablist">
           {TABS.map((t) => (
@@ -187,10 +211,10 @@ export function App(): React.ReactElement {
         <div className="tab-body" role="tabpanel">
           {tab === "centers" && (
             <>
-              <p className="muted small">Each workstream starts as a customer center of its own. Tick two or more and combine them into one building. {store.where}.</p>
+              <p className="muted small">Each workstream starts as a customer center of its own. Tick two or more and combine them into one building. Hide what you don't need with the eye; workstreams linked to nothing start hidden. {store.where}.</p>
               <ul className="center-list">
                 {grouping.centers.map((c) => (
-                  <li key={c.id}>
+                  <li key={c.id} className={c.workstreams.every((id) => hidden.has(id)) ? "all-hidden" : ""}>
                     <div className="center-row">
                       <input type="checkbox" checked={checked.has(c.id)} onChange={() => setChecked((s) => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n; })} aria-label={`Select ${c.name}`} />
                       <label className="swatch" style={{ background: c.color }} title="Colour">
@@ -205,19 +229,21 @@ export function App(): React.ReactElement {
                       ) : (
                         <button className="name link-like" onClick={() => select(`center:${c.id}`)} onDoubleClick={() => setRenaming({ id: c.id, name: c.name })} title="Click to go there, double-click to rename">{c.name}</button>
                       )}
+                      {c.workstreams.length === 1 && <button className="small eye" onClick={() => change(setHidden(grouping, c.workstreams[0], !hidden.has(c.workstreams[0])))} title={hidden.has(c.workstreams[0]) ? "Show" : "Hide"}><Eye off={hidden.has(c.workstreams[0])} /></button>}
                       <button className="small" onClick={() => setRenaming({ id: c.id, name: c.name })} title="Rename">✎</button>
                       {c.workstreams.length > 1 && <button className="small" onClick={() => change(split(grouping, c.id, graph))} title="Give every workstream its own center again">Split</button>}
                     </div>
-                    {c.workstreams.length > 1 && (
+                    {(c.workstreams.length > 1 || hidden.has(c.workstreams[0])) && (
                       <ul className="ws-list">
                         {c.workstreams.map((id) => (
-                          <li key={id}>
+                          <li key={id} className={hidden.has(id) ? "hidden" : ""}>
+                            <button className="eye" onClick={() => change(setHidden(grouping, id, !hidden.has(id)))} title={hidden.has(id) ? "Show" : "Hide"} aria-label={`${hidden.has(id) ? "Show" : "Hide"} ${workstreamName(id)}`}><Eye off={hidden.has(id)} /></button>
                             <span className="name">{workstreamName(id)}</span>
-                            <select value="" onChange={(e) => change(moveWorkstream(grouping, id, e.target.value, graph))} aria-label={`Move ${workstreamName(id)}`}>
+                            {c.workstreams.length > 1 && <select value="" onChange={(e) => change(moveWorkstream(grouping, id, e.target.value, graph))} aria-label={`Move ${workstreamName(id)}`}>
                               <option value="">Move to…</option>
                               <option value="new">A center of its own</option>
                               {grouping.centers.filter((o) => o.id !== c.id).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-                            </select>
+                            </select>}
                           </li>
                         ))}
                       </ul>
@@ -229,6 +255,7 @@ export function App(): React.ReactElement {
                 <input value={combineName} onChange={(e) => setCombineName(e.target.value)} placeholder="Name of the combined center" aria-label="Name of the combined center" />
                 <button disabled={checked.size < 2} onClick={() => { change(combine(grouping, [...checked], combineName)); setChecked(new Set()); setCombineName(""); }}>Combine {checked.size > 1 ? checked.size : ""}</button>
               </div>
+              {hidden.size > 0 && <button className="link" onClick={() => change({ ...grouping, hidden: [] })}>Show all {hidden.size} hidden workstream{hidden.size === 1 ? "" : "s"}</button>}
               <button className="link" onClick={() => change(reconcile(undefined, graph))}>Start again: one center per workstream</button>
             </>
           )}

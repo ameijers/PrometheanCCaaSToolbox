@@ -21,11 +21,13 @@ Nothing is changed in Dataverse. The tool only reads.
 
 ## 3. Reading a building
 
-From the front (the entrance) to the back:
+A customer center has a **floor** for each kind of work it handles: **Phone** at the bottom, **Chat & messaging** above it, **Email & records** on top. The floor's name is on the left of the building. Use the **Floors** switch to see just one kind of floor, at ground level.
 
-1. **Entrance doors**: one per voice channel. The blue sign above shows its phone numbers.
-2. **Purple kiosk**: the workstream's bot, the automated reception.
-3. **Lobby and reception**: the workstream.
+On each floor, from the front (the entrance) to the back:
+
+1. **Entrance doors** (phone floor): one per voice channel. The blue sign above shows its phone numbers. Other floors have a screen at the entrance for their digital channels.
+2. **Purple kiosk**: a workstream's bot, the automated reception.
+3. **Front desk**: one per floor. Each **blue counter** on it is a workstream.
 4. **Signposts** at the corridor: the routing rules. A pink line on the floor leads to the room each rule sends calls to.
 5. **Rooms**: the queues. Chairs by the door are where callers wait. Each **desk** has the agent behind it.
 6. **By a room's door**: its opening hours (dark sign) and its overflow: a red mailbox for voicemail, a glass phone booth for a callback, a green exit for ending the conversation, a purple door for a transfer to another queue.
@@ -45,6 +47,7 @@ Open the **Customer centers** tab.
 - **Move to…** (under a combined center's workstreams): moves one workstream to another center, or to a center of its own.
 - **Rename**: click ✎, or double-click the name, type and press Enter.
 - **Colour**: click the coloured square.
+- **Eye**: hides a workstream (click again to show it). Workstreams linked to nothing (no channel or bot leads to them, and they route nowhere) start hidden. **Show all … hidden workstreams** brings them all back.
 - **Start again** puts every workstream back in its own center.
 
 Your centers are remembered in this browser, for this environment.
@@ -55,4 +58,4 @@ Open the **Health** tab and tick **Show problems**. Records with a problem get a
 
 ## 6. Opening from a link
 
-Add `focus=<name>` to the page address to open on the customer center with that name, or on a record (a room, a desk) with that name. In a Site Map subarea, put it in the web resource's **data** parameter.
+Add `focus=<name>` to the page address to open on the customer center with that name, or on a record (a room, a desk) with that name. Add `floor=voice`, `floor=messaging` or `floor=records` to open on one kind of floor. In a Site Map subarea, put it in the web resource's **data** parameter.
