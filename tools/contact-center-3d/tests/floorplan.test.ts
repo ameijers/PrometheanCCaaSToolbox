@@ -7,6 +7,7 @@ import { buildGraph } from "../../environment-3d-explorer/src/graph";
 import { demoRaw } from "../../environment-3d-explorer/src/demoData";
 import { createCenter, defaultGrouping, Grouping, moveWorkstream, setHidden } from "../src/centers";
 import { buildPlan, UNROUTED_CENTER } from "../src/floorplan";
+import { alongLine } from "../src/CampusScene";
 
 const graph = buildGraph(demoRaw());
 const node = (kind: string, name: string) => graph.nodes.find((n) => n.kind === kind && n.name === name)!;
@@ -177,6 +178,23 @@ describe("a customer center", () => {
     const without = buildPlan(graph, setHidden(contoso(), node("workstream", "Dutch Desk – Voice").recordId!, true));
     expect(without.fixtures.some((f) => f.key === node("workstream", "Dutch Desk – Voice").key)).toBe(false);
     expect(without.areas.some((a) => a.kind === "room" && a.name === "Dutch Desk")).toBe(false);
+  });
+});
+
+describe("arrowheads", () => {
+  test("sit along a line by length and point the way it goes", () => {
+    const line: [number, number, number][] = [[0, 0, 0], [10, 0, 0], [10, 0, -10]];
+    expect(alongLine(line, 0.25)).toEqual({ at: [5, 0, 0], direction: [1, 0, 0] });
+    expect(alongLine(line, 0.75)).toEqual({ at: [10, 0, -5], direction: [0, 0, -1] });
+  });
+
+  test("a skybridge ends at the room it goes to", () => {
+    const plan = buildPlan(graph, defaultGrouping(graph));
+    const bridge = plan.paths.find((p) => p.kind === "skybridge")!;
+    const end = bridge.points[bridge.points.length - 1];
+    const room = plan.areas.find((a) => a.kind === "room" && Math.abs(a.x - end[0]) < a.w / 2 && Math.abs(a.z + a.d / 2 - end[2]) < 0.01);
+    expect(room).toBeDefined();
+    expect(alongLine(bridge.points, 0.95).direction[1]).toBeLessThan(0);
   });
 });
 

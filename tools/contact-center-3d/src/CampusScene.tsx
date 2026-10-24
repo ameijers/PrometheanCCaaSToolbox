@@ -196,11 +196,44 @@ function FixtureModel({ f, onPick }: { f: Fixture; onPick(key: string): void }) 
   );
 }
 
+// Where along a line (0 start, 1 end) arrowheads sit on a curved line, pointing the way it goes.
+const ARROWS_AT = [0.3, 0.55, 0.8, 0.95];
+const UP = new THREE.Vector3(0, 1, 0);
+
+// A point and direction a fraction of the way along a polyline, by length.
+export function alongLine(points: Vec3[], t: number): { at: Vec3; direction: Vec3 } {
+  const lengths = points.slice(1).map((q, i) => Math.hypot(q[0] - points[i][0], q[1] - points[i][1], q[2] - points[i][2]));
+  let rest = lengths.reduce((s, l) => s + l, 0) * t;
+  for (let i = 0; i < lengths.length; i++) {
+    if (rest <= lengths[i] || i === lengths.length - 1) {
+      const f = lengths[i] ? Math.min(1, rest / lengths[i]) : 0;
+      const [a, b] = [points[i], points[i + 1]];
+      const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+      const n = Math.hypot(...d) || 1;
+      return { at: [a[0] + d[0] * f, a[1] + d[1] * f, a[2] + d[2] * f], direction: [d[0] / n, d[1] / n, d[2] / n] };
+    }
+    rest -= lengths[i];
+  }
+  return { at: points[points.length - 1], direction: [0, 0, 1] };
+}
+
 function PathLine({ path }: { path: Path }) {
   const style = PATH_STYLE[path.kind];
+  // A line that leaves the floor (between buildings) gets arrowheads in its own colour.
+  const curved = path.points.some((q) => q[1] > 1.5);
+  const arrows = useMemo(() => (curved ? ARROWS_AT.map((t) => {
+    const { at, direction } = alongLine(path.points, t);
+    return { at, turn: new THREE.Quaternion().setFromUnitVectors(UP, new THREE.Vector3(...direction)) };
+  }) : []), [path.points, curved]);
   return (
     <>
       <Line points={path.points} color={style.color} lineWidth={style.width} dashed={style.dashed} dashSize={1} gapSize={0.6} transparent opacity={path.kind === "default" ? 0.6 : 1} />
+      {arrows.map((a, i) => (
+        <mesh key={i} position={a.at} quaternion={a.turn} raycast={() => null}>
+          <coneGeometry args={[path.kind === "default" ? 0.5 : 0.7, path.kind === "default" ? 1.4 : 1.8, 12]} />
+          <meshBasicMaterial color={style.color} transparent opacity={path.kind === "default" ? 0.7 : 1} />
+        </mesh>
+      ))}
     </>
   );
 }

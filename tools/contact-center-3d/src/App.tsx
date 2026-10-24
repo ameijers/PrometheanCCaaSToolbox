@@ -513,6 +513,7 @@ export function App(): React.ReactElement {
                 {PATH_STYLE[k].label}
               </li>
             ))}
+            <li className="muted">Arrowheads on the curved lines point the way they go.</li>
           </ul>
         )}
       </div>

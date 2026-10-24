@@ -58,7 +58,7 @@ The left panel keeps search, the camera buttons (**Orbit**, **Walk**, **Campus**
 - **Health**: the explorer's checks, as warning cones over the records.
 - **Help**: the controls and what everything means.
 
-A **Lines** legend in the bottom-right corner explains the line styles (click it to fold it away). Click a building's name to fly to it; click a room, desk, counter, signpost, door or kiosk to see what it is (and follow a call from there). Labels inside a building grow as you come closer.
+Curved lines between buildings carry arrowheads in their own colour, pointing towards the room they go to. A **Lines** legend in the bottom-right corner explains the line styles (click it to fold it away). Click a building's name to fly to it; click a room, desk, counter, signpost, door or kiosk to see what it is (and follow a call from there). Labels inside a building grow as you come closer.
 
 ![Following a call from the entrance](images/03-follow-a-call.png)
 
