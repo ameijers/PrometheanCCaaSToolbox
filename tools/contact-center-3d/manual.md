@@ -15,7 +15,7 @@ Nothing is changed in Dataverse. The tool only reads.
 - **Orbit** (the default): drag to rotate, scroll to zoom, right-drag to pan.
 - **Walk**: drag to look around; walk through the building with W A S D.
 - **Campus** flies back to the view of all buildings. **Full screen** (or F) hides the app's menu; Esc goes back.
-- Click a building's name to fly to it. Inside, the rooms, lobbies, signposts and signs get their names.
+- Click a building's name to fly to it. Inside, the rooms, counters, signposts and signs get their names.
 
 ![A customer center from above](images/01-building.png)
 
@@ -42,7 +42,7 @@ Click anything to see what it is, its details, and what it's linked to. Click a 
 
 Open the **Customer centers** tab.
 
-- **Combine**: tick two or more centers, type a name (for example "Contoso Service Center") and click **Combine**. Their lobbies move into one building, side by side, and rooms they share no longer need a skybridge.
+- **Combine**: tick two or more centers, type a name (for example "Contoso Service Center") and click **Combine**. They move into one building: one front desk per floor with a counter for each of them, and rooms they share no longer need a skybridge.
 - **Split**: gives every workstream of a combined center its own center again.
 - **Move to…** (under a combined center's workstreams): moves one workstream to another center, or to a center of its own.
 - **Rename**: click ✎, or double-click the name, type and press Enter.
