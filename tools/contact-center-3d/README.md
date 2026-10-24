@@ -49,7 +49,7 @@ Every change is remembered straight away, **in this browser, for this environmen
 
 ## Using it
 
-The left panel keeps search, the camera buttons (**Orbit**, **Walk**, **Campus**, **Full screen**) and the **Floors** switch (All, Phone, Chat & messaging, Email & records) on top, with tabs below: **Customer centers**, **Health** (the explorer's checks, as warning cones over the records) and **Help**. Click a building's name to fly to it; click a room, desk, signpost, door or kiosk to see what it is. `focus=<name>` in the page address opens on a customer center (or a record) with that name, `floor=voice` (or `messaging`, `records`) on one floor. Labels inside a building grow as you come closer, so a big center isn't a heap of labels from afar.
+The left panel keeps search, the camera buttons (**Orbit**, **Walk**, **Campus**, **Full screen**) and the **Floors** switch (All, Phone, Chat & messaging, Email & records) on top, with tabs below: **Customer centers**, **Health** (the explorer's checks, as warning cones over the records) and **Help**. Click a building's name to fly to it; click a room, desk, signpost, door or kiosk to see what it is. **Use sample data** (next to the environment name, or `demo=1` in the page address) shows the sample environment inside the app, to demonstrate or try the tool; it keeps its own saved customer centers. `focus=<name>` in the page address opens on a customer center (or a record) with that name, `floor=voice` (or `messaging`, `records`) on one floor. Labels inside a building grow as you come closer, so a big center isn't a heap of labels from afar.
 
 ## How it works
 

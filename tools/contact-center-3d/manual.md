@@ -8,6 +8,8 @@ Open **3D Contact Center** from the toolbox app's Site Map. The tool reads the e
 
 Nothing is changed in Dataverse. The tool only reads.
 
+To demonstrate or try it without your own data, click **Use sample data** next to the environment name (or add `demo=1` to the page address). **Back to live data** returns to your environment. The sample keeps its own customer centers, separate from yours.
+
 ![The campus](images/00-campus.png)
 
 ## 2. Looking around
