@@ -30,19 +30,21 @@ export const WING_LABELS: Record<Wing, string> = { voice: "Phone", messaging: "C
 export const WING_COLORS: Record<Wing, string> = { voice: "#0ea5e9", messaging: "#10b981", records: "#f59e0b" };
 
 export type AreaKind = "building" | "entrance" | "lobby" | "corridor" | "wing" | "room";
-export interface Area { kind: AreaKind; key?: string; centerId: string; wing?: Wing; x: number; y: number; z: number; w: number; d: number; name?: string; color: string }
+// tag: a word after a room's name ("default" for a shown workstream's default queue).
+export interface Area { kind: AreaKind; key?: string; centerId: string; wing?: Wing; x: number; y: number; z: number; w: number; d: number; name?: string; color: string; tag?: string }
 
 // A wall piece, centred on (x, z), standing on the floor.
 export interface Wall { x: number; y: number; z: number; w: number; d: number; h: number; wing?: Wing }
 
-export type FixtureKind = "door" | "portal" | "numbers" | "reception" | "counter" | "kiosk" | "signpost" | "desk" | "bench" | "hours" | "mailbox" | "booth" | "exit" | "transfer" | "hold";
+export type FixtureKind = "door" | "portal" | "numbers" | "reception" | "counter" | "kiosk" | "signpost" | "desk" | "bench" | "hours" | "mailbox" | "booth" | "exit" | "transfer" | "hold" | "notice";
 export interface Fixture {
   kind: FixtureKind; key?: string; x: number; y: number; z: number; w?: number; label?: string; wing?: Wing;
   // A desk's skills and business unit; a counter's context variables.
   skills?: string[]; unit?: string; variables?: string[];
 }
 
-export type PathKind = "route" | "default" | "transfer" | "skybridge";
+// "only": the default queue of a workstream without routing rules, so its one route; "default" is the fallback beside rules.
+export type PathKind = "route" | "only" | "default" | "transfer" | "skybridge";
 export interface Path { kind: PathKind; points: Vec3[]; key?: string; wing?: Wing }
 
 export interface WingBox { kind: Wing; x: number; w: number }
@@ -142,6 +144,7 @@ export function buildPlan(graph: Graph, grouping: Grouping, options: PlanOptions
     });
   }
   queues.forEach((q) => { if (!ownerOf.has(q.key) && !reachedByHidden.has(q.key)) ownerOf.set(q.key, UNROUTED_CENTER); });
+  const defaultQueues = new Set([...centerOfWorkstream.keys()].flatMap((k) => out(k, "default").map((e) => e.to)));
   const wingOfQueue = (q: GraphNode): Wing => q.facts?.stream ?? (into(q.key).map((e) => e.from).filter((k) => centerOfWorkstream.has(k)).map(streamOf)[0] ?? "voice");
 
 
@@ -239,7 +242,14 @@ export function buildPlan(graph: Graph, grouping: Grouping, options: PlanOptions
         // Callers come in through the workstream's first door, or the digital screen.
         const way = streamOf(k) === "voice" ? doors.find((d) => into(k, "channel").some((e) => e.from === d) || into(k, "handoff").some((b) => into(b.from, "bot").some((e) => e.from === d))) : undefined;
         plan.entrances.set(k, way ? [doorXs[doors.indexOf(way)], 0, wz(-1)] : [x0 + width - 6, 0, wz(-1)]);
-        out(k, "default").forEach((e) => pending.push({ kind: "default", from: [counterX, PATH_Y, deskZ - 1], building: center.id, to: e.to, key: k, corridor: wz(ENTRANCE_D + LOBBY_D + CORRIDOR_D / 2 + 1) }));
+        // Without routing rules the default queue is where every call goes: a full route, and a sign on the desk.
+        const onlyDefault = rulesOf(k).length === 0;
+        const defaults = out(k, "default");
+        if (onlyDefault && defaults.length) {
+          const to = defaults.map((e) => nodeByKey.get(e.to)?.name).filter(Boolean).join(", ");
+          fixture({ kind: "notice", key: k, x: counterX + 0.9, z: deskZ - 2.2, label: `No routing rules: everything goes to ${to}` });
+        }
+        defaults.forEach((e) => pending.push({ kind: onlyDefault ? "only" : "default", from: [counterX, PATH_Y, deskZ - 1], building: center.id, to: e.to, key: k, corridor: wz(ENTRANCE_D + LOBBY_D + CORRIDOR_D / 2 + 1) }));
       });
       const bots = center.workstreams.flatMap((k) => into(k, "handoff").map((e) => e.from));
       bots.forEach((bot, i) => {
@@ -267,6 +277,7 @@ export function buildPlan(graph: Graph, grouping: Grouping, options: PlanOptions
       wing.rooms.forEach((r) => {
         const rx = box.x + r.x - 2, front = r.dz, doorX = rx + r.w / 2;
         area("room", rx + r.w / 2, wz(front + r.d / 2), r.w, r.d, r.key, r.name, wing.kind);
+        if (defaultQueues.has(r.key)) plan.areas[plan.areas.length - 1].tag = "default";
         plan.anchors.set(r.key, [rx + r.w / 2, 0, wz(front + r.d / 2)]);
         doorOf.set(r.key, { at: [doorX, PATH_Y, wz(front)], building: center.id, wing: wing.kind, aisles: [rx - ROOM_GAP / 2, rx + r.colW + ROOM_GAP / 2], walkZ: wz(front - ROOM_GAP / 2), corridorZ: wz(ENTRANCE_D + LOBBY_D + CORRIDOR_D / 2), frontRow: r.row === 0 });
         // An overflow transfer is a way through to another queue: a door in the back wall, opposite the entrance.

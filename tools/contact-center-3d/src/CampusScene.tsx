@@ -28,6 +28,7 @@ const AREA_TINT: Record<Area["kind"], number> = { building: 0.8, entrance: 0.6, 
 // The lines' looks; the page's legend explains them from the same list.
 export const PATH_STYLE: Record<PathKind, { color: string; dashed: boolean; width: number; label: string }> = {
   route: { color: "#f43f5e", dashed: false, width: 2, label: "Routing rule to its room" },
+  only: { color: "#f59e0b", dashed: false, width: 2, label: "Only route: workstream's default queue (no routing rules)" },
   skybridge: { color: "#38bdf8", dashed: false, width: 2.2, label: "Routing rule to a room in another customer center (skybridge)" },
   default: { color: "#facc15", dashed: true, width: 1.2, label: "Workstream's default queue" },
   transfer: { color: "#fb7185", dashed: true, width: 1.6, label: "Overflow: transfer to another queue" }
@@ -37,7 +38,7 @@ export const PATH_STYLE: Record<PathKind, { color: string; dashed: boolean; widt
 const ROOM_LABEL_RANGE = 150;
 const SIGN_LABEL_RANGE = 90;
 const SMALL_LABEL_RANGE = 60;
-const LABELLED: FixtureKind[] = ["signpost", "numbers", "hours", "mailbox", "booth", "exit", "transfer", "hold", "kiosk", "counter", "portal"];
+const LABELLED: FixtureKind[] = ["signpost", "numbers", "hours", "mailbox", "booth", "exit", "transfer", "hold", "kiosk", "counter", "portal", "notice"];
 const PALETTE = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#a78bfa", "#f472b6", "#94a3b8", "#c084fc"];
 export const colorFor = (name: string) => PALETTE[Math.floor(((hash(name, 21) + 1) / 2) * PALETTE.length) % PALETTE.length];
 
@@ -198,6 +199,8 @@ function FixtureModel({ f, onPick }: { f: Fixture; onPick(key: string): void }) 
       {kind === "booth" && box([0, 1.2, 0], [1, 2.4, 1], "#38bdf8", { transparent: true, opacity: 0.55 })}
       {kind === "exit" && <>{box([0, 2.3, 0], [1, 0.35, 0.08], "#16a34a", { emissive: "#22c55e", emissiveIntensity: 0.4 })}{box([0, 1.1, 0], [0.1, 2.2, 0.1], "#475569")}</>}
       {kind === "transfer" && <>{box([-1.2, 1.15, 0], [0.16, 2.3, 0.3], "#7c3aed")}{box([1.2, 1.15, 0], [0.16, 2.3, 0.3], "#7c3aed")}{box([0, 2.35, 0], [2.56, 0.18, 0.3], "#7c3aed")}{box([0, 0.02, 0], [2.2, 0.04, 1], "#c4b5fd")}</>}
+      {/* A standing sign behind the front desk: no routing rules, so one way only. */}
+      {kind === "notice" && <>{box([0, 0.8, 0], [0.08, 1.6, 0.08], "#475569")}{box([0, 1.6, 0], [1.2, 0.6, 0.06], "#f59e0b", { emissive: "#f59e0b", emissiveIntensity: 0.3 })}</>}
       {kind === "hold" && box([0, 0.5, 0], [0.8, 1, 0.8], "#f59e0b")}
     </group>
   );
@@ -232,7 +235,7 @@ function NearbyLabels({ plan, shown, labelSuffix }: { plan: Plan; shown(item: { 
   const camera = useThree((st) => st.camera);
   const nodes = useRef(new Map<string, HTMLDivElement>());
   const last = useRef(-1);
-  const heightOf = (kind: FixtureKind) => (kind === "numbers" ? 3.4 : kind === "signpost" ? 2.5 : kind === "counter" ? 1.9 : kind === "portal" ? 3.8 : 2.6);
+  const heightOf = (kind: FixtureKind) => (kind === "numbers" ? 3.4 : kind === "signpost" ? 2.5 : kind === "counter" ? 1.9 : kind === "portal" ? 3.8 : kind === "notice" ? 2.3 : 2.6);
   const labels = useMemo((): NearLabel[] => [
     ...plan.areas.filter((a) => a.kind === "wing" && shown(a)).map((a) => ({
       key: `wing:${a.centerId}:${a.wing}`, at: [a.x, 0.3, a.z + a.d / 2 - 1.2] as Vec3, range: ROOM_LABEL_RANGE,
@@ -240,7 +243,7 @@ function NearbyLabels({ plan, shown, labelSuffix }: { plan: Plan; shown(item: { 
     })),
     ...plan.areas.filter((a) => a.kind === "room" && shown(a)).map((a) => ({
       key: `room:${a.key}`, at: [a.x, 0.2, a.z + a.d / 2 - 0.8] as Vec3, range: ROOM_LABEL_RANGE, className: "area-label room",
-      text: <>{a.name}{labelSuffix?.get(a.key ?? "") && <span className="suffix"> · {labelSuffix.get(a.key ?? "")}</span>}</>
+      text: <>{a.name}{a.tag && <span className="tag"> · {a.tag}</span>}{labelSuffix?.get(a.key ?? "") && <span className="suffix"> · {labelSuffix.get(a.key ?? "")}</span>}</>
     })),
     ...plan.fixtures.filter((f) => LABELLED.includes(f.kind) && f.label && shown(f)).map((f, i) => ({
       key: `label:${f.kind}:${f.key ?? i}:${f.x}:${f.z}`, at: [f.x, f.y + heightOf(f.kind), f.z] as Vec3,

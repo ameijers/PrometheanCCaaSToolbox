@@ -30,6 +30,22 @@ describe("buildPlan", () => {
     expect(plan.buildings.some((b) => b.name === "Legacy Email")).toBe(false);
   });
 
+  test("a workstream without routing rules: its default queue is a full route, with a sign and a tag", () => {
+    const raw = demoRaw();
+    const legacy = raw.workstreams.find((w) => w.msdyn_name === "Legacy Email")!;
+    legacy._msdyn_defaultqueue_value = raw.workstreams[0]._msdyn_defaultqueue_value;
+    const g = buildGraph(raw);
+    const p = buildPlan(g, defaultGrouping(g));
+    const ws = g.nodes.find((n) => n.kind === "workstream" && n.name === "Legacy Email")!;
+    expect(p.paths.filter((x) => x.key === ws.key).map((x) => x.kind)).toEqual(["only"]);
+    expect(p.fixtures.find((x) => x.kind === "notice" && x.key === ws.key)?.label).toBe("No routing rules: everything goes to Overflow");
+    expect(p.areas.find((x) => x.kind === "room" && x.name === "Overflow")?.tag).toBe("default");
+    // With rules, the default queue stays the dashed fallback, without a sign.
+    expect(plan.paths.some((x) => x.kind === "only")).toBe(false);
+    expect(plan.paths.some((x) => x.kind === "default")).toBe(true);
+    expect(plan.fixtures.some((x) => x.kind === "notice")).toBe(false);
+  });
+
   test("the Not routed building can be left out", () => {
     const without = buildPlan(graph, grouping, { unrouted: false });
     expect(without.buildings.some((b) => b.centerId === UNROUTED_CENTER)).toBe(false);
@@ -116,7 +132,7 @@ describe("buildPlan", () => {
   });
 
   test("routes in the same building keep to the corridor and aisles, never through a room; a shared queue gets a skybridge", () => {
-    const routes = plan.paths.filter((p) => p.kind === "route" || p.kind === "default" || p.kind === "transfer").filter((p) => p.points.every((q) => q[1] < 1));
+    const routes = plan.paths.filter((p) => p.kind === "route" || p.kind === "only" || p.kind === "default" || p.kind === "transfer").filter((p) => p.points.every((q) => q[1] < 1));
     expect(routes.length).toBeGreaterThan(0);
     const roomsHere = plan.areas.filter((a) => a.kind === "room");
     routes.forEach((p) => {

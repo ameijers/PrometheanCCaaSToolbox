@@ -22,7 +22,9 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 | Outside the room's front door | overflow: a mailbox (voicemail), a phone booth (callback or transfer to phone), an exit (end conversation), an amber block (remain in queue) |
 | Purple door in the room's back wall | overflow: a transfer to another queue, with a dashed red line to that room |
 | Blue skybridge | a routing rule to a room in another customer center |
-| Faint dashed yellow line | a workstream's default queue |
+| Solid orange line | a workstream without routing rules: its default queue is where every call goes; a sign behind its counter says so |
+| Faint dashed yellow line | a workstream's default queue, the fallback beside its routing rules |
+| "· default" after a room's name | the room is a shown workstream's default queue |
 | "Not routed" building | queues no shown workstream routes to; hidden until you tick **Show queues nothing routes to** on the Centers tab |
 
 ![Inside a customer center, with live activity](images/02-room.png)
