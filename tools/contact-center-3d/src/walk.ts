@@ -41,7 +41,8 @@ export function walkRoute(plan: Plan, path: string[]): Vec3[] {
       if (bench) add(bench);
       return;
     }
-    const at = plan.anchors.get(key);
+    // An agent after a room: their desk in that room.
+    const at = (prev && plan.desks.get(`${prev}|${key}`)) || plan.anchors.get(key);
     if (!at) return;
     // Leaving a room for an overflow outside its front door: back out through the door first.
     const prevDoor = prev ? plan.doors.get(prev) : undefined;

@@ -18,7 +18,7 @@ import { Grouping } from "./centers";
 //               door in the back wall for each overflow transfer to another queue
 //
 // A queue's room is in the wing of its type, in the center that routes to it most; other centers reach
-// it over a skybridge. An agent in several queues has one desk. Queues no shown workstream routes to
+// it over a skybridge. An agent has a desk in the room of every queue they're in. Queues no shown workstream routes to
 // get a building of their own, unless only hidden workstreams route to them. Units are roughly metres.
 // Pure and deterministic.
 
@@ -56,8 +56,8 @@ export interface Plan {
   paths: Path[];
   // Where each record is, to fly to it and mark it. Centers are "center:<id>".
   anchors: Map<string, Vec3>;
-  // Members of a queue who sit at a desk in another room.
-  elsewhere: Map<string, number>;
+  // Each agent's desk per room: "<queue key>|<agent key>".
+  desks: Map<string, Vec3>;
   // The seats on each room's waiting bench (queue key), and the way in per workstream: for live callers.
   chairs: Map<string, Vec3[]>;
   // Each room's front door (queue key), on the floor.
@@ -138,14 +138,6 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
   queues.forEach((q) => { if (!ownerOf.has(q.key) && !reachedByHidden.has(q.key)) ownerOf.set(q.key, UNROUTED_CENTER); });
   const wingOfQueue = (q: GraphNode): Wing => q.facts?.stream ?? (into(q.key).map((e) => e.from).filter((k) => centerOfWorkstream.has(k)).map(streamOf)[0] ?? "voice");
 
-  // One desk per agent: in the first of their queues (by name) that's drawn.
-  const homeOf = new Map<string, string>();
-  graph.nodes.filter((n) => n.kind === "agent").forEach((a) => {
-    const home = into(a.key, "member").map((e) => nodeByKey.get(e.from)!).filter((q) => q && ownerOf.has(q.key)).sort((x, y) => x.name.localeCompare(y.name))[0];
-    if (home) homeOf.set(a.key, home.key);
-  });
-  const elsewhere = new Map<string, number>();
-  queues.forEach((q) => elsewhere.set(q.key, out(q.key, "member").filter((e) => homeOf.get(e.to) !== q.key).length));
 
   const centers = grouping.centers.map((c) => ({ id: c.id, name: c.name, color: c.color, workstreams: c.workstreams.map((id) => `workstream:${id}`).filter((k) => centerOfWorkstream.has(k)) }));
   if ([...ownerOf.values()].includes(UNROUTED_CENTER)) centers.push({ id: UNROUTED_CENTER, name: "Not routed", color: UNROUTED_COLOR, workstreams: [] });
@@ -157,7 +149,8 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
     const rules = c.workstreams.flatMap((k) => rulesOf(k));
     const wings: WingLayout[] = WING_ORDER.map((kind) => {
       const rooms = queues.filter((q) => ownerOf.get(q.key) === c.id && wingOfQueue(q) === kind).map((q): Room => {
-        const desks = out(q.key, "member").map((e) => e.to).filter((a) => homeOf.get(a) === q.key);
+        // A desk for every member: an agent in several queues sits in each of their rooms.
+        const desks = out(q.key, "member").map((e) => e.to).filter((a) => nodeByKey.has(a));
         const cols = Math.max(2, Math.ceil(Math.sqrt(desks.length)));
         const rows = Math.max(1, Math.ceil(desks.length / cols));
         return { key: q.key, name: q.name, desks, w: Math.max(ROOM_MIN_W, cols * DESK + 3), d: rows * DESK + WAITING + 2, x: 0, dz: 0, colW: 0, row: 0 };
@@ -183,7 +176,7 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
     return { center: c, doors, digital, rules, wings, wingsWidth, width, depth };
   }).filter((l) => l.center.workstreams.length || l.wings.length);
 
-  const plan: Plan = { buildings: [], areas: [], walls: [], fixtures: [], paths: [], anchors: new Map(), elsewhere, chairs: new Map(), doors: new Map(), entrances: new Map(), bounds: { x: 0, z: 0, w: 0, d: 0, h: 0 } };
+  const plan: Plan = { buildings: [], areas: [], walls: [], fixtures: [], paths: [], anchors: new Map(), desks: new Map(), chairs: new Map(), doors: new Map(), entrances: new Map(), bounds: { x: 0, z: 0, w: 0, d: 0, h: 0 } };
   // A room's door, and the ways to it: the aisles left and right of its column, and the walkway in
   // front of its row (a room in the front row faces the corridor itself).
   const doorOf = new Map<string, { at: Vec3; building: string; wing: Wing; aisles: number[]; walkZ: number; corridorZ: number; frontRow: boolean }>();
@@ -288,7 +281,9 @@ export function buildPlan(graph: Graph, grouping: Grouping): Plan {
           const skills = out(agentKey, "skill").map((e) => nodeByKey.get(e.to)?.name).filter((s): s is string => !!s);
           const unit = out(agentKey, "businessunit")[0]?.to;
           fixture({ kind: "desk", key: agentKey, x: dx, z: wz(dz), label: nodeByKey.get(agentKey)?.name, wing: wing.kind, skills, unit });
-          plan.anchors.set(agentKey, [dx, 1.4, wz(dz + 0.6)]);
+          plan.desks.set(`${r.key}|${agentKey}`, [dx, 1.4, wz(dz + 0.6)]);
+          // The agent's own spot (to fly to them) is their first desk.
+          if (!plan.anchors.has(agentKey)) plan.anchors.set(agentKey, [dx, 1.4, wz(dz + 0.6)]);
         });
 
         into(r.key, "hours").forEach((e) => {

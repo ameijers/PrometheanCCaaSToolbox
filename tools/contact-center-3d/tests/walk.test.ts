@@ -35,6 +35,14 @@ describe("walkRoute", () => {
     route.forEach((r) => expect(r[1]).toBeCloseTo(1.2));
   });
 
+  test("goes on from the bench to the agent's desk in that room", () => {
+    const agent = graph.edges.find((e) => e.kind === "member" && e.from === queue)!.to;
+    const withDesk = walkRoute(plan, [node("workstream", "Customer Service – Voice").key, rule, queue, agent]);
+    const desk = plan.desks.get(`${queue}|${agent}`)!;
+    const end = withDesk[withDesk.length - 1];
+    expect([end[0], end[2]]).toEqual([desk[0], desk[2]]);
+  });
+
   test("a full ride from a phone number walks from the entrance to the bench", () => {
     const start = graph.nodes.find((n) => n.kind === "phone" && plan.anchors.has(n.key))!.key;
     const { path } = extendRide(graph, [start]);

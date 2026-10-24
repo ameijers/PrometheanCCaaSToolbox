@@ -171,8 +171,9 @@ export function App(): React.ReactElement {
         return [{ key: c.queueKey, at, color: CONVERSATION_COLORS.waiting, standing: n >= chairs.length }];
       }
       if (c.status === "with-agent" && c.agentKey) {
-        const desk = plan.fixtures.find((f) => f.kind === "desk" && f.key === c.agentKey);
-        return desk ? [{ key: homeRoom(c.agentKey) ?? "", at: [desk.x, 0, desk.z - 1.1], color: CONVERSATION_COLORS["with-agent"], standing: true }] : [];
+        // At the agent's desk in the room of the queue the call came from (an agent sits in each of their rooms).
+        const seat = (c.queueKey && plan.desks.get(`${c.queueKey}|${c.agentKey}`)) || plan.anchors.get(c.agentKey);
+        return seat ? [{ key: (c.queueKey && plan.desks.has(`${c.queueKey}|${c.agentKey}`) ? c.queueKey : homeRoom(c.agentKey)) ?? "", at: [seat[0], 0, seat[2] - 0.5], color: CONVERSATION_COLORS["with-agent"], standing: true }] : [];
       }
       return [];
     });
@@ -475,7 +476,6 @@ export function App(): React.ReactElement {
               <h2>{selectedNode.name}</h2>
               <dl className="details">
                 {selectedNode.details.map(([l, v]) => <React.Fragment key={l}><dt>{l}</dt><dd>{v || "—"}</dd></React.Fragment>)}
-                {selectedNode.kind === "queue" && (plan.elsewhere.get(selectedNode.key) ?? 0) > 0 && <><dt>Desk in another room</dt><dd>{plan.elsewhere.get(selectedNode.key)}</dd></>}
                 {activity && selectedNode.kind === "queue" && <><dt>Waiting now</dt><dd>{waiting.get(selectedNode.key) ?? 0}</dd></>}
                 {activity && selectedNode.kind === "agent" && <><dt>Presence</dt><dd>{activity.presence.get(selectedNode.key)?.name ?? "Unknown"}</dd></>}
               </dl>

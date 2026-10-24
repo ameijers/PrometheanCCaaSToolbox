@@ -43,12 +43,15 @@ describe("buildPlan", () => {
     expect(plan.fixtures.filter((f) => f.kind === "signpost")).toHaveLength(graph.nodes.filter((n) => n.kind === "rule").length);
   });
 
-  test("an agent has one desk, carrying their skills and business unit", () => {
+  test("an agent has a desk in every queue they're in, carrying their skills and business unit", () => {
     const desks = plan.fixtures.filter((f) => f.kind === "desk");
-    expect(new Set(desks.map((d) => d.key)).size).toBe(desks.length);
-    expect(desks.length).toBe(graph.nodes.filter((n) => n.kind === "agent").length);
-    const members = graph.edges.filter((e) => e.kind === "member").length;
-    expect(desks.length + [...plan.elsewhere.values()].reduce((s, n) => s + n, 0)).toBe(members);
+    const drawnRooms = new Set(plan.areas.filter((a) => a.kind === "room").map((a) => a.key));
+    const memberships = graph.edges.filter((e) => e.kind === "member" && drawnRooms.has(e.from));
+    expect(desks.length).toBe(memberships.length);
+    memberships.forEach((m) => expect(plan.desks.has(`${m.from}|${m.to}`)).toBe(true));
+    // Someone in two queues sits in both rooms.
+    const twice = graph.nodes.find((n) => n.kind === "agent" && memberships.filter((m) => m.to === n.key).length > 1)!;
+    expect(desks.filter((d) => d.key === twice.key)).toHaveLength(2);
     expect(desks.some((d) => (d.skills ?? []).length > 0)).toBe(true);
     expect(desks.filter((d) => d.unit).length).toBe(desks.length);
   });
