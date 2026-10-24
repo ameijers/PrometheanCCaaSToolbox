@@ -5,8 +5,8 @@
 First version, built to see what a 3D view of the environment feels like.
 
 - Runs on the sample environment (`npm run demo:explorer3d`). It was checked in headless Edge (SwiftShader WebGL): overview, focus on a workstream, focus on a queue, and the camera flight.
-- **Deployed to `academyexperiment` on 2026-10-23.** The deploy script read the three web resources back to verify them. Included in the packaged solution from **1.0.0.12** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_12.zip`): **3D → 3D Explorer**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/explorer3d/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
-- **Not yet tested live**: whether it reads the live data correctly, load time, and frame rate. Orbit, walk, keyboard movement and hover also still need a hands-on check, especially inside the model-driven app's frame.
+- **Deployed to `academyexperiment` on 2026-10-23, and redeployed after each extension.** The deploy script read the three web resources back to verify them. Included in the packaged solution from **1.0.0.12** onward; **1.0.0.13** has the version with all the extensions below, up to the tabbed panel (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_13.zip`): **3D → 3D Explorer**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/explorer3d/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
+- **Tried live** by the user in `academyexperiment` (2026-10-23 and 24): navigation, the health overlay, follow the call (after which the fly-through was replaced and the ride camera moved back), the tabbed panel, layer distance and full screen. **Still open**: live activity with real traffic (the environment had no open conversations or signed-in agents), and other environments and larger data volumes.
 
 ## Schema
 
@@ -71,6 +71,15 @@ Schema, read-only and checked live on academyexperiment (2026-10-23), or already
 - **Context variables, teams, business units**: as Route-to-Queue Builder, Agent Readiness Checker and Skill Assignment read them. Default business-unit teams are left out, since every user is in one.
 - Health: a queue counts as reached through a rule, a default queue or another queue's overflow transfer, not through operating hours; a voice workstream with a bot counts the bot's channels.
 - Not yet: other channels (chat, SMS, WhatsApp) as their own channel records, and classification rules.
+
+## Panel, layer distance, full screen (2026-10-24)
+
+After the user's review: the left panel had grown too long, layers were hard to read with many of them, and the app's menu took room.
+
+- **Tabs**: the header, search, camera buttons and layer distance stay on top; Layers, Explore, Live, Health and Help below. Panels' state lives in the page, so switching tabs switches nothing off.
+- **Opening tab**: `tab=<name>` in the page address, or otherwise the tab that goes with what the address switches on (Health with `health=1`, Live with `live=1`, Explore with `ride=1`).
+- **Layer distance** (1× to 3×, also `depth=` in the page address): positions are laid out once and only their depth is stretched, so dragging the slider doesn't redo the layout. The camera, the orbit point, the layer rings and the fog stretch with it.
+- **Full screen** requests full screen on the app's frame (`window.frameElement`, reachable because the web resource and the app share an origin), so the app's menu and header go; outside a frame, the page itself. If the app's page refuses, the page itself is tried, then a message is shown. To check inside the app: whether the browser allows it from the frame without extra frame permissions.
 
 ## Open questions / next ideas
 

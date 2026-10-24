@@ -98,7 +98,7 @@ Run from the deployed tool with the context variable **MenuOption**, which neith
 
 ## Site Map subarea
 
-Included in the packaged solution from **1.0.0.10** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_12.zip`): **Creation → Route-to-Queue Builder**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/routetoqueuebuilder/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
+Included in the packaged solution from **1.0.0.10** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_13.zip`): **Creation → Route-to-Queue Builder**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/routetoqueuebuilder/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
 
 ## Not done
 

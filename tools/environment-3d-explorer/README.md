@@ -31,6 +31,11 @@ A faint ring marks each layer. Within a layer, a record sits near the records it
 
 ## Using it
 
+The left panel keeps the search box, the camera buttons (**Orbit**, **Walk**, **Reset**, **Full screen**) and the **Layer distance** slider at the top, and puts the rest in tabs: **Layers** (the legend and size by connections), **Explore** (follow the call, saved views, screenshot), **Live**, **Health** (the tab shows the number of problems) and **Help** (the controls, anything that couldn't be read, and reading the environment again). Switching tabs doesn't switch anything off.
+
+- **Layer distance** moves the layers up to three times further apart, which helps when many layers are shown. Only the depth stretches; the camera moves with it, so you keep your place.
+- **Full screen** (or F) makes the tool fill the screen, hiding the app's menu and header; Esc goes back. Inside the app the tool puts its own frame in full screen. If the browser refuses, the page says so.
+
 - **Click a record** (or find it with the search box) and the camera flies to it, from a little in front and to the side. Its whole chain lights up: everything in front of it (where its work comes from) and everything behind it (where the work goes). The rest dims. The panel on the right lists its details and direct links. Click a link to move on to that record.
 - **Show only this chain** hides everything else, which helps when you walk through it.
 - **Orbit mode**: drag to rotate, scroll to zoom, right-drag to pan.
@@ -41,13 +46,13 @@ A faint ring marks each layer. Within a layer, a record sits near the records it
 - **Size by connections** makes each record's size show how many links it has, so busy queues and big workstreams stand out.
 - **Save view** keeps the current camera position under a name; click a saved view to fly back to it. Saved views stay in this browser, per environment.
 - **Screenshot** downloads the current view as a PNG (without the name labels, which are HTML on top of the scene).
-- The page address can ask for `focus=<name>`, `health=1`, `live=1` and `ride=1` (start following the call when the page opens, from the focused record if there is one). On a Site Map subarea, put them in the web resource's data parameter, for example `focus=Sales&ride=1`; a plain data value is read as a record name.
+- The page address can ask for `focus=<name>`, `health=1`, `live=1`, `depth=<1 to 3>` (layer distance), `tab=<layers, explore, live, health or help>` and `ride=1` (start following the call when the page opens, from the focused record if there is one). On a Site Map subarea, put them in the web resource's data parameter, for example `focus=Sales&ride=1`; a plain data value is read as a record name.
 
 ![A workstream in focus](images/01-workstream-focus.png)
 
 ## Health overlay
 
-**Show problems** (left panel) puts a pulsing glow around every record with an issue: red for a **problem** (conversations can get stuck or lost there), orange for a **warning** (worth a look, but it can be on purpose). The panel lists them, problems first. Click one to fly to it with its chain lit. **Only records with an issue** shows just those records and their direct links. A selected record's findings, with a suggested fix, are always in the details panel.
+**Show problems** (Health tab) puts a pulsing glow around every record with an issue: red for a **problem** (conversations can get stuck or lost there), orange for a **warning** (worth a look, but it can be on purpose). The panel lists them, problems first. Click one to fly to it with its chain lit. **Only records with an issue** shows just those records and their direct links. A selected record's findings, with a suggested fix, are always in the details panel.
 
 | Record | Check | Severity |
 | --- | --- | --- |
@@ -69,7 +74,7 @@ The checks use only the data the scene already has, so the overlay reads nothing
 
 ## Live activity
 
-**Live activity** (left panel) puts what's happening now on top of the configuration, read again every 15 seconds:
+**Live activity** (Live tab) puts what's happening now on top of the configuration, read again every 15 seconds:
 
 - **Agents** take the colour of their presence: available (green), busy (red), do not disturb (dark red), away (amber), offline or signed out (grey).
 - **Conversations** open now are small points: yellow ones **waiting** circle their queue, cyan ones **with an agent** and violet ones **in wrap-up** circle that agent.

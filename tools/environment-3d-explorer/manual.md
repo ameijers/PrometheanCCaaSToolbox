@@ -12,7 +12,9 @@ When the scene appears, you look at the environment from the front and a little 
 
 ![The whole environment, front to back](images/00-overview.png)
 
-The legend in the left panel shows how many records of each type were read. Untick a type to hide that layer, and tick it again to show it. Context variables, capacity profiles, teams and business units start unticked, because they can add a lot of records.
+The left panel keeps the search box, the camera buttons and the **Layer distance** slider at the top; the rest is in tabs: **Layers**, **Explore**, **Live**, **Health** and **Help**. Switching tabs doesn't switch anything off: the problem glow or live activity stays on while you look at another tab.
+
+The legend on the **Layers** tab shows how many records of each type were read. Untick a type to hide that layer, and tick it again to show it. Context variables, capacity profiles, teams and business units start unticked, because they can add a lot of records.
 
 Select a queue to see what's around it: its operating hours in front, and behind it its agents and its overflow actions (voicemail, callback, a transfer to another queue). The details of an overflow action say when it applies.
 
@@ -21,6 +23,8 @@ Select a queue to see what's around it: its operating hours in front, and behind
 If something couldn't be read (phone numbers, voice channels or skills, for example when you have no permission on that table), a link under the controls says how many things are missing. Click it to see which. The rest of the scene still shows.
 
 ## 2. Looking around
+
+**Layer distance** moves the layers apart, up to three times as far, which makes a view with many layers easier to read. The camera moves along, so you keep your place. **Full screen** (or F) makes the tool fill your screen and hides the app's menu and header; press Esc to go back.
 
 There are two modes. Switch between them with the **Orbit** and **Walk** buttons, or press **M**.
 
@@ -58,7 +62,7 @@ Click a record, or type part of its name in the search box and pick it from the 
 
 ## 4. Finding problems
 
-Tick **Show problems** in the left panel. The two counters next to it show how many problems (red) and warnings (orange) were found.
+Open the **Health** tab and tick **Show problems**. The tab itself shows how many problems there are. The two counters next to it show how many problems (red) and warnings (orange) were found.
 
 - Every record with an issue gets a pulsing glow: red for a problem (conversations can get stuck or lost there), orange for a warning (worth a look, but it may be on purpose).
 - The list under it shows every issue, problems first. Click one to fly to that record with its chain lit, so you see what it affects: for example, which workstreams route to an empty queue.
@@ -73,7 +77,7 @@ The [README](README.md#health-overlay) lists every check. If a table couldn't be
 
 ## 5. Following a call, views and screenshots
 
-These are under the mode buttons in the left panel.
+These are on the **Explore** tab; **Size by connections** is on the **Layers** tab.
 
 - **Follow the call from …** rides along the lines a call takes, starting at the selected record. With nothing selected it starts at the first phone number. A bright point (the call) travels from the phone number to its channel, workstream, routing rule, queue and agent, and the camera rides behind it, looking ahead.
   - The route and the next choices are lit and everything else is dimmed. Tick **Show only the route** in the ride bar to hide the rest.
@@ -87,7 +91,7 @@ These are under the mode buttons in the left panel.
 
 ## 6. Watching live activity
 
-Tick **Live activity** in the left panel. A green dot next to it pulses while it's on; it turns amber if a read fails (the reason is shown, and the last picture stays). The panel shows when it was last updated; it reads again every 15 seconds.
+Open the **Live** tab and tick **Live activity**. A green dot next to it (and on the tab) pulses while it's on; it turns amber if a read fails (the reason is shown, and the last picture stays). The panel shows when it was last updated; it reads again every 15 seconds.
 
 - Agents are coloured by presence: green available, red busy, dark red do not disturb, amber away, grey offline or signed out.
 - Open conversations circle where they are: yellow ones wait in a queue, cyan ones are with an agent, violet ones are in wrap-up.
@@ -100,8 +104,8 @@ Tick **Live activity** in the left panel. A green dot next to it pulses while it
 
 ## 7. Reading the environment again
 
-The scene shows the environment as it was when the page loaded. After you change something in the admin center, click **Read the environment again**.
+The scene shows the environment as it was when the page loaded. After you change something in the admin center, click **Read the environment again** on the **Help** tab. The Help tab also lists the controls, and anything that couldn't be read.
 
 ## 8. Opening the tool from a link
 
-Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on, `live=1` for live activity, and `ride=1` to start following the call as soon as the page opens (together with `focus`, from that record). In a Site Map subarea, put them in the **data** parameter, for example `focus=Customer Service&ride=1`.
+Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on, `live=1` for live activity, `depth=2` for the layer distance, `tab=health` (or another tab name) to open on that tab, and `ride=1` to start following the call as soon as the page opens (together with `focus`, from that record). In a Site Map subarea, put them in the **data** parameter, for example `focus=Customer Service&ride=1`.

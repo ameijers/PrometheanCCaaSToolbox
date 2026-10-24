@@ -139,3 +139,21 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .error-text { color: #f0a14a; }
 .node-label .suffix { color: #fde047; font-weight: 700; }
 .live-counts li.muted { grid-column: 1 / -1; }
+
+/* Panel: what's always there (camera buttons, layer distance), then tabs. */
+.mode { flex-wrap: wrap; }
+.mode button { flex: 1 1 0; min-width: 0; padding: 7px 4px; white-space: nowrap; }
+.mode button:last-child { flex: 1 1 100%; }
+.slider { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 12px; color: #c9d8e2; }
+.slider input { flex: 1; min-width: 0; accent-color: #7dd3fc; }
+.tabs { display: flex; margin: 14px -18px 0; padding: 0 12px; border-bottom: 1px solid rgba(140, 170, 200, .18); }
+.tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 2px 8px; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; color: #8fa7b6; font-size: 12px; font-weight: 700; }
+.tabs button:hover { color: #dbe7ef; }
+.tabs button.on { color: #7dd3fc; border-bottom-color: #7dd3fc; }
+.tabs .badge { min-width: 16px; padding: 0 4px; font-size: 9.5px; }
+.tabs .pulse { width: 6px; height: 6px; }
+.tab-body { padding-top: 12px; }
+.tab-body > .views, .tab-body > .live, .tab-body > .health { margin-top: 0; padding-top: 0; border-top: 0; }
+.tab-body > .legend { margin-top: 0; }
+.tab-body > .legend + .views { margin-top: 12px; }
+.tab-body > .help { margin-top: 0; }

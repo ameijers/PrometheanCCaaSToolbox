@@ -61,6 +61,8 @@ interface SceneProps {
   onSelect(key: string): void;
   // Per-record size ("size by connections"); 1 when missing.
   scales?: Map<string, number>;
+  // "Layer distance": the layers' spacing as a multiple of the layout's (positions are already stretched).
+  depth?: number;
   // Lets the page read the camera and take a screenshot.
   handle?: React.MutableRefObject<SceneHandle | null>;
   // "Follow the call": the camera rides along these points. A new id starts a new ride.
@@ -178,13 +180,13 @@ function Edges({ nodes, edges, positions, lit }: { nodes: GraphNode[]; edges: Gr
 }
 
 // A faint ring per layer: the "floors" you pass through when you walk from front to back.
-function LayerRings({ nodes, positions }: { nodes: GraphNode[]; positions: Map<string, Vec3> }) {
+function LayerRings({ nodes, positions, depth }: { nodes: GraphNode[]; positions: Map<string, Vec3>; depth: number }) {
   const layers = useMemo(() => KIND_ORDER.map((kind) => {
     const own = nodes.filter((n) => n.kind === kind);
     if (!own.length) return undefined;
     const radius = Math.max(20, ...own.map((n) => { const p = positions.get(n.key); return p ? Math.hypot(p[0], p[1]) : 0; })) + 10;
-    return { kind, radius, z: KINDS[kind].layer * LAYER_SPACING };
-  }).filter((l): l is { kind: NodeKind; radius: number; z: number } => !!l), [nodes, positions]);
+    return { kind, radius, z: KINDS[kind].layer * LAYER_SPACING * depth };
+  }).filter((l): l is { kind: NodeKind; radius: number; z: number } => !!l), [nodes, positions, depth]);
   return (
     <>
       {layers.map((l) => (
@@ -312,11 +314,22 @@ const MOVE_KEYS: Record<string, [number, number, number]> = {
 // Moves the camera: flying to a goal, the keyboard (both modes), and mouse look in walk mode.
 // Walk mode turns the view by dragging, so it needs no pointer lock and works inside the
 // model-driven app's frame.
-function CameraRig({ mode, goal, handle, ride }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null>; ride?: Ride }) {
+function CameraRig({ mode, goal, handle, ride, depth }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null>; ride?: Ride; depth: number }) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
   const scene = useThree((s) => s.scene);
+
+  // When the layers move apart (or together), the camera and the point it orbits move with them, so
+  // you keep your place in the scene instead of ending up inside it.
+  const previousDepth = useRef(1);
+  useEffect(() => {
+    const ratio = depth / previousDepth.current;
+    previousDepth.current = depth;
+    if (ratio === 1) return;
+    camera.position.z *= ratio;
+    if (controls) { controls.target.z *= ratio; controls.update(); }
+  }, [depth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!handle) return;
@@ -493,7 +506,7 @@ function CameraRig({ mode, goal, handle, ride }: { mode: Mode; goal?: CameraGoal
   ) : null;
 }
 
-export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, ride, labelKeys, colors, labelSuffix, conversations, arrivals, onHover, onSelect }: SceneProps): React.ReactElement {
+export function Scene({ depth = 1, nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, ride, labelKeys, colors, labelSuffix, conversations, arrivals, onHover, onSelect }: SceneProps): React.ReactElement {
   const byKind = useMemo(() => KIND_ORDER.map((kind) => ({ kind, nodes: nodes.filter((n) => n.kind === kind) })).filter((g) => g.nodes.length), [nodes]);
   const nodeByKey = useMemo(() => new Map(nodes.map((n) => [n.key, n])), [nodes]);
 
@@ -520,13 +533,13 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
   return (
     <Canvas dpr={[1, 2]} gl={{ antialias: true }} camera={{ position: START_POSITION, fov: 55, near: 0.5, far: 4000 }} onCreated={({ camera }) => camera.lookAt(0, 0, 0)}>
       <color attach="background" args={[BACKGROUND]} />
-      <fog attach="fog" args={[BACKGROUND, 220, 900]} />
+      <fog attach="fog" args={[BACKGROUND, 220 * depth, 900 * depth]} />
       <ambientLight intensity={0.7} />
       <directionalLight position={[80, 120, 160]} intensity={1.6} />
       <directionalLight position={[-120, -40, -160]} intensity={0.5} color="#88aaff" />
       <Stars radius={700} depth={200} count={2500} factor={5} fade speed={0.4} />
 
-      <LayerRings nodes={nodes} positions={positions} />
+      <LayerRings nodes={nodes} positions={positions} depth={depth} />
       <Edges nodes={nodes} edges={edges} positions={positions} lit={lit} />
       {byKind.map((g) => (
         <KindMesh key={g.kind} kind={g.kind} nodes={g.nodes} positions={positions} scales={scales} colors={colors} lit={lit} onHover={onHover} onSelect={onSelect} />
@@ -546,7 +559,7 @@ export function Scene({ nodes, edges, positions, lit, selected, hovered, mode, g
       ))}
 
       {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxDistance={1500} />}
-      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} />
+      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} depth={depth} />
     </Canvas>
   );
 }
