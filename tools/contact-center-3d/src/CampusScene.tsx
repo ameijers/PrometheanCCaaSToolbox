@@ -14,8 +14,8 @@ import { Area, Fixture, FixtureKind, Path, PathKind, Plan, Vec3, Wall, Wing, WIN
 // The campus in 3D: open-roofed buildings seen from above, like a doll's house. Floors, walls, desks
 // and people are instanced boxes, so a large center stays smooth.
 
-export const SKY = "#dfe7ef";
-const GROUND = "#cfd9e4";
+// Near black behind the buildings, so they stand out.
+export const SKY = "#05070b";
 const WALL = "#f8fafc";
 const WOOD = "#b98b5e";
 const SCREEN = "#1e293b";
@@ -27,10 +27,10 @@ export const SEVERITY_COLORS: Record<Severity, string> = { problem: "#ef4444", w
 const AREA_TINT: Record<Area["kind"], number> = { building: 0.8, entrance: 0.6, lobby: 0.45, corridor: 0.72, wing: 0.72, room: 0.55 };
 // The lines' looks; the page's legend explains them from the same list.
 export const PATH_STYLE: Record<PathKind, { color: string; dashed: boolean; width: number; label: string }> = {
-  route: { color: "#be123c", dashed: false, width: 2, label: "Routing rule to its room" },
-  skybridge: { color: "#0284c7", dashed: false, width: 2.2, label: "Routing rule to a room in another customer center (skybridge)" },
-  default: { color: "#ca8a04", dashed: true, width: 1.2, label: "Workstream's default queue" },
-  transfer: { color: "#dc2626", dashed: true, width: 1.6, label: "Overflow: transfer to another queue" }
+  route: { color: "#f43f5e", dashed: false, width: 2, label: "Routing rule to its room" },
+  skybridge: { color: "#38bdf8", dashed: false, width: 2.2, label: "Routing rule to a room in another customer center (skybridge)" },
+  default: { color: "#facc15", dashed: true, width: 1.2, label: "Workstream's default queue" },
+  transfer: { color: "#fb7185", dashed: true, width: 1.6, label: "Overflow: transfer to another queue" }
 };
 // Labels keep one small size. Inside a building they only show when the camera is this close (metres),
 // so the campus from afar isn't a heap of labels and labels near you stay readable while exploring.
@@ -312,11 +312,6 @@ export function CampusScene({ plan, mode, goal, selected, selectedSpot, wing, sh
       <hemisphereLight args={["#ffffff", "#94a3b8", 0.9]} />
       <directionalLight position={[80, 160, 120]} intensity={1.4} />
       <directionalLight position={[-120, 80, -60]} intensity={0.4} />
-
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[plan.bounds.x, -0.05, plan.bounds.z]} raycast={() => null}>
-        <planeGeometry args={[plan.bounds.w + 400, plan.bounds.d + 400]} />
-        <meshStandardMaterial color={GROUND} roughness={1} />
-      </mesh>
 
       <Boxes items={floors} onPick={pick} />
       <Boxes items={walls} color={WALL} opacity={0.92} />

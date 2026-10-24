@@ -45,6 +45,7 @@ First version: the campus, a building per customer center, combine / split / mov
 - **Selecting the desk you click**: an agent with several desks used to fly to their first one. A click now keeps the clicked desk (camera and ring stay there), a room's member links go to that member's desk in the room, and Follow a call from a desk starts at that desk; reached from a room, the ride always goes to the desk in that room.
 - **Labels one small size**, shown by distance (rooms and wings within 150 m, signs 90 m, counters and phone numbers 60 m) instead of scaling with distance: after review, scaled labels became huge while exploring close up. They're placed once and shown or hidden a few times a second, without re-rendering.
 - The **Not routed** building is hidden at first (after review); a checkbox on the Centers tab, or `unrouted=1`, shows it.
+- **Black background, no ground** (after review): the buildings float on near black; the ground plane is gone and the line colours are brighter so they read on the dark.
 - A **Lines** legend explains the four styles, from the same list the scene draws with.
 
 ## Next ideas
