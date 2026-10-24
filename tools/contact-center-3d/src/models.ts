@@ -7,6 +7,7 @@
 
 import * as THREE from "three";
 import { useGLTF } from "@react-three/drei";
+import { SkeletonUtils } from "three-stdlib";
 import deskUrl from "../models/desk.glb";
 import chairUrl from "../models/chairDesk.glb";
 import screenUrl from "../models/computerScreen.glb";
@@ -37,7 +38,9 @@ export function toModel(gltf: { scene: THREE.Group; animations: THREE.AnimationC
   made.set(gltf, cache);
   const cached = cache.get(id);
   if (cached) return cached;
-  const scene = gltf.scene;
+  // A pose goes on a fresh copy, so it starts from the rest pose: an animation that doesn't move every
+  // bone (idle leaves the legs alone) would otherwise keep the pose baked before it.
+  const scene = pose ? (SkeletonUtils.clone(gltf.scene) as THREE.Group) : gltf.scene;
   const clip = pose ? gltf.animations.find((a) => a.name === pose) : undefined;
   if (clip) {
     const mixer = new THREE.AnimationMixer(scene);
