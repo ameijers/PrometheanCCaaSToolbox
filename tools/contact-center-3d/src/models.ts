@@ -96,9 +96,13 @@ export function toModel(gltf: { scene: THREE.Group; animations: THREE.AnimationC
   return model;
 }
 
-// Turns, so each model faces the way the scene needs. People facing -z: a desk's agent sits on its +z
-// side facing the screen, and waiting callers face into the room (both with their back to its front).
-const DESK_YAW = 0, CHAIR_YAW = Math.PI, SCREEN_YAW = Math.PI, KEYBOARD_YAW = Math.PI, PERSON_YAW = Math.PI;
+// Turns, so each model faces the way the scene needs. Kenney's models face +z. A desk's agent sits on its
+// +z side facing -z, so the desk, screen and keyboard keep facing +z (towards the agent) and the chair
+// and people turn round; waiting callers face into the room the same way (their back to its front).
+const DESK_YAW = 0, CHAIR_YAW = Math.PI, SCREEN_YAW = 0, KEYBOARD_YAW = 0, PERSON_YAW = Math.PI;
+
+// The part of the screen model that is the display (its material in the Furniture Kit).
+export const isDisplay = (material: THREE.Material) => material.name === "metal";
 // Kenney's characters have big heads: sitting at a desk they look right smaller; standing, near full size.
 const SITTING_SCALE = 0.65, STANDING_SCALE = 0.95;
 

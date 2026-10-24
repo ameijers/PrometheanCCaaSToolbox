@@ -10,7 +10,7 @@ import { Severity } from "../../environment-3d-explorer/src/health";
 import { hash } from "../../environment-3d-explorer/src/layout";
 import { CameraGoal, CameraRig, Mode, Ride, SceneHandle } from "../../environment-3d-explorer/src/Scene";
 import { Area, Fixture, FixtureKind, Path, PathKind, Plan, Vec3, Wall, Wing, WING_COLORS } from "./floorplan";
-import { lookOf, Model, Models, useModels } from "./models";
+import { isDisplay, lookOf, Model, Models, useModels } from "./models";
 
 // The campus in 3D: open-roofed buildings seen from above, like a doll's house. Floors, walls, desks
 // and people are instanced boxes, so a large center stays smooth.
@@ -136,24 +136,33 @@ const SEATED_Y = 0.5;
 
 interface ModelItem { x: number; y: number; z: number; key?: string; turn?: number; scale?: number }
 
+// A part of a model coloured per copy (a screen's display in the agent's presence colour); glow: lit.
+interface Tint { part(material: THREE.Material): boolean; colors: THREE.Color[]; glow?: boolean }
+
 // Many copies of one model: an instanced mesh per part, each copy moved to its spot.
-function ModelInstances({ model, items, onPick }: { model: Model; items: ModelItem[]; onPick?: (key: string | undefined, item: ModelItem) => void }) {
+function ModelInstances({ model, items, onPick, tint }: { model: Model; items: ModelItem[]; onPick?: (key: string | undefined, item: ModelItem) => void; tint?: Tint }) {
   const refs = useRef<(THREE.InstancedMesh | null)[]>([]);
+  const tinted = useMemo(() => (tint?.glow ? new THREE.MeshBasicMaterial({ toneMapped: false }) : new THREE.MeshStandardMaterial({ roughness: 0.5 })), [tint?.glow]);
+  useEffect(() => () => tinted.dispose(), [tinted]);
   useLayoutEffect(() => {
     const m = new THREE.Matrix4();
-    refs.current.forEach((mesh) => {
+    refs.current.forEach((mesh, p) => {
       if (!mesh) return;
       items.forEach((it, i) => { m.makeRotationY(it.turn ?? 0).scale(new THREE.Vector3(it.scale ?? 1, it.scale ?? 1, it.scale ?? 1)).setPosition(it.x, it.y, it.z); mesh.setMatrixAt(i, m); });
+      if (tint && tint.part(model.parts[p].material)) {
+        items.forEach((_, i) => mesh.setColorAt(i, tint.colors[i]));
+        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      }
       mesh.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
     });
-  }, [items, model]);
+  }, [items, model, tint]);
   if (!items.length) return null;
   return (
     <>
       {model.parts.map((part, p) => (
         <instancedMesh
-          key={`${p}:${items.length}`} ref={(el) => { refs.current[p] = el; }} args={[part.geometry, part.material, items.length]}
+          key={`${p}:${items.length}`} ref={(el) => { refs.current[p] = el; }} args={[part.geometry, tint?.part(part.material) ? tinted : part.material, items.length]}
           onClick={onPick ? (e: ThreeEvent<MouseEvent>) => { if (e.delta > 4 || e.instanceId === undefined) return; e.stopPropagation(); onPick(items[e.instanceId]?.key, items[e.instanceId]); } : undefined}
           raycast={onPick ? undefined : () => null}
         />
@@ -163,13 +172,12 @@ function ModelInstances({ model, items, onPick }: { model: Model; items: ModelIt
 }
 
 // Desks from the models: a desk, a screen and keyboard on it, an office chair and an agent sitting
-// on it, facing the screen. The screen glows in the agent's presence colour; skill badges and the
+// on it, facing the screen. The display glows in the agent's presence colour; skill badges and the
 // business unit carpet as with the box desks.
 function ModelDesks({ desks, screens, showUnits, onPick }: DesksProps) {
   const models = useModels();
   const parts = useMemo(() => {
     const top = models.desk.size.y;
-    const screen = models.screen.size;
     const at = (f: Fixture, dx: number, dy: number, dz: number, extra: Partial<ModelItem> = {}): ModelItem => ({ x: f.x + dx, y: f.y + dy, z: f.z + dz, key: f.key, ...extra });
     const box = (f: Fixture, dx: number, dy: number, dz: number, w: number, h: number, d: number, extra: Partial<BoxItem> = {}): BoxItem => ({ x: f.x + dx, y: f.y + dy, z: f.z + dz, w, h, d, key: f.key, ...extra });
     return {
@@ -178,22 +186,20 @@ function ModelDesks({ desks, screens, showUnits, onPick }: DesksProps) {
       keyboards: desks.map((f) => at(f, 0, top, 0.2, { key: undefined })),
       chairs: desks.map((f) => at(f, 0, 0, 0.95, { key: undefined })),
       agents: models.people.sit.map((_, i) => desks.filter((f) => lookOf(f.key ?? "", hash) === i).map((f) => at(f, 0, SEATED_Y, 0.95))),
-      // The presence glow: a panel on the screen's front.
-      glows: desks.map((f) => box(f, 0, top + screen.y * 0.3, -0.2 + screen.z / 2 + 0.02, screen.x * 0.85, screen.y * 0.6, 0.02, { color: new THREE.Color(screens?.get(f.key ?? "") ?? SCREEN) })),
       badges: desks.flatMap((f) => (f.skills ?? []).slice(0, 3).map((s, i) => box(f, -0.5 + i * 0.5, top - 0.25, 0.42, 0.3, 0.18, 0.04, { color: new THREE.Color(colorFor(s)) }))),
       carpets: showUnits ? desks.filter((f) => f.unit).map((f) => box(f, 0, 0.03, 0.3, 3, 0.02, 3, { color: new THREE.Color(colorFor(f.unit!)), key: undefined })) : []
     };
   }, [desks, screens, showUnits, models]);
+  const display = useMemo<Tint>(() => ({ part: isDisplay, glow: !!screens, colors: desks.map((f) => new THREE.Color(screens?.get(f.key ?? "") ?? SCREEN)) }), [desks, screens]);
   const pick = pickDesk(desks, onPick);
   return (
     <>
       <Boxes items={parts.carpets} />
       <ModelInstances model={models.desk} items={parts.desks} onPick={pick} />
-      <ModelInstances model={models.screen} items={parts.screens} onPick={pick} />
+      <ModelInstances model={models.screen} items={parts.screens} onPick={pick} tint={display} />
       <ModelInstances model={models.keyboard} items={parts.keyboards} />
       <ModelInstances model={models.chair} items={parts.chairs} />
       {models.people.sit.map((m, i) => <ModelInstances key={i} model={m} items={parts.agents[i]} onPick={pick} />)}
-      <Boxes items={parts.glows} emissive={!!screens} onPick={pick} />
       <Boxes items={parts.badges} emissive />
     </>
   );
