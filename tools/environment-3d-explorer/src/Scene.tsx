@@ -314,7 +314,8 @@ const MOVE_KEYS: Record<string, [number, number, number]> = {
 // Moves the camera: flying to a goal, the keyboard (both modes), and mouse look in walk mode.
 // Walk mode turns the view by dragging, so it needs no pointer lock and works inside the
 // model-driven app's frame.
-function CameraRig({ mode, goal, handle, ride, depth }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null>; ride?: Ride; depth: number }) {
+// Exported for 3D Contact Center, which moves its camera the same way.
+export function CameraRig({ mode, goal, handle, ride, depth }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null>; ride?: Ride; depth: number }) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update(): void } | null;

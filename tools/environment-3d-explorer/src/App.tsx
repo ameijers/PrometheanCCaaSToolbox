@@ -7,6 +7,7 @@ import { environmentLabel, isDataverseAvailable, recordUrl } from "../../shared/
 import { loadGraph, loadLiveRows } from "./dataverse";
 import { demoRaw } from "./demoData";
 import { demoLiveSource } from "./demoLive";
+import { useFullscreen } from "./fullscreen";
 import { buildLive, CONVERSATION_COLORS, CONVERSATION_LABELS, Live, LiveRows, liveDetails, newArrivals, Presence, PRESENCE_COLORS, PRESENCE_LABELS, waitingByQueue } from "./live";
 import { buildGraph, chainOf } from "./graph";
 import { findIssues, SEVERITY_LABELS, worstByKey } from "./health";
@@ -30,16 +31,6 @@ const TABS: { id: Tab; label: string }[] = [
 
 // "Layer distance": how far apart the layers are, as a multiple of the layout's own spacing.
 const MAX_DEPTH = 3;
-
-// Full screen goes to the frame the model-driven app shows this page in (same origin, so the page can
-// reach it), which hides the app's menu and header; on its own the page goes full screen itself.
-function fullscreenTarget(): HTMLElement {
-  try {
-    const frame = window.frameElement as HTMLElement | null;
-    if (frame?.ownerDocument) return frame;
-  } catch { /* another origin: use the page */ }
-  return document.documentElement;
-}
 
 // Choices shown at a fork in the ride; the rest are counted.
 const MAX_RIDE_CHOICES = 8;
@@ -109,8 +100,7 @@ export function App(): React.ReactElement {
   // Open on the tab asked for, or on the one that goes with what the address switched on.
   const [tab, setTab] = useState<Tab>(() => TABS.find((t) => t.id === urlOptions.tab)?.id ?? (urlOptions.health ? "health" : urlOptions.live ? "live" : urlOptions.ride ? "explore" : "layers"));
   const [depth, setDepth] = useState(urlOptions.depth ?? 1);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [fullscreenError, setFullscreenError] = useState("");
+  const { fullscreen, error: fullscreenError, toggle: toggleFullscreen } = useFullscreen();
   const [liveOn, setLiveOn] = useState(urlOptions.live);
   const [activity, setActivity] = useState<Live | undefined>(undefined);
   const [liveError, setLiveError] = useState("");
@@ -266,26 +256,6 @@ export function App(): React.ReactElement {
     rideStarted.current = true;
     startRide(selected);
   }, [graph, selected]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const toggleFullscreen = async () => {
-    const target = fullscreenTarget();
-    const doc = target.ownerDocument;
-    setFullscreenError("");
-    try {
-      if (doc.fullscreenElement || document.fullscreenElement) await (doc.fullscreenElement ? doc : document).exitFullscreen();
-      else await target.requestFullscreen();
-    } catch {
-      // The app's page may refuse; the page itself can still fill the screen inside its frame's window.
-      try { if (target !== document.documentElement) { await document.documentElement.requestFullscreen(); return; } } catch { /* refused too */ }
-      setFullscreenError("The browser didn't allow full screen here.");
-    }
-  };
-  useEffect(() => {
-    const docs = [...new Set([document, fullscreenTarget().ownerDocument])];
-    const update = () => setFullscreen(docs.some((d) => !!d.fullscreenElement));
-    docs.forEach((d) => d.addEventListener("fullscreenchange", update));
-    return () => docs.forEach((d) => d.removeEventListener("fullscreenchange", update));
-  }, []);
 
   const saveView = () => {
     const view = sceneHandle.current?.view();

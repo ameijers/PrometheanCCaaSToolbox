@@ -18,6 +18,7 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 | [Agent Readiness Checker](tools/agent-readiness-checker/README.md) | Answers "why isn't this agent receiving calls?" — checks one agent or the whole roster against every prerequisite for receiving voice work (account, roles, channel, queue membership, workstream reachability, capacity, skills, presence) with plain-language evidence and suggested fixes. |
 | [Environment Artifact Finder](tools/environment-artifact-finder/README.md) | Finds configuration you could clean up: records nothing active uses any more, records that are wired in but can never do anything (e.g. a voice workstream with no phone number, a queue no route reaches), broken references, and housekeeping items (old bulk-delete jobs, stale saved views). Recommends only. Every finding is a candidate for review, with its evidence and a confidence level. |
 | [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. A health overlay marks problems (an empty queue that is routed to, a rule to a deleted queue, a workstream that routes nowhere) in the picture. Also: a health overlay for structural problems, follow-the-call rides, live presence and queue load, bots, overflow and operating hours, tabs, a layer distance slider and full screen. In the Site Map as **3D → 3D Explorer**; current version in solution 1.0.0.13. **Tried live in `academyexperiment`; live activity still to be seen with real traffic.** |
+| [3D Contact Center](tools/contact-center-3d/README.md) | The same environment from a business perspective: each customer center is an open-roofed building on a campus, with entrance doors (voice channels and their numbers), an automated reception (bot), lobbies (workstreams), signposts (routing rules), rooms (queues) with a desk per agent, and overflow at the room doors. Every workstream starts as its own center; combine them into customer centers, which are remembered. **New: tried on sample data only, not yet in the solution zip.** |
 
 ### Creation and provisioning tools
 
@@ -68,7 +69,7 @@ Users themselves come from Microsoft Entra ID: a user is in the environment once
 </tr>
 </table>
 
-Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Skill Assignment](tools/skill-assignment/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md), [Assignment Method Copier](tools/assignment-method-copier/manual.md), [Route-to-Queue Builder](tools/route-to-queue-builder/manual.md), [Voicemail Builder](tools/voicemail-builder/manual.md), [Environment 3D Explorer](tools/environment-3d-explorer/manual.md).
+Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Skill Assignment](tools/skill-assignment/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md), [Assignment Method Copier](tools/assignment-method-copier/manual.md), [Route-to-Queue Builder](tools/route-to-queue-builder/manual.md), [Voicemail Builder](tools/voicemail-builder/manual.md), [Environment 3D Explorer](tools/environment-3d-explorer/manual.md), [3D Contact Center](tools/contact-center-3d/manual.md).
 
 ### How the creation tools work
 
@@ -85,7 +86,7 @@ The Recording & Transcription Provisioner works on a selection instead of a file
 
 ### Live status
 
-All tools have been built against schema read from a live environment (`academyexperiment`), run end to end in a browser against sample data, and tested against that live environment. They still need more testing in **other environments** — for example other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes. If a tool behaves differently in your environment, please report it.
+All tools except the new 3D Contact Center have been built against schema read from a live environment (`academyexperiment`), run end to end in a browser against sample data, and tested against that live environment. They still need more testing in **other environments** — for example other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes. If a tool behaves differently in your environment, please report it.
 
 Worth knowing from the live tests: in **Voice Workstream Builder**, workstreams and channels without a phone number are created and completed by the platform, but routing rules are **not** created automatically — set them up in the admin center (the tool says so per workstream).
 
@@ -180,6 +181,7 @@ tools/
   agent-readiness-checker/     # Diagnostic
   environment-artifact-finder/ # Diagnostic
   environment-3d-explorer/     # Diagnostic (3D view, Three.js)
+  contact-center-3d/           # Diagnostic (3D business view, built on the explorer)
   voice-workstream-builder/    # Creation — also holds the shared CSV, log and recording code
   queue-builder/               # Creation
   profile-builder/             # Creation (outbound profiles)
@@ -232,6 +234,7 @@ Each tool can be run locally in its offline demo mode:
 | Route-to-Queue Builder | `routetoqueuebuilder` | `npm run demo:routetoqueuebuilder` → http://localhost:5446/index.html |
 | Voicemail Builder | `voicemailbuilder` | `npm run demo:voicemailbuilder` → http://localhost:5447/index.html |
 | Environment 3D Explorer | `explorer3d` | `npm run demo:explorer3d` → http://localhost:5448/index.html |
+| 3D Contact Center | `contactcenter3d` | `npm run demo:contactcenter3d` → http://localhost:5449/index.html |
 
 ## Deployment
 
