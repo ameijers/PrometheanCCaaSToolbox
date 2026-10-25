@@ -375,6 +375,17 @@ export function CameraRig({ mode, goal, handle, ride, depth, rideScale = 1 }: { 
     flight.current = { position: new THREE.Vector3(...goal.position), target: new THREE.Vector3(...goal.target), current };
   }, [goal?.serial]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Zooming, rotating or dragging yourself stops a flight, so it doesn't fight you. (A click that
+  // selects something starts a new one right after.)
+  useEffect(() => {
+    const element = gl.domElement;
+    const stop = () => { flight.current = undefined; };
+    element.addEventListener("wheel", stop, { passive: true });
+    element.addEventListener("pointerdown", stop);
+    element.addEventListener("touchstart", stop, { passive: true });
+    return () => { element.removeEventListener("wheel", stop); element.removeEventListener("pointerdown", stop); element.removeEventListener("touchstart", stop); };
+  }, [gl]);
+
   // Switching modes keeps looking at the same thing. Orbit controls mount with the mode, so they
   // may only arrive on the next render: the new target waits for them.
   const needsTarget = useRef(false);

@@ -81,9 +81,14 @@ After the user's review: the left panel had grown too long, layers were hard to 
 - **Layer distance** (1× to 3×, also `depth=` in the page address): positions are laid out once and only their depth is stretched, so dragging the slider doesn't redo the layout. The camera, the orbit point, the layer rings and the fog stretch with it.
 - **Full screen** requests full screen on the app's frame (`window.frameElement`, reachable because the web resource and the app share an origin), so the app's menu and header go; outside a frame, the page itself. If the app's page refuses, the page itself is tried, then a message is shown. To check inside the app: whether the browser allows it from the frame without extra frame permissions.
 
+## Camera (2026-10-25)
+
+- Zooming, rotating or dragging during a camera flight (after a click or search) stops the flight, so it doesn't take the camera back (found in the 3D Contact Center, which shares `CameraRig`).
+
 ## Open questions / next ideas
 
 - Live test: data volumes, load time, frame rate with a few thousand agents.
 - More record types: overflow actions, operating hours, capacity profiles, business units and teams, context variables, other channels (chat, messaging).
 - Live data: presence, open conversations per queue.
 - Deep links from other tools (the `?focus=` parameter is there already).
+
