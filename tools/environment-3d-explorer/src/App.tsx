@@ -7,6 +7,7 @@ import { environmentLabel, isDataverseAvailable, recordUrl } from "../../shared/
 import { loadGraph, loadLiveRows } from "./dataverse";
 import { demoRaw } from "./demoData";
 import { demoLiveSource } from "./demoLive";
+import { useFullscreen } from "./fullscreen";
 import { buildLive, CONVERSATION_COLORS, CONVERSATION_LABELS, Live, LiveRows, liveDetails, newArrivals, Presence, PRESENCE_COLORS, PRESENCE_LABELS, waitingByQueue } from "./live";
 import { buildGraph, chainOf } from "./graph";
 import { findIssues, SEVERITY_LABELS, worstByKey } from "./health";
@@ -30,16 +31,6 @@ const TABS: { id: Tab; label: string }[] = [
 
 // "Layer distance": how far apart the layers are, as a multiple of the layout's own spacing.
 const MAX_DEPTH = 3;
-
-// Full screen goes to the frame the model-driven app shows this page in (same origin, so the page can
-// reach it), which hides the app's menu and header; on its own the page goes full screen itself.
-function fullscreenTarget(): HTMLElement {
-  try {
-    const frame = window.frameElement as HTMLElement | null;
-    if (frame?.ownerDocument) return frame;
-  } catch { /* another origin: use the page */ }
-  return document.documentElement;
-}
 
 // Choices shown at a fork in the ride; the rest are counted.
 const MAX_RIDE_CHOICES = 8;
@@ -84,7 +75,15 @@ function Connections({ title, edges, side, nodeByKey, onSelect }: {
 }
 
 export function App(): React.ReactElement {
-  const live = isDataverseAvailable();
+  // Inside Dataverse the tool reads the environment, unless you ask for the sample (button or ?demo=1),
+  // to demonstrate or test. Outside Dataverse it's always the sample.
+  const inDataverse = isDataverseAvailable();
+  const [useSample, setUseSample] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const asked = params.get("demo") ?? new URLSearchParams(params.get("data") ?? "").get("demo");
+    return asked !== null && !/^(0|false|no|off)$/i.test(asked);
+  });
+  const live = inDataverse && !useSample;
   const environment = live ? environmentLabel() : "the sample environment";
 
   const [graph, setGraph] = useState<Graph | undefined>(undefined);
@@ -104,13 +103,14 @@ export function App(): React.ReactElement {
   const [sizeByConnections, setSizeByConnections] = useState(false);
   const [ride, setRide] = useState<{ id: number; path: string[]; options: RideOption[]; playing: boolean; routeOnly: boolean } | undefined>(undefined);
   const [views, setViews] = useState<SavedView[]>(() => loadViews(environment));
+  // Saved views belong to an environment: switching to or from the sample brings its own.
+  useEffect(() => { setViews(loadViews(environment)); }, [environment]);
   const [viewName, setViewName] = useState("");
   const sceneHandle = useRef<SceneHandle | null>(null);
   // Open on the tab asked for, or on the one that goes with what the address switched on.
   const [tab, setTab] = useState<Tab>(() => TABS.find((t) => t.id === urlOptions.tab)?.id ?? (urlOptions.health ? "health" : urlOptions.live ? "live" : urlOptions.ride ? "explore" : "layers"));
   const [depth, setDepth] = useState(urlOptions.depth ?? 1);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [fullscreenError, setFullscreenError] = useState("");
+  const { fullscreen, error: fullscreenError, toggle: toggleFullscreen } = useFullscreen();
   const [liveOn, setLiveOn] = useState(urlOptions.live);
   const [activity, setActivity] = useState<Live | undefined>(undefined);
   const [liveError, setLiveError] = useState("");
@@ -144,7 +144,7 @@ export function App(): React.ReactElement {
     if (!liveOn || !graph) { setActivity(undefined); setArrivals([]); return; }
     let cancelled = false;
     let previous: Live | undefined;
-    const demo = !isDataverseAvailable() ? demoLiveSource(graph) : undefined;
+    const demo = !live ? demoLiveSource(graph) : undefined;
     const readRows = (since: string): Promise<LiveRows> => (demo ? Promise.resolve(demo(since)) : loadLiveRows(graph, since));
     const read = async () => {
       try {
@@ -165,7 +165,7 @@ export function App(): React.ReactElement {
     void read();
     const timer = setInterval(() => void read(), demo ? DEMO_REFRESH_MS : LIVE_REFRESH_MS);
     return () => { cancelled = true; clearInterval(timer); };
-  }, [liveOn, graph]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [liveOn, graph, live]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const liveColors = useMemo(() => (activity ? new Map([...activity.presence.entries()].map(([k, p]) => [k, PRESENCE_COLORS[p.presence]])) : undefined), [activity]);
   const waiting = useMemo(() => (activity ? waitingByQueue(activity) : new Map<string, number>()), [activity]);
@@ -267,26 +267,6 @@ export function App(): React.ReactElement {
     startRide(selected);
   }, [graph, selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggleFullscreen = async () => {
-    const target = fullscreenTarget();
-    const doc = target.ownerDocument;
-    setFullscreenError("");
-    try {
-      if (doc.fullscreenElement || document.fullscreenElement) await (doc.fullscreenElement ? doc : document).exitFullscreen();
-      else await target.requestFullscreen();
-    } catch {
-      // The app's page may refuse; the page itself can still fill the screen inside its frame's window.
-      try { if (target !== document.documentElement) { await document.documentElement.requestFullscreen(); return; } } catch { /* refused too */ }
-      setFullscreenError("The browser didn't allow full screen here.");
-    }
-  };
-  useEffect(() => {
-    const docs = [...new Set([document, fullscreenTarget().ownerDocument])];
-    const update = () => setFullscreen(docs.some((d) => !!d.fullscreenElement));
-    docs.forEach((d) => d.addEventListener("fullscreenchange", update));
-    return () => docs.forEach((d) => d.removeEventListener("fullscreenchange", update));
-  }, []);
-
   const saveView = () => {
     const view = sceneHandle.current?.view();
     if (!view) return;
@@ -351,7 +331,10 @@ export function App(): React.ReactElement {
             <h1>Environment 3D Explorer</h1>
           </div>
         </header>
-        <p className="target"><span className={`status-dot${live ? " live" : ""}`} />{environment}</p>
+        <p className="target">
+          <span className={`status-dot${live ? " live" : ""}`} />{environment}
+          {inDataverse && <button className="link source" onClick={() => { setGraph(undefined); setSelected(undefined); setUseSample(live); }}>{live ? "Use sample data" : "Back to live data"}</button>}
+        </p>
 
         <div className="search">
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a workstream, queue, agent…" aria-label="Search" />
@@ -459,7 +442,7 @@ export function App(): React.ReactElement {
                     {activity ? (
                       <>
                         <p className="muted small">
-                          Updated {new Date(activity.readAt).toLocaleTimeString()}, every {(isDataverseAvailable() ? LIVE_REFRESH_MS : DEMO_REFRESH_MS) / 1000} seconds.
+                          Updated {new Date(activity.readAt).toLocaleTimeString()}, every {(live ? LIVE_REFRESH_MS : DEMO_REFRESH_MS) / 1000} seconds.
                         </p>
                         <ul className="live-counts">
                           {(["waiting", "with-agent", "wrap-up"] as const).map((status) => (

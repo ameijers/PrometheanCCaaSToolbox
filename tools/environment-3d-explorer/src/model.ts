@@ -58,11 +58,15 @@ export interface GraphNode {
 
 export interface NodeFacts {
   voice?: boolean;
+  // A workstream's channel, or a queue's type: what kind of work it carries.
+  stream?: Stream;
   disabled?: boolean;
   // Queues a rule (or a workstream as its default) points at that aren't among the active omnichannel queues.
   missingQueues?: number;
   hasResource?: boolean;
 }
+
+export type Stream = "voice" | "messaging" | "records";
 
 // Optional reads that failed: checks that depend on them are skipped rather than reported.
 export type Unread = "phoneNumbers" | "channels" | "resources" | "skills" | "bots" | "variables" | "hours" | "overflow" | "capacity" | "teams" | "businessunits";

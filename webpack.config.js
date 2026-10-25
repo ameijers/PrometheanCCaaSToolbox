@@ -24,7 +24,8 @@ module.exports = {
     assignmentmethodcopier: "./tools/assignment-method-copier/webresource/index.tsx",
     routetoqueuebuilder: "./tools/route-to-queue-builder/webresource/index.tsx",
     voicemailbuilder: "./tools/voicemail-builder/webresource/index.tsx",
-    explorer3d: "./tools/environment-3d-explorer/webresource/index.tsx"
+    explorer3d: "./tools/environment-3d-explorer/webresource/index.tsx",
+    contactcenter3d: "./tools/contact-center-3d/webresource/index.tsx"
   },
   output: {
     path: path.resolve(__dirname, "dist/webresource"),
@@ -32,6 +33,10 @@ module.exports = {
   },
   resolve: { extensions: [".ts", ".tsx", ".js"] },
   module: {
-    rules: [{ test: /\.tsx?$/, use: "ts-loader", exclude: /node_modules/ }]
+    rules: [
+      { test: /\.tsx?$/, use: "ts-loader", exclude: /node_modules/ },
+      // 3D models go inside the bundle as data: URLs (a web resource can't be a .glb file).
+      { test: /\.glb$/, type: "asset/inline" }
+    ]
   }
 };

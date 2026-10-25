@@ -3,7 +3,7 @@
 
 import { parseDecisionXml } from "../../visual-routing-tester/src/ruleXml";
 import { CONDITIONS } from "../../voicemail-builder/src/overflow";
-import { Graph, GraphEdge, GraphNode, NodeKind, Unread } from "./model";
+import { Graph, GraphEdge, GraphNode, NodeKind, Stream, Unread } from "./model";
 
 // Turns the rows dataverse.ts (or demoData.ts) read into the graph the scene draws. Pure: no Xrm.
 
@@ -63,6 +63,9 @@ function overflowTrigger(lhs: string): string | undefined {
   return match ? match[1].replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase()) : undefined;
 }
 const QUEUE_TYPE_LABELS: Record<number, string> = { 192350002: "Voice", 192350000: "Messaging", 192350001: "Record" };
+// msdyn_streamsource 192440000 is voice and 192350000 record (both confirmed); every other channel is messaging.
+const workstreamStream = (source: unknown): Stream => (source === VOICE_STREAM ? "voice" : source === 192350000 ? "records" : "messaging");
+const QUEUE_STREAMS: Record<number, Stream> = { 192350002: "voice", 192350000: "messaging", 192350001: "records" };
 
 const str = (value: unknown): string => (typeof value === "string" ? value : "");
 const id = (value: unknown): string | undefined => (typeof value === "string" && value ? value.replace(/[{}]/g, "").toLowerCase() : undefined);
@@ -91,7 +94,8 @@ export function buildGraph(raw: RawEnvironment): Graph {
     queueIds.add(queueId);
     add({
       key: key("queue", queueId), kind: "queue", name: str(q.name) || "(unnamed queue)", recordId: queueId,
-      details: [["Type", QUEUE_TYPE_LABELS[q.msdyn_queuetype] ?? "Unknown"], ["Members", String(raw.memberships.filter((m) => id(m.queueid) === queueId).length)]]
+      details: [["Type", QUEUE_TYPE_LABELS[q.msdyn_queuetype] ?? "Unknown"], ["Members", String(raw.memberships.filter((m) => id(m.queueid) === queueId).length)]],
+      facts: { stream: QUEUE_STREAMS[q.msdyn_queuetype] }
     });
   });
 
@@ -102,7 +106,7 @@ export function buildGraph(raw: RawEnvironment): Graph {
     add({
       key: key("workstream", wsId), kind: "workstream", name: str(w.msdyn_name) || "(unnamed workstream)", recordId: wsId,
       details: [["Channel", STREAM_LABELS[w.msdyn_streamsource] ?? `Other (${w.msdyn_streamsource ?? "unknown"})`]],
-      facts: { voice: w.msdyn_streamsource === VOICE_STREAM, missingQueues: defaultQueue && !queueIds.has(defaultQueue) ? 1 : 0 }
+      facts: { voice: w.msdyn_streamsource === VOICE_STREAM, stream: workstreamStream(w.msdyn_streamsource), missingQueues: defaultQueue && !queueIds.has(defaultQueue) ? 1 : 0 }
     });
     if (defaultQueue) link(key("workstream", wsId), key("queue", defaultQueue), "default");
 

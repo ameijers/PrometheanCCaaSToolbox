@@ -314,7 +314,9 @@ const MOVE_KEYS: Record<string, [number, number, number]> = {
 // Moves the camera: flying to a goal, the keyboard (both modes), and mouse look in walk mode.
 // Walk mode turns the view by dragging, so it needs no pointer lock and works inside the
 // model-driven app's frame.
-function CameraRig({ mode, goal, handle, ride, depth }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null>; ride?: Ride; depth: number }) {
+// Exported for 3D Contact Center, which moves its camera the same way.
+// rideScale sizes the ride (speed, distance behind the call) for a scene of another scale.
+export function CameraRig({ mode, goal, handle, ride, depth, rideScale = 1 }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null>; ride?: Ride; depth: number; rideScale?: number }) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
@@ -372,6 +374,17 @@ function CameraRig({ mode, goal, handle, ride, depth }: { mode: Mode; goal?: Cam
     const current = controls ? controls.target.clone() : camera.position.clone().addScaledVector(direction, 60);
     flight.current = { position: new THREE.Vector3(...goal.position), target: new THREE.Vector3(...goal.target), current };
   }, [goal?.serial]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Zooming, rotating or dragging yourself stops a flight, so it doesn't fight you. (A click that
+  // selects something starts a new one right after.)
+  useEffect(() => {
+    const element = gl.domElement;
+    const stop = () => { flight.current = undefined; };
+    element.addEventListener("wheel", stop, { passive: true });
+    element.addEventListener("pointerdown", stop);
+    element.addEventListener("touchstart", stop, { passive: true });
+    return () => { element.removeEventListener("wheel", stop); element.removeEventListener("pointerdown", stop); element.removeEventListener("touchstart", stop); };
+  }, [gl]);
 
   // Switching modes keeps looking at the same thing. Orbit controls mount with the mode, so they
   // may only arrive on the next render: the new target waits for them.
@@ -439,9 +452,9 @@ function CameraRig({ mode, goal, handle, ride, depth }: { mode: Mode; goal?: Cam
         for (let i = r.segment + 1; i < points.length - 1; i++) left += points[i].distanceTo(points[i + 1]);
       }
       // First the camera flies to its place behind the call; only then does the call set off.
-      const behind = r.point.clone().addScaledVector(r.heading, -RIDE_BEHIND).add(new THREE.Vector3(0, RIDE_ABOVE, 0));
-      if (!r.boarded && camera.position.distanceTo(behind) < 4) r.boarded = true;
-      const wanted = ride.playing && r.boarded ? Math.min(RIDE_SPEED, Math.max(4, left * 0.9)) : 0;
+      const behind = r.point.clone().addScaledVector(r.heading, -RIDE_BEHIND * rideScale).add(new THREE.Vector3(0, RIDE_ABOVE * rideScale, 0));
+      if (!r.boarded && camera.position.distanceTo(behind) < 4 * rideScale) r.boarded = true;
+      const wanted = ride.playing && r.boarded ? Math.min(RIDE_SPEED * rideScale, Math.max(4 * rideScale, left * 0.9)) : 0;
       r.speed += (wanted - r.speed) * (1 - Math.exp(-step * 2.5));
       let travel = r.speed * step;
       while (travel > 0 && r.segment < points.length - 1) {
@@ -458,9 +471,9 @@ function CameraRig({ mode, goal, handle, ride, depth }: { mode: Mode; goal?: Cam
       // Head towards the next point (or keep the last heading at the end).
       const target = r.segment < points.length - 1 ? points[r.segment + 1] : undefined;
       if (target && target.distanceTo(r.point) > 0.01) r.heading.lerp(target.clone().sub(r.point).normalize(), 1 - Math.exp(-step * 1.8)).normalize();
-      const desired = r.point.clone().addScaledVector(r.heading, -RIDE_BEHIND).add(new THREE.Vector3(0, RIDE_ABOVE, 0));
+      const desired = r.point.clone().addScaledVector(r.heading, -RIDE_BEHIND * rideScale).add(new THREE.Vector3(0, RIDE_ABOVE * rideScale, 0));
       camera.position.lerp(desired, 1 - Math.exp(-step * (r.boarded ? 2.2 : 2.8)));
-      r.look.lerp(r.point.clone().addScaledVector(r.heading, 20), 1 - Math.exp(-step * 2.5));
+      r.look.lerp(r.point.clone().addScaledVector(r.heading, 20 * rideScale), 1 - Math.exp(-step * 2.5));
       camera.lookAt(r.look);
       look.current.setFromQuaternion(camera.quaternion, "YXZ");
       if (call.current) { call.current.position.copy(r.point); call.current.scale.setScalar(1 + 0.25 * Math.sin(performance.now() / 180)); }
@@ -500,7 +513,7 @@ function CameraRig({ mode, goal, handle, ride, depth }: { mode: Mode; goal?: Cam
   // The call being followed: a bright point the camera rides behind.
   return ride ? (
     <mesh ref={call} raycast={() => null}>
-      <sphereGeometry args={[1.3, 16, 12]} />
+      <sphereGeometry args={[1.3 * Math.max(0.35, rideScale), 16, 12]} />
       <meshBasicMaterial color="#ffffff" fog={false} />
     </mesh>
   ) : null;

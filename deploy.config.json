@@ -210,6 +210,18 @@
         { "name": "pct_/tools/explorer3d/style.css", "path": "dist/webresource/explorer3d/style.css", "type": 2, "displayName": "Environment 3D Explorer - style.css" },
         { "name": "pct_/tools/explorer3d/bundle.js", "path": "dist/webresource/explorer3d/bundle.js", "type": 3, "displayName": "Environment 3D Explorer - bundle.js" }
       ]
+    },
+    "contactcenter3d": {
+      "displayName": "3D Contact Center",
+      "stage": [
+        { "from": "tools/contact-center-3d/webresource/contactcenter3d.html", "to": "dist/webresource/contactcenter3d/index.html" },
+        { "from": "tools/contact-center-3d/css/contactCenter3d.css", "to": "dist/webresource/contactcenter3d/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/contactcenter3d/index.html", "path": "dist/webresource/contactcenter3d/index.html", "type": 1, "displayName": "3D Contact Center - index.html", "cacheBust": true },
+        { "name": "pct_/tools/contactcenter3d/style.css", "path": "dist/webresource/contactcenter3d/style.css", "type": 2, "displayName": "3D Contact Center - style.css" },
+        { "name": "pct_/tools/contactcenter3d/bundle.js", "path": "dist/webresource/contactcenter3d/bundle.js", "type": 3, "displayName": "3D Contact Center - bundle.js" }
+      ]
     }
   }
 }
