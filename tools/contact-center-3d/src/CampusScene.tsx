@@ -293,7 +293,6 @@ function WalkerModel({ walker }: { walker: Walker }) {
   return (
     <>
       {model.parts.map((p, i) => <mesh key={i} geometry={p.geometry} material={materials[i]} raycast={() => null} />)}
-      <mesh position={[0, 0.03, 0]} raycast={() => null}><boxGeometry args={[0.9, 0.02, 0.9]} /><meshBasicMaterial color={walker.color} /></mesh>
     </>
   );
 }
