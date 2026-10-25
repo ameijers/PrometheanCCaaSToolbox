@@ -11,6 +11,7 @@ import { hash } from "../../environment-3d-explorer/src/layout";
 import { CameraGoal, CameraRig, Mode, Ride, SceneHandle } from "../../environment-3d-explorer/src/Scene";
 import { Area, Fixture, FixtureKind, Path, PathKind, Plan, Vec3, Wall, Wing, WING_COLORS } from "./floorplan";
 import { isDisplay, lookOf, Model, Models, useModels } from "./models";
+import { inAny, lobbyPlants, obstacles, Rect } from "./walk";
 
 // The campus in 3D: open-roofed buildings seen from above, like a doll's house. Floors, walls, desks
 // and people are instanced boxes, so a large center stays smooth.
@@ -43,8 +44,9 @@ const LABELLED: FixtureKind[] = ["signpost", "numbers", "hours", "mailbox", "boo
 const PALETTE = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#a78bfa", "#f472b6", "#94a3b8", "#c084fc"];
 export const colorFor = (name: string) => PALETTE[Math.floor(((hash(name, 21) + 1) / 2) * PALETTE.length) % PALETTE.length];
 
-// turn: which way they face (0: into the room, away from its front; Math.PI: towards it, e.g. across an agent's desk).
-export interface Caller { key: string; at: Vec3; color: string; standing: boolean; turn?: number }
+// turn: which way they face (0: into the room, away from its front; Math.PI / 2: towards -x, e.g. from
+// beside a desk towards the agent). chair: they bring their own (a visitor's chair beside a desk).
+export interface Caller { key: string; at: Vec3; color: string; standing: boolean; turn?: number; chair?: boolean }
 // seconds: how long the walk takes; until: when it's there (ms since 1970), for the page to let it go.
 export interface Walker { id: string; points: Vec3[]; color: string; seconds: number; until: number }
 
@@ -237,8 +239,8 @@ function BoxDesks({ desks, screens, showUnits, onPick }: DesksProps) {
   );
 }
 
-// Callers: sitting on a room's waiting chairs, or standing (by the chairs when they're full, or across
-// an agent's desk), on a small mat in their state's colour.
+// Callers: sitting on a room's waiting chairs (standing beside them when they're full) or on a visitor's
+// chair beside an agent's desk, on a small mat in their state's colour.
 function Callers({ callers }: { callers: Caller[] }) {
   return <ModelsOrBoxes fallback={<BoxCallers callers={callers} />}><ModelCallers callers={callers} /></ModelsOrBoxes>;
 }
@@ -251,12 +253,14 @@ function ModelCallers({ callers }: { callers: Caller[] }) {
     return {
       sit: [0, 1].map((look) => pose(false, look)),
       stand: [0, 1].map((look) => pose(true, look)),
+      chairs: callers.filter((c) => c.chair).map((c): ModelItem => ({ x: c.at[0], y: c.at[1], z: c.at[2], turn: c.turn, scale: Math.min(1, 0.78 / models.waitingChair.size.x) })),
       mats: callers.map((c) => ({ x: c.at[0], y: c.at[1] + 0.03, z: c.at[2], w: 0.9, h: 0.02, d: 0.9, color: new THREE.Color(c.color) }))
     };
-  }, [callers]);
+  }, [callers, models]);
   return (
     <>
       <Boxes items={parts.mats} emissive />
+      <ModelInstances model={models.waitingChair} items={parts.chairs} />
       {models.people.sit.map((m, i) => <ModelInstances key={`sit${i}`} model={m} items={parts.sit[i]} />)}
       {models.people.stand.map((m, i) => <ModelInstances key={`stand${i}`} model={m} items={parts.stand[i]} />)}
     </>
@@ -272,10 +276,10 @@ function BoxCallers({ callers }: { callers: Caller[] }) {
 }
 
 // A new caller walking from the way in to the room, then gone.
-function WalkerFigure({ walker }: { walker: Walker }) {
+function WalkerFigure({ walker, blocks }: { walker: Walker; blocks: Rect[] }) {
   return (
-    <ModelsOrBoxes fallback={<WalkerMover walker={walker}><WalkerBoxes color={walker.color} /></WalkerMover>}>
-      <WalkerMover walker={walker} turn><WalkerModel walker={walker} /></WalkerMover>
+    <ModelsOrBoxes fallback={<WalkerMover walker={walker} blocks={blocks}><WalkerBoxes color={walker.color} /></WalkerMover>}>
+      <WalkerMover walker={walker} blocks={blocks} turn><WalkerModel walker={walker} /></WalkerMover>
     </ModelsOrBoxes>
   );
 }
@@ -283,9 +287,12 @@ function WalkerFigure({ walker }: { walker: Walker }) {
 function WalkerModel({ walker }: { walker: Walker }) {
   const models = useModels();
   const model = models.people.walk[lookOf(walker.id, hash)];
+  // Its own materials, so it can turn see-through on its own.
+  const materials = useMemo(() => model.parts.map((p) => p.material.clone()), [model]);
+  useEffect(() => () => materials.forEach((m) => m.dispose()), [materials]);
   return (
     <>
-      {model.parts.map((p, i) => <mesh key={i} geometry={p.geometry} material={p.material} raycast={() => null} />)}
+      {model.parts.map((p, i) => <mesh key={i} geometry={p.geometry} material={materials[i]} raycast={() => null} />)}
       <mesh position={[0, 0.03, 0]} raycast={() => null}><boxGeometry args={[0.9, 0.02, 0.9]} /><meshBasicMaterial color={walker.color} /></mesh>
     </>
   );
@@ -300,8 +307,13 @@ function WalkerBoxes({ color }: { color: string }) {
   );
 }
 
+// How see-through a walking caller is while passing through furniture.
+const THROUGH_OPACITY = 0.3;
+
 // Moves its figure along the walker's way; turn: face the way it goes (the model faces -z unturned).
-function WalkerMover({ walker, turn, children }: { walker: Walker; turn?: boolean; children: React.ReactNode }) {
+// Passing through furniture on its way (blocks), it fades to see-through, and back once it's past.
+function WalkerMover({ walker, blocks, turn, children }: { walker: Walker; blocks: Rect[]; turn?: boolean; children: React.ReactNode }) {
+  const opacity = useRef(1);
   const ref = useRef<THREE.Group>(null);
   const start = useRef<number | undefined>(undefined);
   // Straight from point to point, the way the lines go (a smooth curve would cut corners through walls).
@@ -318,6 +330,19 @@ function WalkerMover({ walker, turn, children }: { walker: Walker; turn?: boolea
     ref.current.position.copy(curve.getPointAt(t));
     ref.current.position.y += Math.abs(Math.sin(clock.getElapsedTime() * 9)) * 0.08;
     if (turn) { const d = curve.getTangentAt(Math.min(t, 0.999)); ref.current.rotation.y = Math.atan2(-d.x, -d.z); }
+    const at = ref.current.position;
+    // On the floor only: over a curved line between centers there's nothing to pass through.
+    const target = at.y < 1 && inAny(blocks, at.x, at.z) ? THROUGH_OPACITY : 1;
+    if (Math.abs(opacity.current - target) > 0.01) {
+      opacity.current += (target - opacity.current) * 0.25;
+      ref.current.traverse((o) => {
+        const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+        if (!m) return;
+        m.transparent = opacity.current < 0.99;
+        m.opacity = opacity.current;
+        m.depthWrite = opacity.current >= 0.99;
+      });
+    }
     ref.current.visible = t < 1;
   });
   return <group ref={ref}>{children}</group>;
@@ -343,7 +368,7 @@ function ModelFurnishings({ plan, benches, counters, lobbies, onPick }: { plan: 
     const seats = benches.flatMap((f) => (plan.chairs.get(f.key ?? "") ?? []).map((s): ModelItem => ({ x: s[0], y: f.y, z: s[2], key: f.key, scale: fit })));
     // The receptionist stands behind the counter, facing the entrance.
     const staff = [0, 1].map((look) => counters.filter((f) => lookOf(f.key ?? "", hash) === look).map((f): ModelItem => ({ x: f.x, y: f.y, z: f.z - 1.1, key: f.key, turn: Math.PI })));
-    const plants = lobbies.flatMap((a) => [-1, 1].flatMap((sx) => [-1, 1].map((sz): ModelItem => ({ x: a.x + sx * (a.w / 2 - 1), y: a.y, z: a.z + sz * (a.d / 2 - 1) }))));
+    const plants = lobbyPlants(plan).map((p): ModelItem => ({ x: p[0], y: p[1], z: p[2] }));
     return { seats, staff, plants };
   }, [plan, benches, counters, lobbies, models]);
   const pick = (key: string | undefined) => { if (key) onPick(key); };
@@ -511,6 +536,7 @@ export function CampusScene({ plan, mode, goal, selected, selectedSpot, wing, sh
   const others = useMemo(() => plan.fixtures.filter((f) => f.kind !== "desk" && f.kind !== "numbers" && shown(f)), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
   const paths = useMemo(() => plan.paths.filter(shown), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
   const wingOfRoom = useMemo(() => new Map(plan.areas.filter((a) => a.kind === "room").map((a) => [a.key, a.wing])), [plan]);
+  const blocks = useMemo(() => obstacles(plan), [plan]);
 
   const selectedAt = selected ? selectedSpot ?? plan.anchors.get(selected) : undefined;
   const markers = useMemo(() => [...(issues ?? new Map<string, Severity>()).entries()].map(([k, s]) => ({ key: k, severity: s, at: plan.anchors.get(k) })).filter((m): m is { key: string; severity: Severity; at: Vec3 } => !!m.at), [issues, plan]);
@@ -530,7 +556,7 @@ export function CampusScene({ plan, mode, goal, selected, selectedSpot, wing, sh
       <Furnishings plan={plan} fixtures={others} onPick={onSelect} />
       {paths.map((p, i) => <PathLine key={i} path={p} />)}
       {callers && <Callers callers={callers.filter((c) => shown({ wing: wingOfRoom.get(c.key) }))} />}
-      {walkers?.map((w) => <WalkerFigure key={w.id} walker={w} />)}
+      {walkers?.map((w) => <WalkerFigure key={w.id} walker={w} blocks={blocks} />)}
 
       {/* Names: every building and wing; inside, the center in focus. */}
       {plan.buildings.map((b) => (

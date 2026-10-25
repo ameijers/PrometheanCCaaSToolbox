@@ -66,7 +66,8 @@ Open the **Live** tab and tick **Live activity**. It reads again every 15 second
 
 - Callers waiting in a queue sit on the bench inside its door; when the bench is full, they queue up outside the door.
 - A caller with an agent stands at the agent's desk.
-- A new caller walks in through the entrance, past the front desk and along their call's line on the floor to the room, and over the curved line when the room is in another customer center.
+- A new caller walks in through the entrance, past the front desk and along their call's line on the floor to the room, and over the curved line when the room is in another customer center. Where the way passes through a desk, signpost or plant, they turn see-through for a moment.
+- A caller with an agent sits on a visitor's chair beside the agent's desk.
 - Desk screens light up in the agent's presence colour: green available, red busy, dark red do not disturb, amber away, grey offline.
 - A room with callers waiting says how many, for example "Billing · 3 waiting".
 

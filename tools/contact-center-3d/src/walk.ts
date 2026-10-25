@@ -94,3 +94,40 @@ export function walkInRoute(plan: Plan, call: { workstreamKey: string; queueKey:
   add([seat[0], 0, seat[2]]);
   return points;
 }
+
+// Where furniture stands, as rectangles on the floor (centre, half width along x, half depth along z):
+// walking callers pass through some of it on their way (a desk on an aisle, a signpost on a line), and
+// turn see-through while they do.
+export interface Rect { x: number; z: number; hw: number; hd: number }
+
+// The plants in each lobby's corners.
+export function lobbyPlants(plan: Plan): Vec3[] {
+  return plan.areas.filter((a) => a.kind === "lobby").flatMap((a) => [-1, 1].flatMap((sx) => [-1, 1].map((sz): Vec3 => [a.x + sx * (a.w / 2 - 1), a.y, a.z + sz * (a.d / 2 - 1)])));
+}
+
+export function obstacles(plan: Plan): Rect[] {
+  const around = (x: number, z: number, hw: number, hd: number): Rect => ({ x, z, hw, hd });
+  return [
+    ...plan.fixtures.flatMap((f): Rect[] => {
+      switch (f.kind) {
+        // The desk and the agent's chair behind it.
+        case "desk": return [around(f.x, f.z + 0.3, 1, 1.15)];
+        // The front desk and the receptionists behind it.
+        case "reception": return [around(f.x, f.z - 0.5, (f.w ?? 4.2) / 2 + 0.1, 1.2)];
+        case "signpost": return [around(f.x, f.z, 0.8, 0.25)];
+        case "notice": return [around(f.x, f.z, 0.6, 0.25)];
+        case "kiosk": return [around(f.x, f.z, 0.45, 0.35)];
+        case "portal": return [around(f.x, f.z, 3, 0.4)];
+        case "mailbox": case "exit": case "hold": return [around(f.x, f.z, 0.45, 0.45)];
+        case "booth": return [around(f.x, f.z, 0.55, 0.55)];
+        default: return [];
+      }
+    }),
+    ...lobbyPlants(plan).map((p) => around(p[0], p[2], 0.4, 0.4))
+  ];
+}
+
+// Whether a figure about this wide (radius) at (x, z) overlaps any of the rectangles.
+export function inAny(rects: Rect[], x: number, z: number, radius = 0.3): boolean {
+  return rects.some((r) => Math.abs(x - r.x) < r.hw + radius && Math.abs(z - r.z) < r.hd + radius);
+}

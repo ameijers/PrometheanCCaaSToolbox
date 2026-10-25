@@ -6,7 +6,7 @@ import { demoRaw } from "../../environment-3d-explorer/src/demoData";
 import { extendRide } from "../../environment-3d-explorer/src/ride";
 import { defaultGrouping } from "../src/centers";
 import { buildPlan } from "../src/floorplan";
-import { walkInRoute, walkRoute, walkSeconds } from "../src/walk";
+import { inAny, obstacles, walkInRoute, walkRoute, walkSeconds } from "../src/walk";
 
 const graph = buildGraph(demoRaw());
 const plan = buildPlan(graph, defaultGrouping(graph));
@@ -89,5 +89,20 @@ describe("walkInRoute", () => {
     const across = calls.find((call) => plan.paths.some((p) => [call.workstreamKey, ...call.ruleKeys].includes(p.key ?? "") && p.kind === "skybridge" && atDoor(p.points[p.points.length - 1], call.queueKey)));
     expect(across).toBeDefined();
     expect(Math.max(...walkInRoute(plan, across!)!.map((p) => p[1]))).toBeGreaterThan(5);
+  });
+});
+
+describe("obstacles", () => {
+  const blocks = obstacles(plan);
+
+  test("covers every desk, the front desks, signposts and lobby plants", () => {
+    const desks = plan.fixtures.filter((f) => f.kind === "desk");
+    desks.forEach((d) => expect(inAny(blocks, d.x, d.z, 0)).toBe(true));
+    plan.fixtures.filter((f) => f.kind === "signpost" || f.kind === "reception" || f.kind === "kiosk").forEach((f) => expect(inAny(blocks, f.x, f.z, 0)).toBe(true));
+    expect(blocks.length).toBeGreaterThan(desks.length);
+  });
+
+  test("a walker in an empty corridor or at a room's door isn't inside anything", () => {
+    plan.doors.forEach((door) => expect(inAny(blocks, door[0], door[2] + 1.2)).toBe(false));
   });
 });

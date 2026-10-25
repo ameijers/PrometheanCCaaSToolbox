@@ -27,6 +27,8 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 const MAX_LISTED = 40;
 const MAX_RIDE_CHOICES = 8;
+// How far beside a desk (from its middle) a caller with the agent sits.
+const VISITOR_SIDE = 1.3;
 const LIVE_REFRESH_MS = 15000, DEMO_REFRESH_MS = 5000, LIVE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // What each record is in the building, for the details panel.
@@ -179,7 +181,8 @@ export function App(): React.ReactElement {
       if (c.status === "with-agent" && c.agentKey) {
         // At the agent's desk in the room of the queue the call came from (an agent sits in each of their rooms).
         const seat = (c.queueKey && plan.desks.get(`${c.queueKey}|${c.agentKey}`)) || plan.anchors.get(c.agentKey);
-        return seat ? [{ key: (c.queueKey && plan.desks.has(`${c.queueKey}|${c.agentKey}`) ? c.queueKey : homeRoom(c.agentKey)) ?? "", at: [seat[0], 0, seat[2] - 1.7], color: CONVERSATION_COLORS["with-agent"], standing: true, turn: Math.PI }] : [];
+        // On a visitor's chair beside the desk, turned towards the agent.
+        return seat ? [{ key: (c.queueKey && plan.desks.has(`${c.queueKey}|${c.agentKey}`) ? c.queueKey : homeRoom(c.agentKey)) ?? "", at: [seat[0] + VISITOR_SIDE, 0, seat[2] - 0.1], color: CONVERSATION_COLORS["with-agent"], standing: false, turn: Math.PI / 2, chair: true }] : [];
       }
       return [];
     });
