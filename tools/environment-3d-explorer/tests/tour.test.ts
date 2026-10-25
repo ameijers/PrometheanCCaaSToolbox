@@ -14,7 +14,7 @@ describe("the guided tours", () => {
   test("every record the tours go to is in the sample environment", () => {
     // The names the tour scripts (in both tools' App.tsx) look up with keyOf(kind, name).
     const scripts = ["../src/App.tsx", "../../contact-center-3d/src/App.tsx"].map((f) => fs.readFileSync(path.join(__dirname, f), "utf8")).join("\n");
-    const lookups = [...scripts.matchAll(/(?:go|keyOf)\("(\w+)", "([^"]+)"\)/g)].map((m) => [m[1], m[2]]);
+    const lookups = [...scripts.matchAll(/(?:go|goClose|keyOf)\("(\w+)", "([^"]+)"/g)].map((m) => [m[1], m[2]]);
     expect(lookups.length).toBeGreaterThan(8);
     lookups.forEach(([kind, name]) => expect(node(kind, name)).toBeDefined());
   });

@@ -574,7 +574,7 @@ export function App(): React.ReactElement {
           )}
           {tab === "help" && (
             <>
-            <button className="wide" onClick={startTour} disabled={!graph}>▶ Play the tour</button>
+            <button className="tour-start" onClick={startTour} disabled={!graph}>▶ Play the tour</button>
             <p className="muted small">A guided tour of everything the explorer can do, on the sample data; it plays by itself (handy to record a video). Also: add <code>?tour=1</code> to the page address.</p>
             <dl className="help">
               {mode === "orbit" ? (

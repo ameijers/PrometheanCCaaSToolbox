@@ -250,25 +250,41 @@ export function App(): React.ReactElement {
     return g;
   };
   const go = (kind: string, name: string) => { const k = keyOf(kind, name); if (k) select(k); };
+  // Closer views than a click gives, so the tour keeps moving: look at target from target + offset.
+  const look = (target: Vec3, offset: Vec3) => flyTo([target[0] + offset[0], target[1] + offset[1], target[2] + offset[2]], target);
+  const goClose = (kind: string, name: string, offset: Vec3) => { const k = keyOf(kind, name); const at = k ? plan?.anchors.get(k) : undefined; if (!k) return; select(k); if (at) look(at, offset); };
+  // Something to do once the plan is redrawn (after the tour changes the customer centers).
+  const afterPlan = useRef<((p: NonNullable<typeof plan>) => void) | undefined>(undefined);
+  useEffect(() => { const f = afterPlan.current; if (f && plan) { afterPlan.current = undefined; f(plan); } }, [plan]);
+  const buildingIn = (p: NonNullable<typeof plan>) => p.buildings.find((b) => b.centerId === TOUR_CENTER);
   const tourSteps: TourStep[] = [
     { title: "The 3D Contact Center", text: "Your Dynamics 365 Contact Center as a campus: every customer center is an open-roofed building you can fly into.", seconds: 8,
       run: () => { if (graph) setGrouping(reconcile(undefined, graph)); setSelected(undefined); setRide(undefined); setLiveOn(false); setShowHealth(false); setShowUnits(false); setWing(undefined); setLegendOpen(true); overviewSoon.current = true; } },
     { title: "Customer centers", text: "Group workstreams into customer centers: create one, give it a name and drag its workstreams in. The tool remembers them.", seconds: 9, panel: true,
-      run: () => { setTab("centers"); const g = tourGrouping(); if (g) setGrouping(g); setSelected(undefined); overviewSoon.current = true; } },
+      run: () => {
+        setTab("centers"); setSelected(undefined);
+        afterPlan.current = (p) => { const b = buildingIn(p); if (b) look([b.x + b.w / 2, 0, b.z - b.d / 2], [b.w * 0.55, b.w * 0.6, b.d / 2 + b.w * 0.45]); else overview(); };
+        const g = tourGrouping(); if (g) setGrouping(g);
+      } },
     { title: "A building per center", text: "Entrance doors at the front, one front desk, signposts at the corridor, and behind it a wing for each kind of work.", seconds: 9,
-      run: () => select(`center:${TOUR_CENTER}`) },
+      run: () => { setSelected(`center:${TOUR_CENTER}`); const b = plan && buildingIn(plan); if (b) look([b.x + b.w / 2, 0, b.z - 14], [-b.w * 0.2, 16, 30]); } },
     { title: "Entrance doors", text: "Every voice channel is an entrance door, with its phone numbers on the sign above it. Chat and email come in through the screen.", seconds: 8,
-      run: () => go("channel", "Customer Service channel") },
+      run: () => goClose("channel", "Customer Service channel", [3, 4, 9]) },
     { title: "Automated reception", text: "A bot answers first: here a Copilot Studio agent, at a kiosk in front of the desk. It hands the call over to the workstream.", seconds: 8,
-      run: () => go("bot", "Contoso Service IVR (Microsoft Copilot Studio)") },
+      run: () => goClose("bot", "Contoso Service IVR (Microsoft Copilot Studio)", [4, 3.5, 7]) },
     { title: "The front desk", text: "A counter for every workstream. A clipboard on the counter means the call brings context variables with it.", seconds: 8,
-      run: () => go("workstream", "Customer Service – Voice") },
+      run: () => goClose("workstream", "Customer Service – Voice", [-4, 4, 7]) },
     { title: "Routing rules", text: "Signposts are routing rules. The red lines lead along the corridors to the room each rule routes to.", seconds: 8,
-      run: () => go("rule", "Billing") },
+      run: () => goClose("rule", "Billing", [5, 6, 9]) },
     { title: "Wings", text: "Phone, chat & messaging, email & records: every kind of work has its own wing. Show one wing at a time to focus.", seconds: 8,
-      run: () => { setWing("voice"); select(`center:${TOUR_CENTER}`); return () => setWing(undefined); } },
+      run: () => {
+        setWing("voice"); setSelected(`center:${TOUR_CENTER}`);
+        const a = plan?.areas.find((x) => x.kind === "wing" && x.centerId === TOUR_CENTER && x.wing === "voice");
+        if (a) look([a.x, 0, a.z], [a.w * 0.3, a.w * 0.65, a.d / 2 + 10]);
+        return () => setWing(undefined);
+      } },
     { title: "Rooms are queues", text: "Each queue is a room, with waiting chairs by the door and a desk for every agent. An agent in several queues has a desk in each.", seconds: 9,
-      run: () => go("queue", "Billing") },
+      run: () => goClose("queue", "Billing", [6, 9, 12]) },
     { title: "Desks are agents", text: "Badges on the desk show the agent's skills. The details show their sign-in, capacity, teams and business unit.", seconds: 8,
       run: () => { const q = keyOf("queue", "Billing"), a = keyOf("agent", "Julia de Vries"); if (a) select(a, q ? plan?.desks.get(`${q}|${a}`) : undefined); } },
     { title: "Business units", text: "Show business units as carpet under the desks, to see who belongs where.", seconds: 7,
@@ -287,7 +303,7 @@ export function App(): React.ReactElement {
         return () => setRide(undefined);
       } },
     { title: "Live activity", text: "Callers walk in along the lines, wait in the rooms and sit with an agent. The screens show each agent's presence.", seconds: 14, panel: true,
-      run: () => { setTab("live"); setLiveOn(true); select(`center:${TOUR_CENTER}`); } },
+      run: () => { setTab("live"); setLiveOn(true); setSelected(`center:${TOUR_CENTER}`); const b = plan && buildingIn(plan); if (b) look([b.x + b.w / 2, 0, b.z - b.d * 0.6], [b.w * 0.25, b.w * 0.42, b.d * 0.6 + b.w * 0.15]); } },
     { title: "A busy room", text: "A room says how many callers are waiting. When the chairs are full, the next ones stand.", seconds: 10,
       run: () => go("queue", "Tier 2 Support") },
     { title: "Health", text: "Health checks mark problems in the scene: an empty queue that calls are routed to, a rule to a queue that's gone. Each says how to fix it.", seconds: 11, panel: true,
@@ -535,7 +551,7 @@ export function App(): React.ReactElement {
 
           {tab === "help" && (
             <>
-              <button className="wide" onClick={startTour}>▶ Play the tour</button>
+              <button className="tour-start" onClick={startTour}>▶ Play the tour</button>
               <p className="muted small">A guided tour of everything the tool can do, on the sample data; it plays by itself (handy to record a video). Your own customer centers come back when it ends. Also: add <code>?tour=1</code> to the page address.</p>
               <dl className="help">
                 <dt>Drag</dt><dd>{mode === "orbit" ? "rotate" : "look around"}</dd>

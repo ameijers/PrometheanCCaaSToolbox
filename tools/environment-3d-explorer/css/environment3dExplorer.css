@@ -173,3 +173,6 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .tour-controls button:disabled { opacity: .4; cursor: default; }
 .tour-count { margin-right: auto; font-size: 12px; color: #94a3b8; }
 .panel.left.tour-hidden { display: none; }
+.tour-start { width: 100%; margin-bottom: 8px; padding: 9px 10px; background: rgba(125, 211, 252, .16); border: 1px solid rgba(125, 211, 252, .55); border-radius: 4px; color: #e0f2fe; font-size: 13px; font-weight: 700; }
+.tour-start:hover:not(:disabled) { background: rgba(125, 211, 252, .26); border-color: #7dd3fc; }
+.tour-start:disabled { opacity: .4; cursor: default; }
