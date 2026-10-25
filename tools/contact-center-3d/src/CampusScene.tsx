@@ -8,7 +8,7 @@ import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Html, Line, OrbitControls } from "@react-three/drei";
 import { Severity } from "../../environment-3d-explorer/src/health";
 import { hash } from "../../environment-3d-explorer/src/layout";
-import { CameraGoal, CameraRig, DRIFT_SPEED, Mode, Ride, SceneHandle } from "../../environment-3d-explorer/src/Scene";
+import { CameraGoal, CameraRig, Mode, Ride, SceneHandle } from "../../environment-3d-explorer/src/Scene";
 import { Area, Fixture, FixtureKind, Path, PathKind, Plan, Vec3, Wall, Wing, WING_COLORS } from "./floorplan";
 import { isDisplay, lookOf, Model, Models, useModels } from "./models";
 import { inAny, lobbyPlants, obstacles, Rect } from "./walk";
@@ -580,8 +580,8 @@ export function CampusScene({ drift, plan, mode, goal, selected, selectedSpot, w
         </mesh>
       )}
 
-      {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI / 2.05} maxDistance={2500} autoRotate={drift} autoRotateSpeed={DRIFT_SPEED} />}
-      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} depth={1} rideScale={0.3} />
+      {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI / 2.05} maxDistance={2500} />}
+      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} depth={1} rideScale={0.3} drift={drift} />
     </Canvas>
   );
 }

@@ -318,7 +318,11 @@ const MOVE_KEYS: Record<string, [number, number, number]> = {
 // model-driven app's frame.
 // Exported for 3D Contact Center, which moves its camera the same way.
 // rideScale sizes the ride (speed, distance behind the call) for a scene of another scale.
-export function CameraRig({ mode, goal, handle, ride, depth, rideScale = 1 }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null>; ride?: Ride; depth: number; rideScale?: number }) {
+// How fast the camera circles what it looks at while drifting, in radians a second (a turn in about 100 s).
+const DRIFT_SPEED = 0.06;
+
+// drift: once a flight has arrived (and in between), slowly circle what the camera looks at.
+export function CameraRig({ mode, goal, handle, ride, depth, rideScale = 1, drift }: { mode: Mode; goal?: CameraGoal; handle?: React.MutableRefObject<SceneHandle | null>; ride?: Ride; depth: number; rideScale?: number; drift?: boolean }) {
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
   const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
@@ -492,6 +496,12 @@ export function CameraRig({ mode, goal, handle, ride, depth, rideScale = 1 }: { 
       return;
     }
 
+    // Drifting: circle the point the orbit controls look at (only between flights, so a flight arrives).
+    if (drift && mode === "orbit" && controls) {
+      camera.position.sub(controls.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), DRIFT_SPEED * step).add(controls.target);
+      controls.update();
+    }
+
     if (mode === "walk") camera.quaternion.setFromEuler(look.current);
 
     const move = new THREE.Vector3();
@@ -520,9 +530,6 @@ export function CameraRig({ mode, goal, handle, ride, depth, rideScale = 1 }: { 
     </mesh>
   ) : null;
 }
-
-// How fast the camera circles while drifting (OrbitControls: 2 is a full turn in 30 seconds).
-export const DRIFT_SPEED = 0.6;
 
 export function Scene({ drift, depth = 1, nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, ride, labelKeys, colors, labelSuffix, conversations, arrivals, onHover, onSelect }: SceneProps): React.ReactElement {
   const byKind = useMemo(() => KIND_ORDER.map((kind) => ({ kind, nodes: nodes.filter((n) => n.kind === kind) })).filter((g) => g.nodes.length), [nodes]);
@@ -576,8 +583,8 @@ export function Scene({ drift, depth = 1, nodes, edges, positions, lit, selected
         </Html>
       ))}
 
-      {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxDistance={1500} autoRotate={drift} autoRotateSpeed={DRIFT_SPEED} />}
-      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} depth={depth} />
+      {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxDistance={1500} />}
+      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} depth={depth} drift={drift} />
     </Canvas>
   );
 }
