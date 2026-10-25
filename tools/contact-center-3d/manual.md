@@ -79,7 +79,7 @@ Open the **Health** tab and tick **Show problems**. Records with a problem get a
 
 ## 8. The guided tour
 
-On the **Help** tab, click **▶ Play the tour**. A tour of everything the tool can do plays by itself, on the sample data, with a caption per step: customer centers, the building, entrance doors, the bot, the front desk, signposts and lines, wings, rooms and desks, business units, overflow, the lines between centers, following a call, live activity and health. The bar on top shows the steps: pause (❚❚), step back (‹) or forward (›), or end it (✕ or Esc). The customer center the tour makes isn't saved; your own come back when it ends (and on live data, the tool switches back to it).
+On the **Help** tab, click **▶ Play the tour**. A tour of everything the tool can do plays by itself, on the sample data, with a caption per step: customer centers, the building, entrance doors, the bot, the front desk, signposts and lines, wings, rooms and desks, business units, overflow, the lines between centers, following a call, live activity and health. The camera flies in close and slowly circles what it looks at. The bar on top shows the steps: pause (❚❚), step back (‹) or forward (›), or end it (✕ or Esc). The customer center the tour makes isn't saved; your own come back when it ends (and on live data, the tool switches back to it).
 
 To record it as a video: open the tool in full screen (**F**), at 1920 × 1080 if you can, and record the screen (in Windows: Clipchamp, the Snipping Tool's video mode, or Win+Alt+R).
 

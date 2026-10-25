@@ -109,7 +109,7 @@ The scene shows the environment as it was when the page loaded. After you change
 
 ## 8. The guided tour
 
-On the **Help** tab, click **▶ Play the tour**. A tour of everything the explorer can do plays by itself, on the sample data, with a caption per step: layers, layer distance, focusing a record and its chain, details, agents, size by connections, following the call, saved views, live activity and health. The bar on top shows the steps: pause (❚❚), step back (‹) or forward (›), or end it (✕ or Esc). When it ends, the explorer is as it was (and on live data, it switches back to it).
+On the **Help** tab, click **▶ Play the tour**. A tour of everything the explorer can do plays by itself, on the sample data, with a caption per step: layers, layer distance, focusing a record and its chain, details, agents, size by connections, following the call, saved views, live activity and health. The camera slowly circles what it looks at. The bar on top shows the steps: pause (❚❚), step back (‹) or forward (›), or end it (✕ or Esc). When it ends, the explorer is as it was (and on live data, it switches back to it).
 
 To record it as a video: open the tool in full screen (**F**), at 1920 × 1080 if you can, and record the screen (in Windows: Clipchamp, the Snipping Tool's video mode, or Win+Alt+R).
 

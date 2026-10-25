@@ -67,6 +67,8 @@ First version: the campus, a building per customer center, combine / split / mov
 - After the user asked for a way to make a video: a tour that plays by itself on the sample data, captions on top, pause/back/next/end. Shared player in `environment-3d-explorer/src/tour.tsx` (`useTour`, `TourBar`, `plannedRide`, `tourAsked`); each tool's App has its own script of steps, each setting the scene when it starts (and undoing animations when it ends). The left panel shows only for steps about it.
 - Starts from **Play the tour** on the Help tab or `tour=1`; on live data it switches to the sample and back. Following a call is planned up front (`plannedRide`), so it plays without stopping at forks. Each tool puts its state back when the tour ends (the 3D Contact Center's tour grouping is never saved).
 - `tests/tour.test.ts` (explorer): every record the scripts name is in the sample, and the planned ride reaches the agent.
+- After review: a step no longer starts over during live activity (the step clock belongs to its step; the page redraws every few seconds then), and a finished step can't end the next one too. While a tour plays the camera drifts: it slowly circles what it looks at, between flights (`drift` on `CameraRig`; the orbit controls' auto-rotate kept a flight from arriving). The **Play the tour** button has its own style (`.tour-start`).
+- The early steps fly in close (after review: it felt like the same view): the new center at an angle, the front of the building, the door, the bot, a counter, a signpost, the phone wing, and over the rooms for live activity (`look`/`goClose` in the script).
 
 ## Next ideas
 
