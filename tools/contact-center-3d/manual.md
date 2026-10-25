@@ -77,6 +77,12 @@ Open the **Live** tab and tick **Live activity**. It reads again every 15 second
 
 Open the **Health** tab and tick **Show problems**. Records with a problem get a red cone above them, warnings an amber one. The list shows them all; click one to fly there. The checks are the explorer's: see its [README](../environment-3d-explorer/README.md#health-overlay).
 
-## 8. Opening from a link
+## 8. The guided tour
 
-Add `focus=<name>` to the page address to open on the customer center (or a record) with that name, `wing=voice` (or `messaging`, `records`) for one wing, `unrouted=1` for the Not routed building, `live=1` for live activity, `ride=1` to follow a call from the focused record, and `demo=1` for the sample. In a Site Map subarea, put them in the web resource's **data** parameter.
+On the **Help** tab, click **▶ Play the tour**. A tour of everything the tool can do plays by itself, on the sample data, with a caption per step: customer centers, the building, entrance doors, the bot, the front desk, signposts and lines, wings, rooms and desks, business units, overflow, the lines between centers, following a call, live activity and health. The camera flies in close and slowly circles what it looks at. The bar on top shows the steps: pause (❚❚), step back (‹) or forward (›), or end it (✕ or Esc). The customer center the tour makes isn't saved; your own come back when it ends (and on live data, the tool switches back to it).
+
+To record it as a video: open the tool in full screen (**F**), at 1920 × 1080 if you can, and record the screen (in Windows: Clipchamp, the Snipping Tool's video mode, or Win+Alt+R).
+
+## 9. Opening from a link
+
+Add `focus=<name>` to the page address to open on the customer center (or a record) with that name, `wing=voice` (or `messaging`, `records`) for one wing, `unrouted=1` for the Not routed building, `live=1` for live activity, `ride=1` to follow a call from the focused record, `tour=1` to play the guided tour, and `demo=1` for the sample. In a Site Map subarea, put them in the web resource's **data** parameter.

@@ -107,6 +107,12 @@ Open the **Live** tab and tick **Live activity**. A green dot next to it (and on
 
 The scene shows the environment as it was when the page loaded. After you change something in the admin center, click **Read the environment again** on the **Help** tab. The Help tab also lists the controls, and anything that couldn't be read.
 
-## 8. Opening the tool from a link
+## 8. The guided tour
 
-Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on, `live=1` for live activity, `depth=2` for the layer distance, `tab=health` (or another tab name) to open on that tab, and `ride=1` to start following the call as soon as the page opens (together with `focus`, from that record). In a Site Map subarea, put them in the **data** parameter, for example `focus=Customer Service&ride=1`.
+On the **Help** tab, click **▶ Play the tour**. A tour of everything the explorer can do plays by itself, on the sample data, with a caption per step: layers, layer distance, focusing a record and its chain, details, agents, size by connections, following the call, saved views, live activity and health. The camera slowly circles what it looks at. The bar on top shows the steps: pause (❚❚), step back (‹) or forward (›), or end it (✕ or Esc). When it ends, the explorer is as it was (and on live data, it switches back to it).
+
+To record it as a video: open the tool in full screen (**F**), at 1920 × 1080 if you can, and record the screen (in Windows: Clipchamp, the Snipping Tool's video mode, or Win+Alt+R).
+
+## 9. Opening the tool from a link
+
+Add `?focus=<name>` to the page address to open the explorer focused on the record with that name. For example: `…/index.html?focus=Customer%20Service`. In a Site Map subarea, the same name can go in the web resource's **data** parameter. Add `health=1` (for example `…/index.html?health=1`) to open it with the health overlay on, `live=1` for live activity, `depth=2` for the layer distance, `tab=health` (or another tab name) to open on that tab, `ride=1` to start following the call as soon as the page opens (together with `focus`, from that record), and `tour=1` to play the guided tour. In a Site Map subarea, put them in the **data** parameter, for example `focus=Customer Service&ride=1`.

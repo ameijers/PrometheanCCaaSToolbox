@@ -242,3 +242,21 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .fixture-label, .area-label { width: max-content; white-space: normal; text-align: center; line-height: 1.25; overflow-wrap: break-word; }
 .fixture-label { max-width: 110px; padding: 1px 5px; }
 .area-label { max-width: 140px; }
+
+/* The guided tour: a caption card on top of the scene, with its progress and controls. */
+.tour { position: absolute; z-index: 300; top: 16px; left: 50%; transform: translateX(-50%); width: min(680px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 12px; background: rgba(8, 13, 24, .9); border: 1px solid rgba(125, 211, 252, .3); border-radius: 12px; box-shadow: 0 12px 40px rgba(0, 0, 0, .45); color: #f1f5f9; font-family: Manrope, "Segoe UI", sans-serif; }
+.tour-progress { display: flex; gap: 4px; }
+.tour-segment { flex: 1; height: 3px; border-radius: 2px; background: rgba(148, 163, 184, .3); overflow: hidden; }
+.tour-segment span { display: block; height: 100%; background: #38bdf8; }
+.tour-caption p { margin: 0; }
+.tour-title { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+.tour-text { margin-top: 4px !important; font-size: 15px; line-height: 1.45; color: #cbd5e1; }
+.tour-controls { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.tour-controls button { min-width: 36px; height: 30px; padding: 0 10px; border: 1px solid rgba(148, 163, 184, .35); border-radius: 6px; background: rgba(30, 41, 59, .8); color: #e2e8f0; font: inherit; font-size: 14px; cursor: pointer; }
+.tour-controls button:hover:not(:disabled) { border-color: #38bdf8; }
+.tour-controls button:disabled { opacity: .4; cursor: default; }
+.tour-count { margin-right: auto; font-size: 12px; color: #94a3b8; }
+.panel.left.tour-hidden { display: none; }
+.tour-start { width: 100%; margin-bottom: 8px; padding: 9px 10px; background: #0284c7; border: 1px solid #0284c7; border-radius: 4px; color: #fff; font-size: 13px; font-weight: 700; }
+.tour-start:hover:not(:disabled) { background: #0369a1; border-color: #0369a1; }
+.tour-start:disabled { opacity: .4; cursor: default; }

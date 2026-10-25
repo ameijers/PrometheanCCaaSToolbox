@@ -51,6 +51,8 @@ export interface Caller { key: string; at: Vec3; color: string; standing: boolea
 export interface Walker { id: string; points: Vec3[]; color: string; seconds: number; until: number }
 
 interface Props {
+  // The camera slowly circles what it looks at (during the guided tour, so no step stands still).
+  drift?: boolean;
   plan: Plan;
   mode: Mode;
   goal?: CameraGoal;
@@ -523,7 +525,7 @@ function PathLine({ path }: { path: Path }) {
   );
 }
 
-export function CampusScene({ plan, mode, goal, selected, selectedSpot, wing, showUnits, issues, screens, callers, walkers, labelSuffix, ride, handle, onSelect }: Props): React.ReactElement {
+export function CampusScene({ drift, plan, mode, goal, selected, selectedSpot, wing, showUnits, issues, screens, callers, walkers, labelSuffix, ride, handle, onSelect }: Props): React.ReactElement {
   const shown = useMemo(() => (item: { wing?: Wing }) => !wing || !item.wing || item.wing === wing, [wing]);
   const floors = useMemo(() => plan.areas.filter(shown).map((a) => ({
     x: a.x, y: a.y + (a.kind === "building" ? 0 : a.kind === "wing" ? 0.015 : 0.03), z: a.z, w: a.w, h: a.kind === "building" ? 0.08 : 0.04, d: a.d,
@@ -579,7 +581,7 @@ export function CampusScene({ plan, mode, goal, selected, selectedSpot, wing, sh
       )}
 
       {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI / 2.05} maxDistance={2500} />}
-      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} depth={1} rideScale={0.3} />
+      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} depth={1} rideScale={0.3} drift={drift} />
     </Canvas>
   );
 }
