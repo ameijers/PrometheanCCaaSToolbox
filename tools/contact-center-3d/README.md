@@ -87,4 +87,4 @@ Tables read: the same as the explorer (with live activity: `msdyn_agentstatus` a
 - Demo with sample data: `npm run demo:contactcenter3d` → http://localhost:5449/index.html
 - Tests: `npx jest tools/contact-center-3d`
 - Deploy: `pwsh ./scripts/deploy.ps1 -Tool contactcenter3d` (add `-CreateIfMissing` the first time in an environment).
-- Web resources: `pct_/tools/contactcenter3d/{index.html,style.css,bundle.js}`. Add a Site Map subarea of type Web Resource pointing at `pct_/tools/contactcenter3d/index.html`.
+- Web resources: `pct_/tools/contactcenter3d/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.15** (Site Map: **3D → 3D Contact Center**). For an environment on an older solution version, add a subarea of type Web Resource for `pct_/tools/contactcenter3d/index.html` by hand (see the [toolbox README](../../Readme.md#site-map-subareas)).
