@@ -386,6 +386,7 @@ export function App(): React.ReactElement {
     <div className="explorer">
       {graph && !error && (
         <Scene
+          drift={tour.active}
           nodes={visibleNodes} edges={visibleEdges} positions={positions} lit={rideKeys ?? lit}
           selected={selected} hovered={hovered} mode={mode} goal={goal} issues={showHealth ? worst : undefined}
           depth={depth} scales={scales} handle={sceneHandle} ride={sceneRide} labelKeys={rideKeys ? [...rideKeys] : undefined}

@@ -27,6 +27,8 @@ export interface Tour {
   index: number;
   step?: TourStep;
   count: number;
+  // Goes up each time the tour starts, so starting again from step 1 starts its clock again.
+  run: number;
   playing: boolean;
   start(): void;
   stop(): void;
@@ -40,6 +42,7 @@ export interface Tour {
 export function useTour(steps: TourStep[], onEnd: () => void): Tour {
   const [index, setIndex] = useState<number | undefined>(undefined);
   const [playing, setPlaying] = useState(true);
+  const [run, setRun] = useState(0);
   const stepsRef = useRef(steps);
   stepsRef.current = steps;
   const onEndRef = useRef(onEnd);
@@ -86,8 +89,9 @@ export function useTour(steps: TourStep[], onEnd: () => void): Tour {
     index: index ?? 0,
     step: index === undefined ? undefined : steps[index],
     count: steps.length,
+    run,
     playing,
-    start: () => { setPlaying(true); setIndex(0); },
+    start: () => { setPlaying(true); setRun((r) => r + 1); indexRef.current = 0; setIndex(0); },
     stop,
     next,
     previous,
@@ -98,15 +102,28 @@ export function useTour(steps: TourStep[], onEnd: () => void): Tour {
 // The caption and controls, on top of the scene. It keeps its own clock, so the page doesn't redraw
 // while a step plays; when a step's time is up it moves on.
 export function TourBar({ tour }: { tour: Tour }): React.ReactElement | null {
-  const [elapsed, setElapsed] = useState(0);
-  const { step, index, playing, next } = tour;
-  useEffect(() => { setElapsed(0); }, [index, step]);
+  // How long the current step has shown (of: which step of which start the time belongs to).
+  const [clock, setClock] = useState({ of: "", ms: 0 });
+  const { step, index, playing, next, active, run } = tour;
+  // The clock belongs to one step (of one start): only a new step starts it again. The page redraws
+  // often during a step (live activity every few seconds), and the step is a new object each time;
+  // and a clock that ran out mustn't end the next step too.
+  const current = `${run}:${index}`;
+  const currentRef = useRef(current);
+  currentRef.current = current;
   useEffect(() => {
-    if (!step || !playing) return;
-    const timer = setInterval(() => setElapsed((e) => e + 100), 100);
+    if (!active || !playing) return;
+    const timer = setInterval(() => setClock((c) => (c.of === currentRef.current ? { of: c.of, ms: c.ms + 100 } : { of: currentRef.current, ms: 100 })), 100);
     return () => clearInterval(timer);
-  }, [step, playing]);
-  useEffect(() => { if (step && elapsed >= step.seconds * 1000) next(); }, [elapsed, step, next]);
+  }, [active, playing]);
+  const elapsed = clock.of === current ? clock.ms : 0;
+  const seconds = step?.seconds ?? 0;
+  const ended = useRef("");
+  useEffect(() => {
+    if (!active || ended.current === current || elapsed < seconds * 1000) return;
+    ended.current = current;
+    next();
+  }, [elapsed, active, current, seconds, next]);
   if (!step) return null;
   return (
     <div className="tour" role="region" aria-label="Guided tour">

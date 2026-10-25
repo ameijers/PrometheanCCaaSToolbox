@@ -386,7 +386,7 @@ export function App(): React.ReactElement {
 
   return (
     <div className="campus">
-      <CampusScene plan={plan} mode={mode} goal={goal} selected={selected} selectedSpot={selectedSpot} wing={wing} showUnits={showUnits}
+      <CampusScene drift={tour.active} plan={plan} mode={mode} goal={goal} selected={selected} selectedSpot={selectedSpot} wing={wing} showUnits={showUnits}
         issues={showHealth ? worst : undefined} screens={screens} callers={callers} walkers={walkers} labelSuffix={labelSuffix} ride={sceneRide} handle={sceneHandle} onSelect={select} />
 
       <aside className={`panel left${tour.active && !tour.step?.panel ? " tour-hidden" : ""}`}>

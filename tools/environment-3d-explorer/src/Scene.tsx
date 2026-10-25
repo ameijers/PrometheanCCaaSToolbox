@@ -46,6 +46,8 @@ const SHAPES: Record<NodeKind, () => THREE.BufferGeometry> = {
 };
 
 interface SceneProps {
+  // The camera slowly circles what it looks at (during the guided tour, so no step stands still).
+  drift?: boolean;
   nodes: GraphNode[];
   edges: GraphEdge[];
   positions: Map<string, Vec3>;
@@ -519,7 +521,10 @@ export function CameraRig({ mode, goal, handle, ride, depth, rideScale = 1 }: { 
   ) : null;
 }
 
-export function Scene({ depth = 1, nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, ride, labelKeys, colors, labelSuffix, conversations, arrivals, onHover, onSelect }: SceneProps): React.ReactElement {
+// How fast the camera circles while drifting (OrbitControls: 2 is a full turn in 30 seconds).
+export const DRIFT_SPEED = 0.6;
+
+export function Scene({ drift, depth = 1, nodes, edges, positions, lit, selected, hovered, mode, goal, issues, scales, handle, ride, labelKeys, colors, labelSuffix, conversations, arrivals, onHover, onSelect }: SceneProps): React.ReactElement {
   const byKind = useMemo(() => KIND_ORDER.map((kind) => ({ kind, nodes: nodes.filter((n) => n.kind === kind) })).filter((g) => g.nodes.length), [nodes]);
   const nodeByKey = useMemo(() => new Map(nodes.map((n) => [n.key, n])), [nodes]);
 
@@ -571,7 +576,7 @@ export function Scene({ depth = 1, nodes, edges, positions, lit, selected, hover
         </Html>
       ))}
 
-      {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxDistance={1500} />}
+      {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxDistance={1500} autoRotate={drift} autoRotateSpeed={DRIFT_SPEED} />}
       <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} depth={depth} />
     </Canvas>
   );
