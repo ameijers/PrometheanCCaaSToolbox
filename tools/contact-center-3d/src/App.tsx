@@ -14,6 +14,7 @@ import { buildLive, CONVERSATION_COLORS, CONVERSATION_LABELS, Live, LiveRows, ne
 import { EDGE_LABELS, Graph, GraphEdge, KINDS } from "../../environment-3d-explorer/src/model";
 import { defaultRideStart, extendRide, RideOption } from "../../environment-3d-explorer/src/ride";
 import { CameraGoal, Mode, Ride, SceneHandle } from "../../environment-3d-explorer/src/Scene";
+import { plannedRide, tourAsked, TourBar, TourStep, useTour } from "../../environment-3d-explorer/src/tour";
 import { readUrlOptions } from "../../environment-3d-explorer/src/urlOptions";
 import { Caller, CampusScene, colorFor, PATH_STYLE, SEVERITY_COLORS, Walker } from "./CampusScene";
 import { Center, CENTER_COLORS, createCenter, deleteCenter, Grouping, moveWorkstream, recolor, reconcile, rename, setHidden } from "./centers";
@@ -58,7 +59,7 @@ export function App(): React.ReactElement {
   // Inside Dataverse the tool reads the environment, unless you ask for the sample (button or ?demo=1),
   // which is handy to demonstrate or test. Outside Dataverse it's always the sample.
   const inDataverse = isDataverseAvailable();
-  const [useSample, setUseSample] = useState(() => isOn(asked("demo")));
+  const [useSample, setUseSample] = useState(() => isOn(asked("demo")) || tourAsked());
   const live = inDataverse && !useSample;
   const environment = live ? environmentLabel() : "the sample environment";
   const store = useMemo(() => browserStore(), []);
@@ -231,6 +232,90 @@ export function App(): React.ReactElement {
     }
   }, [plan]);
 
+  // The guided tour, on the sample data: what the tool can do, step by step (and to record a video).
+  // The customer center it makes is never saved; when it ends, the page is put back as it was.
+  const keyOf = (kind: string, name: string) => graph?.nodes.find((n) => n.kind === kind && n.name === name)?.key;
+  const overviewSoon = useRef(false);
+  useEffect(() => { if (overviewSoon.current && plan) { overviewSoon.current = false; overview(); } }, [plan, overview]);
+  const tourBefore = useRef<{ sample: boolean; grouping?: Grouping } | undefined>(undefined);
+  const [tourWanted, setTourWanted] = useState(false);
+  const TOUR_CENTER = "tour-contoso";
+  const tourGrouping = (): Grouping | undefined => {
+    if (!graph) return undefined;
+    let g = createCenter(reconcile(undefined, graph), "Contoso Service Center", TOUR_CENTER);
+    ["Customer Service – Voice", "Retail Sales – Voice", "Technical Support – Voice", "Web Chat"].forEach((name) => {
+      const id = graph.nodes.find((n) => n.kind === "workstream" && n.name === name)?.recordId;
+      if (id) g = moveWorkstream(g, id, TOUR_CENTER, graph);
+    });
+    return g;
+  };
+  const go = (kind: string, name: string) => { const k = keyOf(kind, name); if (k) select(k); };
+  const tourSteps: TourStep[] = [
+    { title: "The 3D Contact Center", text: "Your Dynamics 365 Contact Center as a campus: every customer center is an open-roofed building you can fly into.", seconds: 8,
+      run: () => { if (graph) setGrouping(reconcile(undefined, graph)); setSelected(undefined); setRide(undefined); setLiveOn(false); setShowHealth(false); setShowUnits(false); setWing(undefined); setLegendOpen(true); overviewSoon.current = true; } },
+    { title: "Customer centers", text: "Group workstreams into customer centers: create one, give it a name and drag its workstreams in. The tool remembers them.", seconds: 9, panel: true,
+      run: () => { setTab("centers"); const g = tourGrouping(); if (g) setGrouping(g); setSelected(undefined); overviewSoon.current = true; } },
+    { title: "A building per center", text: "Entrance doors at the front, one front desk, signposts at the corridor, and behind it a wing for each kind of work.", seconds: 9,
+      run: () => select(`center:${TOUR_CENTER}`) },
+    { title: "Entrance doors", text: "Every voice channel is an entrance door, with its phone numbers on the sign above it. Chat and email come in through the screen.", seconds: 8,
+      run: () => go("channel", "Customer Service channel") },
+    { title: "Automated reception", text: "A bot answers first: here a Copilot Studio agent, at a kiosk in front of the desk. It hands the call over to the workstream.", seconds: 8,
+      run: () => go("bot", "Contoso Service IVR (Microsoft Copilot Studio)") },
+    { title: "The front desk", text: "A counter for every workstream. A clipboard on the counter means the call brings context variables with it.", seconds: 8,
+      run: () => go("workstream", "Customer Service – Voice") },
+    { title: "Routing rules", text: "Signposts are routing rules. The red lines lead along the corridors to the room each rule routes to.", seconds: 8,
+      run: () => go("rule", "Billing") },
+    { title: "Wings", text: "Phone, chat & messaging, email & records: every kind of work has its own wing. Show one wing at a time to focus.", seconds: 8,
+      run: () => { setWing("voice"); select(`center:${TOUR_CENTER}`); return () => setWing(undefined); } },
+    { title: "Rooms are queues", text: "Each queue is a room, with waiting chairs by the door and a desk for every agent. An agent in several queues has a desk in each.", seconds: 9,
+      run: () => go("queue", "Billing") },
+    { title: "Desks are agents", text: "Badges on the desk show the agent's skills. The details show their sign-in, capacity, teams and business unit.", seconds: 8,
+      run: () => { const q = keyOf("queue", "Billing"), a = keyOf("agent", "Julia de Vries"); if (a) select(a, q ? plan?.desks.get(`${q}|${a}`) : undefined); } },
+    { title: "Business units", text: "Show business units as carpet under the desks, to see who belongs where.", seconds: 7,
+      run: () => { setShowUnits(true); go("queue", "Billing"); return () => setShowUnits(false); } },
+    { title: "Overflow at the door", text: "A mailbox for voicemail, a phone booth for a callback, an exit to end the conversation; a purple back door transfers to another queue.", seconds: 9,
+      run: () => { const q = keyOf("queue", "Billing"); const o = q && graph?.edges.find((e) => e.kind === "overflow" && e.from === q)?.to; if (o) select(o); } },
+    { title: "Between customer centers", text: "Blue skybridges route to a room in another customer center. Dashed yellow lines lead to a workstream's default queue.", seconds: 9,
+      run: () => { setSelected(undefined); overview(); } },
+    { title: "Follow a call", text: "Walk the route a caller takes: through the entrance door, past the front desk and a signpost, into the room, to an agent's desk.", seconds: 34,
+      run: () => {
+        if (!graph || !plan) return;
+        setSelected(undefined);
+        const channel = keyOf("channel", "Customer Service channel");
+        const phone = graph.edges.find((e) => e.kind === "number" && e.to === channel)?.from ?? defaultRideStart(graph);
+        if (phone) setRide({ id: Date.now(), ...plannedRide(graph, phone, ["Customer Service channel", "Contoso Service IVR (Microsoft Copilot Studio)", "Customer Service – Voice", "Billing", "Julia de Vries"], (k) => plan.anchors.has(k)), playing: true });
+        return () => setRide(undefined);
+      } },
+    { title: "Live activity", text: "Callers walk in along the lines, wait in the rooms and sit with an agent. The screens show each agent's presence.", seconds: 14, panel: true,
+      run: () => { setTab("live"); setLiveOn(true); select(`center:${TOUR_CENTER}`); } },
+    { title: "A busy room", text: "A room says how many callers are waiting. When the chairs are full, the next ones stand.", seconds: 10,
+      run: () => go("queue", "Tier 2 Support") },
+    { title: "Health", text: "Health checks mark problems in the scene: an empty queue that calls are routed to, a rule to a queue that's gone. Each says how to fix it.", seconds: 11, panel: true,
+      run: () => { setTab("health"); setShowHealth(true); go("queue", "Partner Desk"); } },
+    { title: "Promethean CCaaS Toolbox", text: "Free and open source, for Dynamics 365 Contact Center admins: github.com/ameijers/PrometheanCCaaSToolbox", seconds: 9,
+      run: () => { setSelected(undefined); overview(); } }
+  ];
+  const tour = useTour(tourSteps, () => {
+    const before = tourBefore.current;
+    tourBefore.current = undefined;
+    setRide(undefined); setSelected(undefined); setLiveOn(false); setShowHealth(false); setShowUnits(false); setWing(undefined);
+    if (before && !before.sample) { switchSource(false); return; }
+    if (before?.grouping) setGrouping(before.grouping);
+    overviewSoon.current = true;
+  });
+  // Inside Dataverse on live data, the tour switches to the sample first, and back afterwards.
+  const startTour = () => {
+    if (!useSample) { tourBefore.current = { sample: false }; switchSource(true); setTourWanted(true); return; }
+    tourBefore.current = { sample: true, grouping };
+    tour.start();
+  };
+  useEffect(() => {
+    if (!tourWanted || !useSample || !plan || !grouping) return;
+    setTourWanted(false);
+    tourBefore.current = { sample: false, grouping };
+    tour.start();
+  }, [tourWanted, useSample, plan, grouping]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Start above the whole campus, or at the center or record in ?focus=<name>; ?ride=1 follows a call from there.
   useEffect(() => {
     if (!plan || !grouping || !graph || started.current) return;
@@ -240,6 +325,8 @@ export function App(): React.ReactElement {
     const record = wanted && !center ? graph.nodes.find((n) => plan.anchors.has(n.key) && n.name.toLowerCase() === wanted) ?? graph.nodes.find((n) => plan.anchors.has(n.key) && n.name.toLowerCase().includes(wanted)) : undefined;
     if (center) select(`center:${center.id}`); else if (record) select(record.key); else overview();
     if (isOn(asked("ride"))) { setTab("explore"); startRide(record?.key); }
+    // ?tour=1 plays the guided tour.
+    if (tourAsked()) { tourBefore.current = { sample: true, grouping }; tour.start(); }
   }, [plan, overview]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -302,7 +389,7 @@ export function App(): React.ReactElement {
       <CampusScene plan={plan} mode={mode} goal={goal} selected={selected} selectedSpot={selectedSpot} wing={wing} showUnits={showUnits}
         issues={showHealth ? worst : undefined} screens={screens} callers={callers} walkers={walkers} labelSuffix={labelSuffix} ride={sceneRide} handle={sceneHandle} onSelect={select} />
 
-      <aside className="panel left">
+      <aside className={`panel left${tour.active && !tour.step?.panel ? " tour-hidden" : ""}`}>
         <header>
           <div className="brand-mark">PCT</div>
           <div>
@@ -448,6 +535,8 @@ export function App(): React.ReactElement {
 
           {tab === "help" && (
             <>
+              <button className="wide" onClick={startTour}>▶ Play the tour</button>
+              <p className="muted small">A guided tour of everything the tool can do, on the sample data; it plays by itself (handy to record a video). Your own customer centers come back when it ends. Also: add <code>?tour=1</code> to the page address.</p>
               <dl className="help">
                 <dt>Drag</dt><dd>{mode === "orbit" ? "rotate" : "look around"}</dd>
                 {mode === "orbit" && <><dt>Scroll</dt><dd>zoom</dd><dt>Right-drag</dt><dd>pan</dd></>}
@@ -534,6 +623,8 @@ export function App(): React.ReactElement {
           </ul>
         )}
       </div>
+
+      <TourBar tour={tour} />
 
       {ride && (
         <div className="ride">

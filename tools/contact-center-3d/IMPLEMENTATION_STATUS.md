@@ -62,6 +62,12 @@ First version: the campus, a building per customer center, combine / split / mov
 - Walkers turn see-through (opacity 0.3, fading in and out) while they overlap furniture on their way: `obstacles(plan)` in `src/walk.ts` gives the floor rectangles of desks with their chairs, front desks with the receptionists, signposts, signs, kiosks, the digital channels' screen, overflow fixtures and lobby plants. Each walker has its own copies of the model's materials for it.
 - Still simple shapes: doors, signposts, the bot kiosk, mailbox, phone booth, exit, remain-in-queue; the Furniture Kit and Mini Characters have nothing that fits.
 
+## Guided tour (2026-10-25)
+
+- After the user asked for a way to make a video: a tour that plays by itself on the sample data, captions on top, pause/back/next/end. Shared player in `environment-3d-explorer/src/tour.tsx` (`useTour`, `TourBar`, `plannedRide`, `tourAsked`); each tool's App has its own script of steps, each setting the scene when it starts (and undoing animations when it ends). The left panel shows only for steps about it.
+- Starts from **Play the tour** on the Help tab or `tour=1`; on live data it switches to the sample and back. Following a call is planned up front (`plannedRide`), so it plays without stopping at forks. Each tool puts its state back when the tour ends (the 3D Contact Center's tour grouping is never saved).
+- `tests/tour.test.ts` (explorer): every record the scripts name is in the sample, and the planned ride reaches the agent.
+
 ## Next ideas
 
 - Shared customer centers in Dataverse (needs a table in the solution; the store interface is ready).

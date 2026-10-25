@@ -15,6 +15,7 @@ import { computeLayout, connectionScales } from "./layout";
 import { EDGE_LABELS, Graph, GraphEdge, GraphNode, KIND_ORDER, KINDS, NodeKind } from "./model";
 import { CameraGoal, Mode, Ride, SEVERITY_COLORS, START_POSITION, Scene, SceneHandle } from "./Scene";
 import { defaultRideStart, extendRide, RideOption } from "./ride";
+import { plannedRide, tourAsked, TourBar, TourStep, useTour } from "./tour";
 import { readUrlOptions } from "./urlOptions";
 import { loadViews, nextViewName, SavedView, storeViews } from "./views";
 
@@ -81,7 +82,7 @@ export function App(): React.ReactElement {
   const [useSample, setUseSample] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const asked = params.get("demo") ?? new URLSearchParams(params.get("data") ?? "").get("demo");
-    return asked !== null && !/^(0|false|no|off)$/i.test(asked);
+    return (asked !== null && !/^(0|false|no|off)$/i.test(asked)) || tourAsked();
   });
   const live = inDataverse && !useSample;
   const environment = live ? environmentLabel() : "the sample environment";
@@ -267,6 +268,76 @@ export function App(): React.ReactElement {
     startRide(selected);
   }, [graph, selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The guided tour, on the sample data: what the explorer can do, step by step (and to record a video).
+  // When it ends, the page is put back as it was.
+  const keyOf = (kind: string, name: string) => graph?.nodes.find((n) => n.kind === kind && n.name === name)?.key;
+  const go = (kind: string, name: string) => { const k = keyOf(kind, name); if (k) select(k); };
+  const firstHidden = () => new Set(KIND_ORDER.filter((k) => KINDS[k].hiddenAtFirst));
+  type Before = { sample: boolean; tab: Tab; depth: number; hiddenKinds: Set<NodeKind>; sizeByConnections: boolean };
+  const tourBefore = useRef<Before | undefined>(undefined);
+  const [tourWanted, setTourWanted] = useState(false);
+  const tourSteps: TourStep[] = [
+    { title: "The 3D Explorer", text: "Your whole Dynamics 365 Contact Center as a 3D cloud: from front to back, the way a conversation travels.", seconds: 9,
+      run: () => { clear(); setRide(undefined); setLiveOn(false); setShowHealth(false); setProblemsOnly(false); setSizeByConnections(false); setHiddenKinds(firstHidden()); setDepth(1); resetView(); } },
+    { title: "Layers", text: "Phone numbers in front, then channels, bots, workstreams, routing rules, queues and agents, with skills at the back. Switch layers on and off.", seconds: 9, panel: true,
+      run: () => { setTab("layers"); setHiddenKinds(new Set()); return () => setHiddenKinds(firstHidden()); } },
+    { title: "Layer distance", text: "Pull the layers apart to read a busy environment.", seconds: 8, panel: true,
+      run: () => {
+        const started = Date.now();
+        const timer = setInterval(() => { const t = Math.min(1, (Date.now() - started) / 4000); setDepth(1 + 1.2 * t); if (t >= 1) clearInterval(timer); }, 50);
+        return () => { clearInterval(timer); setDepth(1); };
+      } },
+    { title: "Fly to a record", text: "Click any record to fly to it: everything in front of it and behind it lights up, the rest fades.", seconds: 9,
+      run: () => go("workstream", "Customer Service – Voice") },
+    { title: "Only this chain", text: "Show only this chain: from its phone numbers to the agents who take its calls.", seconds: 8,
+      run: () => { setChainOnly(true); return () => setChainOnly(false); } },
+    { title: "Details", text: "The details panel lists what comes in and what goes out, with routing conditions, overflow and operating hours.", seconds: 8,
+      run: () => go("queue", "Billing") },
+    { title: "Agents", text: "Agents with their skills and ratings, capacity profile and the queues they're in.", seconds: 8,
+      run: () => go("agent", "Julia de Vries") },
+    { title: "Size by connections", text: "Make records with many connections bigger, to spot what everything depends on.", seconds: 8, panel: true,
+      run: () => { setTab("layers"); clear(); setSizeByConnections(true); resetView(); return () => setSizeByConnections(false); } },
+    { title: "Follow the call", text: "Ride along the route of a call, from a phone number through the workstream and its routing rules, to a queue and an agent.", seconds: 30,
+      run: () => {
+        if (!graph) return;
+        clear();
+        const channel = keyOf("channel", "Customer Service channel");
+        const phone = graph.edges.find((e) => e.kind === "number" && e.to === channel)?.from ?? defaultRideStart(graph);
+        if (phone) setRide({ id: Date.now(), ...plannedRide(graph, phone, ["Customer Service channel", "Contoso Service IVR (Microsoft Copilot Studio)", "Customer Service – Voice", "Billing", "Julia de Vries"]), playing: true, routeOnly: false });
+        return () => setRide(undefined);
+      } },
+    { title: "Views and screenshots", text: "Save a camera view to come back to, or download a screenshot of what you see.", seconds: 7, panel: true,
+      run: () => { setTab("explore"); resetView(); } },
+    { title: "Live activity", text: "Agents light up in their presence colour, queues grow with waiting calls, and new calls fly in.", seconds: 14, panel: true,
+      run: () => { setTab("live"); setLiveOn(true); clear(); resetView(); } },
+    { title: "Health", text: "Problems and warnings are marked in the cloud. Show only the records with an issue; each one says how to fix it.", seconds: 11, panel: true,
+      run: () => { setTab("health"); setShowHealth(true); setProblemsOnly(true); go("queue", "Partner Desk"); return () => setProblemsOnly(false); } },
+    { title: "Promethean CCaaS Toolbox", text: "Free and open source, for Dynamics 365 Contact Center admins: github.com/ameijers/PrometheanCCaaSToolbox", seconds: 9,
+      run: () => { clear(); resetView(); } }
+  ];
+  const tour = useTour(tourSteps, () => {
+    const before = tourBefore.current;
+    tourBefore.current = undefined;
+    setRide(undefined); clear(); setLiveOn(false); setShowHealth(false); setProblemsOnly(false);
+    if (!before) return;
+    setTab(before.tab); setDepth(before.depth); setHiddenKinds(before.hiddenKinds); setSizeByConnections(before.sizeByConnections);
+    if (!before.sample) { setGraph(undefined); setUseSample(false); }
+  });
+  const snapshot = (sample: boolean): Before => ({ sample, tab, depth, hiddenKinds, sizeByConnections });
+  // Inside Dataverse on live data, the tour switches to the sample first, and back afterwards.
+  const startTour = () => {
+    if (!useSample) { tourBefore.current = snapshot(false); setGraph(undefined); setSelected(undefined); setUseSample(true); setTourWanted(true); return; }
+    tourBefore.current = snapshot(true);
+    tour.start();
+  };
+  const tourOpened = useRef(false);
+  useEffect(() => {
+    if (!graph || !useSample) return;
+    if (tourWanted) { setTourWanted(false); tour.start(); return; }
+    // ?tour=1 plays the tour when the page opens.
+    if (!tourOpened.current && tourAsked()) { tourOpened.current = true; tourBefore.current = snapshot(true); tour.start(); }
+  }, [graph, useSample, tourWanted]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const saveView = () => {
     const view = sceneHandle.current?.view();
     if (!view) return;
@@ -323,7 +394,7 @@ export function App(): React.ReactElement {
         />
       )}
 
-      <aside className="panel left">
+      <aside className={`panel left${tour.active && !tour.step?.panel ? " tour-hidden" : ""}`}>
         <header>
           <div className="brand-mark">PCT</div>
           <div>
@@ -502,6 +573,8 @@ export function App(): React.ReactElement {
           )}
           {tab === "help" && (
             <>
+            <button className="wide" onClick={startTour} disabled={!graph}>▶ Play the tour</button>
+            <p className="muted small">A guided tour of everything the explorer can do, on the sample data; it plays by itself (handy to record a video). Also: add <code>?tour=1</code> to the page address.</p>
             <dl className="help">
               {mode === "orbit" ? (
                 <><dt>Drag</dt><dd>rotate</dd><dt>Scroll</dt><dd>zoom</dd><dt>Right-drag</dt><dd>pan</dd></>
@@ -553,6 +626,8 @@ export function App(): React.ReactElement {
           <Connections title="Behind (goes to)" edges={downstream} side="to" nodeByKey={nodeByKey} onSelect={select} />
         </aside>
       )}
+
+      <TourBar tour={tour} />
 
       {ride && (
         <div className="ride">

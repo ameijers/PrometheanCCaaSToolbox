@@ -68,7 +68,9 @@ Curved lines between buildings carry arrowheads in their own colour, pointing to
 
 ![Following a call from the entrance](images/03-follow-a-call.png)
 
-**Use sample data** (next to the environment name) shows the sample environment inside the app, to demonstrate or try the tool; it keeps its own saved customer centers. The page address can ask for `demo=1`, `focus=<name>` (a customer center or a record), `wing=voice` (or `messaging`, `records`), `unrouted=1` (show the Not routed building), `live=1` and `ride=1`; in a Site Map subarea, put them in the web resource's data parameter.
+**Guided tour**: **▶ Play the tour** on the **Help** tab (or `tour=1` in the page address) plays a tour of everything the tool can do, by itself, on the sample data: customer centers, the building, entrance doors, the bot, the front desk, signposts, wings, rooms and desks, business units, overflow, the lines between centers, following a call, live activity and health, about three minutes with a caption per step. Pause, step back or forward, or end it (Esc) in the bar on top. The customer center it makes isn't saved; yours come back when it ends. To record it as a video: open the tool in full screen (**F**), at 1920 × 1080 if you can, and record the screen (in Windows: Clipchamp, the Snipping Tool's video mode, or Win+Alt+R).
+
+**Use sample data** (next to the environment name) shows the sample environment inside the app, to demonstrate or try the tool; it keeps its own saved customer centers. The page address can ask for `demo=1`, `focus=<name>` (a customer center or a record), `wing=voice` (or `messaging`, `records`), `unrouted=1` (show the Not routed building), `live=1`, `ride=1` and `tour=1` (play the guided tour); in a Site Map subarea, put them in the web resource's data parameter.
 
 ## How it works
 
