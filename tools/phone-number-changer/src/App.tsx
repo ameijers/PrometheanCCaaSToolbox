@@ -11,7 +11,7 @@ import { clientUrl, dataverseSource, isDataverseAvailable } from "./dataverse";
 import { demoSource } from "./demoData";
 import { runLogCsv } from "./export";
 import { ApplyResult, ChannelRow, Edit, isOutbound, Kind, KIND_LABELS, KIND_PLURALS, PhoneNumber } from "./model";
-import { choicesFor, describeChange, numberLabel, orderSteps, planChanges, revertEdits } from "./plan";
+import { choicesFor, describeChange, numberLabel, orderSteps, planChanges, revertEdits, withDetaches } from "./plan";
 
 interface Filter { search: string; kind: "all" | Kind; includeInactive: boolean; changedOnly: boolean; }
 const EMPTY_FILTER: Filter = { search: "", kind: "all", includeInactive: false, changedOnly: false };
@@ -32,6 +32,9 @@ export function App(): React.ReactElement {
   const [message, setMessage] = useState(live ? "" : "Not running inside Dataverse, so this is the sample environment: changes are simulated in this page only.");
   const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
   const [edits, setEdits] = useState<Map<string, Edit>>(new Map());
+  // Take a number off its other channel automatically when another channel gets it.
+  const [detach, setDetach] = useState(false);
+  const effective = useMemo(() => (detach ? withDetaches(channels, edits) : edits), [detach, channels, edits]);
   const [confirming, setConfirming] = useState(false);
   const [progress, setProgress] = useState<ApplyProgress | undefined>(undefined);
   const [run, setRun] = useState<RunRecord | undefined>(undefined);
@@ -53,7 +56,7 @@ export function App(): React.ReactElement {
   useEffect(() => { void reload(); }, []);
 
   const numberById = useMemo(() => new Map(numbers.map((n) => [n.id, n])), [numbers]);
-  const plan = useMemo(() => planChanges(channels, numbers, edits), [channels, numbers, edits]);
+  const plan = useMemo(() => planChanges(channels, numbers, effective), [channels, numbers, effective]);
   const changeById = useMemo(() => new Map(plan.changes.map((c) => [c.channel.id, c])), [plan]);
   const issuesById = useMemo(() => {
     const m = new Map<string, typeof plan.issues>();
@@ -162,7 +165,7 @@ export function App(): React.ReactElement {
 
       <section className="content">
         <div className="selection-bar">
-          <span>Pick a new number for each channel to change. A number can be on one inbound channel and one outbound profile; a number that is <em>now on</em> another channel can only be picked if that channel gets another number in the same change (a move or a swap). An outbound profile is an outbound workstream the admin center doesn't show; its caller ID follows the number unless you switch that off.</span>
+          <span>Pick a new number for each channel to change. A number can be on one inbound channel and one outbound profile; a number that is <em>now on</em> another channel can only be picked if that channel gets another number in the same change (a move or a swap), or with <strong>Take a number off its other channel automatically</strong> switched on. An outbound profile is an outbound workstream the admin center doesn't show; its caller ID follows the number unless you switch that off.</span>
           {edits.size > 0 && <button className="button ghost small" onClick={() => { setEdits(new Map()); setConfirming(false); }}>Undo all picks</button>}
         </div>
         <div className="data-table number-table" role="table" aria-label="Voice channels and their numbers">
@@ -187,7 +190,7 @@ export function App(): React.ReactElement {
                   <option value="">{numberLabel(numberById, c.numberId)} (current)</option>
                   {choicesFor(c, numbers, channels).map(({ number, reason, heldBy }) => (
                     <option key={number.id} value={number.id} disabled={!!reason}>
-                      {number.number} — {reason ?? (heldBy.length ? `now on ${heldBy.map((h) => h.name).join(", ")}` : "free")}
+                      {number.number} — {reason ?? (heldBy.length ? `now on ${heldBy.map((h) => h.name).join(", ")}${detach ? " (taken off it)" : ""}` : "free")}
                     </option>
                   ))}
                   {c.numberId && <option value="none">No number</option>}
@@ -204,8 +207,12 @@ export function App(): React.ReactElement {
       <aside className="inspector">
         <p className="eyebrow">Change</p>
         <h2>{plan.changes.length ? `${plan.changes.length} channel${plan.changes.length === 1 ? "" : "s"} to change` : "Nothing picked yet"}</h2>
+        <label className="switch-row">
+          <input type="checkbox" role="switch" checked={detach} disabled={busy} onChange={(e) => { setDetach(e.target.checked); setConfirming(false); }} />
+          <span><strong>Take a number off its other channel automatically</strong><small>When you pick a number that is now on another channel of the same direction, that channel is left without a number in the same change (unless you give it another one).</small></span>
+        </label>
         {plan.changes.length ? <ul className="plan-list">
-          {plan.changes.map((c) => <li key={c.channel.id} className={(issuesById.get(c.channel.id) ?? []).some((i) => i.severity === "error") ? "error" : ""}>
+          {plan.changes.map((c) => <li key={c.channel.id} className={`${(issuesById.get(c.channel.id) ?? []).some((i) => i.severity === "error") ? "error" : ""} ${c.auto ? "auto" : ""}`}>
             <strong>{c.channel.name}</strong><span>{describeChange(c, numberById)}</span>
           </li>)}
         </ul> : <p className="muted">Pick a new number for a channel in the list. To move a number, also give its old channel another number (or no number); to swap two, pick each other's.</p>}
@@ -215,7 +222,7 @@ export function App(): React.ReactElement {
           ? <button className="button primary full" disabled={!plan.changes.length || errors.length > 0 || busy} onClick={() => setConfirming(true)}>Change {plan.changes.length || ""} number{plan.changes.length === 1 ? "" : "s"}</button>
           : <div className="confirm-box">
             <p><strong>Change the numbers of {plan.changes.length} voice channel{plan.changes.length === 1 ? "" : "s"} in {environment}?</strong> Calls to a moved number arrive at its new channel straight away. You can revert this afterwards, and download a log of it.</p>
-            <div><button className="button ghost" onClick={() => setConfirming(false)}>Cancel</button><button className="button danger" onClick={() => void runSteps("apply", edits)}>Yes, change</button></div>
+            <div><button className="button ghost" onClick={() => setConfirming(false)}>Cancel</button><button className="button danger" onClick={() => void runSteps("apply", effective)}>Yes, change</button></div>
           </div>}
 
         <details className="numbers-overview">

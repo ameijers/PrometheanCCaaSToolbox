@@ -61,6 +61,8 @@ export interface Edit {
   numberId: string | null;
   callerIdFollows?: boolean;
   callerIdId?: string | null;
+  // Added by the tool: the number was taken off this channel because another channel got it.
+  auto?: boolean;
 }
 
 export type Severity = "error" | "warning";
@@ -78,6 +80,8 @@ export interface PlannedChange {
   // Which of the two lookups change.
   number: boolean;
   callerId: boolean;
+  // The number is taken off because another channel gets it ("take off automatically").
+  auto?: boolean;
 }
 
 export interface Plan {

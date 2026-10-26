@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { ChannelRow, Edit, PhoneNumber } from "../src/model";
-import { afterOf, choicesFor, orderSteps, planChanges, revertEdits } from "../src/plan";
+import { afterOf, choicesFor, orderSteps, planChanges, revertEdits, withDetaches } from "../src/plan";
 
 const n = (id: string, extra: Partial<PhoneNumber> = {}): PhoneNumber => ({ id, number: `+31${id}`, active: true, inbound: true, outbound: true, ...extra });
 const ch = (id: string, kind: ChannelRow["kind"], numberId?: string, callerIdId?: string, extra: Partial<ChannelRow> = {}): ChannelRow =>
@@ -102,5 +102,27 @@ describe("revertEdits", () => {
     const plan = planChanges([p, a], numbers, edits(["p", { numberId: "3", callerIdFollows: false }], ["a", { numberId: "3" }]));
     const back = revertEdits(plan.changes.map((change, i) => ({ change, status: i === 0 ? "updated" : "failed" as const })));
     expect([...back.entries()]).toEqual([["p", { numberId: "1", callerIdId: undefined, callerIdFollows: false }]]);
+  });
+});
+
+describe("withDetaches (take a number off its other channel automatically)", () => {
+  test("the channel on the same side that has the picked number loses it, in the same change", () => {
+    const a = ch("a", "inbound", "1"), b = ch("b", "inbound", "2"), p = ch("p", "outbound", "1", "1");
+    const all = withDetaches([a, b, p], edits(["b", { numberId: "1" }]));
+    expect(all.get("a")).toEqual({ numberId: null, callerIdFollows: true, auto: true });
+    // The outbound profile on that number is the other side: it keeps it.
+    expect(all.has("p")).toBe(false);
+    const plan = planChanges([a, b, p], numbers, all);
+    expect(plan.issues.filter((i) => i.severity === "error")).toEqual([]);
+    expect(plan.changes.find((c) => c.channel.id === "a")).toMatchObject({ auto: true, after: { numberId: undefined } });
+    expect(orderSteps(plan, [a, b, p]).map((s) => s.change.channel.id)).toEqual(["a", "b"]);
+  });
+
+  test("a channel you change yourself is left as you picked; a profile keeps a caller ID that isn't its number", () => {
+    const a = ch("a", "inbound", "1"), b = ch("b", "inbound", "2");
+    expect(withDetaches([a, b], edits(["b", { numberId: "1" }], ["a", { numberId: "3" }])).get("a")).toEqual({ numberId: "3" });
+    const p = ch("p", "outbound", "1", "2"), q = ch("q", "outbound", "3", "3");
+    const all = withDetaches([p, q], edits(["q", { numberId: "1" }]));
+    expect(planChanges([p, q], numbers, all).changes.find((c) => c.channel.id === "p")?.after).toEqual({ numberId: undefined, callerIdId: "2" });
   });
 });

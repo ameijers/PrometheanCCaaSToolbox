@@ -25,6 +25,8 @@ Every voice channel (`msdyn_ocvoicechannelsetting`), grouped by what its workstr
    - the number isn't active, or isn't enabled for the direction;
    - the number would be on **two inbound channels**, or used by **two outbound profiles**. A number can be on one inbound channel and one outbound profile (they may share it), no more: give the other channel another number (or no number) in the same change (that's a move), or pick each other's (a swap).
 
+   With **Take a number off its other channel automatically** switched on (it's off by default), picking a number that is now on another channel of the same direction takes it off that channel in the same change: that channel is listed as "taken off automatically" and is left without a number, unless you give it another one yourself.
+
    A channel left without a number, or a deactivated channel, give a warning but don't block.
 3. **Change.** After a confirmation naming the environment, the channels are updated one at a time in a safe order: a channel giving its number away is updated before the one taking it, and in a swap one channel's number is freed first. Before a channel takes a number the tool checks no other channel on the same side (inbound, or outbound) still has it; if one does (because its update failed), that change is skipped instead of doubling the number up. Then every channel is read back to confirm.
 4. **Review, log and revert.** The result shows what changed, what didn't and why. **Download log** saves the run; **Revert this change** puts the previous numbers back, in the same safe order.

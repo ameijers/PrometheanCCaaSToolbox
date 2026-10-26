@@ -83,7 +83,7 @@ export function planChanges(channels: ChannelRow[], numbers: PhoneNumber[], edit
     const after = afterOf(channel, edit);
     const number = before.numberId !== after.numberId;
     const callerId = before.callerIdId !== after.callerIdId;
-    if (number || callerId) changes.push({ channel, before, after, number, callerId });
+    if (number || callerId) changes.push({ channel, before, after, number, callerId, ...(edit.auto ? { auto: true } : {}) });
   });
 
   const issues: Issue[] = [];
@@ -112,6 +112,22 @@ export function planChanges(channels: ChannelRow[], numbers: PhoneNumber[], edit
     }
   });
   return { changes, issues };
+}
+
+// With "take a number off its other channel automatically" on: every channel on the same side that
+// has a number someone else picked (and isn't being changed itself) gets no number, in the same change.
+// The added edits are marked auto.
+export function withDetaches(channels: ChannelRow[], edits: Map<string, Edit>): Map<string, Edit> {
+  const all = new Map(edits);
+  edits.forEach((edit, id) => {
+    const channel = channels.find((c) => c.id === id);
+    const side = channel && sideOf(channel.kind);
+    if (!channel || !side || !edit.numberId || edit.numberId === channel.numberId) return;
+    channels
+      .filter((o) => o.id !== id && sideOf(o.kind) === side && o.numberId === edit.numberId && !edits.has(o.id))
+      .forEach((o) => all.set(o.id, { numberId: null, callerIdFollows: !o.callerIdId || o.callerIdId === o.numberId, auto: true }));
+  });
+  return all;
 }
 
 // The updates to send, in a safe order: a channel gets a number only once no other channel on the
@@ -169,7 +185,7 @@ export function revertEdits(results: ApplyResult[]): Map<string, Edit> {
 }
 
 export function describeChange(c: PlannedChange, numbers: Map<string, PhoneNumber>): string {
-  const parts: string[] = [];
+  const parts: string[] = c.auto ? ["taken off automatically"] : [];
   if (c.number) parts.push(`number ${numberLabel(numbers, c.before.numberId)} → ${numberLabel(numbers, c.after.numberId)}`);
   if (c.callerId) parts.push(`caller ID ${numberLabel(numbers, c.before.callerIdId)} → ${numberLabel(numbers, c.after.callerIdId)}`);
   return parts.join("; ");

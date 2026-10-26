@@ -34,6 +34,8 @@ On an outbound profile, **follows the number** keeps the caller ID the same as t
 - **Move a number** from channel A to channel B: on B pick A's number, and on A pick another number (or No number).
 - **Swap two numbers:** on each channel pick the other's number.
 
+**Take a number off its other channel automatically** (the switch above the list of changes, off by default): when it's on, picking a number that is now on another channel of the same direction also takes it off that channel. That channel shows up in the change as **taken off automatically** and is left without a number; give it another number yourself if it needs one. An outbound profile that loses its number also loses its caller ID when that was the same number.
+
 **Undo all picks** clears them.
 
 ## 4. Checking

@@ -156,3 +156,13 @@ h2, h3, p { margin-top: 0; }
 .group-head { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 12px 4px; border-top: 1px solid #edf2f0; font-size: 13px; font-weight: 800; color: #172a36; }
 .group-head span:last-child { color: #7c9696; font: 10px 'DM Mono', monospace; font-weight: 400; }
 .number-table .channel-cell { padding-left: 26px !important; }
+/* The "take off automatically" switch. */
+.switch-row { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 4px; padding: 10px; border: 1px solid #dce8e5; border-radius: 6px; background: #f7fbf9; cursor: pointer; }
+.switch-row input { appearance: none; flex-shrink: 0; width: 34px; height: 19px; margin: 1px 0 0; border-radius: 10px; background: #b9c9c6; position: relative; cursor: pointer; transition: background .15s; }
+.switch-row input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #fff; transition: left .15s; }
+.switch-row input:checked { background: #17766c; }
+.switch-row input:checked::after { left: 17px; }
+.switch-row input:focus-visible { outline: 2px solid #17766c; outline-offset: 2px; }
+.switch-row span { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+.switch-row small { color: #6e898a; line-height: 1.4; }
+.plan-list li.auto { border-style: dashed; }
