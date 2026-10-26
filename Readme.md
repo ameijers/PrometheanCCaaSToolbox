@@ -9,6 +9,18 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 
 <p align="center"><img src="images/infographic.png" alt="Promethean CCaaS Toolbox infographic: 18 tools in four groups — Diagnose, See it in 3D, Build in bulk and Onboard agents" width="540"></p>
 
+## Testing, bugs and feedback
+
+I test each tool myself, and keep testing them in different Dynamics 365 Contact Center environments. Environments differ a lot (versions, languages, security setups, amounts of data), so I can't guarantee the code is free of bugs. Try a tool in a test or development environment first, especially one that writes configuration.
+
+If you try the tools, I'd love to hear from you:
+
+- what works well, and what doesn't work or works differently than you expected,
+- bugs and error messages,
+- challenges in your environment, and ideas for new tools or improvements.
+
+Please open an [issue on GitHub](https://github.com/ameijers/PrometheanCCaaSToolbox/issues) with the tool, what you did and what happened (a screenshot helps; for a tool that writes, add the downloaded log too, without anything sensitive). I'll update the project based on your feedback.
+
 ## Tools
 
 ### Diagnostic tools (read-only)
@@ -88,7 +100,7 @@ The Recording & Transcription Provisioner works on a selection instead of a file
 
 ### Live status
 
-All tools have been built against schema read from a live environment (`academyexperiment`), run end to end in a browser against sample data, and tested against that live environment. They still need more testing in **other environments** — for example other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes. If a tool behaves differently in your environment, please report it.
+All tools have been built against schema read from a live environment (`academyexperiment`), run end to end in a browser against sample data, and tested against that live environment. They still need more testing in **other environments** — for example other Contact Center versions, languages, business-unit and security-role setups, and larger data volumes. If a tool behaves differently in your environment, please [let me know](#testing-bugs-and-feedback).
 
 Worth knowing from the live tests: in **Voice Workstream Builder**, workstreams and channels without a phone number are created and completed by the platform, but routing rules are **not** created automatically — set them up in the admin center (the tool says so per workstream).
 
