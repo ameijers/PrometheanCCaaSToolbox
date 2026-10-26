@@ -5,7 +5,7 @@
 First version: the campus, a building per customer center, combine / split / move / rename / recolour (kept in the browser), and inside each building the entrance, bot kiosk, lobbies, signposts, rooms with desks, opening hours and overflow at the doors. Health overlay from the explorer.
 
 - Checked on the sample environment in headless Edge (campus, a building, a room). Not yet tried hands-on or on live data.
-- Included in the packaged solution from **1.0.0.15** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_15.zip`): **3D → 3D Contact Center**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/contactcenter3d/index.html`.
+- Included in the packaged solution from **1.0.0.15** onward, with the guided tour from **1.0.0.16** (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_16.zip`): **3D → 3D Contact Center**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/contactcenter3d/index.html`.
 
 ## Decisions
 

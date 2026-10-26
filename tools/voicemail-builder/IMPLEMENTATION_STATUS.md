@@ -96,7 +96,7 @@ Run from the deployed tool for the voice queue **Contoso Flags Service**, which 
 
 ## Site Map subarea
 
-Included in the packaged solution from **1.0.0.11** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_15.zip`): **Creation → Voicemail Builder**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/voicemailbuilder/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
+Included in the packaged solution from **1.0.0.11** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_16.zip`): **Creation → Voicemail Builder**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/voicemailbuilder/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
 
 ## Not done
 
