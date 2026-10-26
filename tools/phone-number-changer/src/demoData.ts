@@ -5,8 +5,8 @@ import { NumberSource } from "./dataSource";
 import { ChannelRow, PhoneNumber } from "./model";
 
 // An in-memory sample environment: inbound workstreams, outbound profiles (each with its hidden
-// outbound workstream) and a proactive outbound workstream, numbers shared between inbound and
-// outbound as in a real environment, a free number, an inbound-only and an outbound-only number, a
+// outbound workstream) and a proactive outbound workstream, numbers shared by one inbound channel and
+// one outbound profile as in a real environment, a free number, an inbound-only and an outbound-only number, a
 // deactivated number, and a channel that refuses updates, so the sample shows the checks, a move, a
 // swap, a failure and the revert.
 
@@ -45,7 +45,7 @@ const CHANNELS: ChannelRow[] = [
   channel(7, "Sales outbound", "Sales outbound", "outbound", num(1), num(1)),
   channel(8, "Support outbound", "Support outbound", "outbound", num(2), num(2)),
   channel(9, "Collections outbound", "Collections outbound", "outbound", num(6), num(6)),
-  channel(10, "Missed-call callbacks", "Missed-call callbacks", "proactive", num(2), num(2)),
+  channel(10, "Missed-call callbacks", "Missed-call callbacks", "proactive", num(3), num(3)),
   channel(11, "Old promo line", "Legacy – Voice", "inbound", num(8), undefined, { active: false })
 ];
 

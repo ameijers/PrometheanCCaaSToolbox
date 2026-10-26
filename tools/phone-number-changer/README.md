@@ -20,13 +20,13 @@ Every voice channel (`msdyn_ocvoicechannelsetting`), grouped by what its workstr
 
 ## How it works
 
-1. **Pick new numbers.** For each channel to change, pick a new number (or **No number**). The list only offers active numbers that are enabled for the channel's direction (inbound for an inbound workstream, outbound for an outbound profile); others are shown but can't be picked. Each number says whether it's free or how many channels use it. On an outbound profile the **caller ID follows the number**, unless you switch that off.
+1. **Pick new numbers.** For each channel to change, pick a new number (or **No number**). The list only offers active numbers that are enabled for the channel's direction (inbound for an inbound workstream, outbound for an outbound profile); others are shown but can't be picked. The list starts on the channel's current number, marked **(current)**; every other number says whether it's **free** for this direction or **now on** another channel (and which). On an outbound profile the **caller ID follows the number**, unless you switch that off.
 2. **Check.** The panel lists every change. Problems block the change and show in red on the row:
    - the number isn't active, or isn't enabled for the direction;
-   - the number would answer on **two inbound channels**: a call can only arrive in one place, so give the other channel another number in the same change (that's a move), or pick each other's (a swap).
+   - the number would be on **two inbound channels**, or used by **two outbound profiles**. A number can be on one inbound channel and one outbound profile (they may share it), no more: give the other channel another number (or no number) in the same change (that's a move), or pick each other's (a swap).
 
-   A number shared with outbound profiles, a channel left without a number, or a deactivated channel give a warning but don't block.
-3. **Change.** After a confirmation naming the environment, the channels are updated one at a time in a safe order: a channel giving its number away is updated before the one taking it, and in a swap one channel's number is freed first. Before an inbound channel takes a number the tool checks no other inbound channel still has it; if one does (because its update failed), that change is skipped instead of putting the number on two channels. Then every channel is read back to confirm.
+   A channel left without a number, or a deactivated channel, give a warning but don't block.
+3. **Change.** After a confirmation naming the environment, the channels are updated one at a time in a safe order: a channel giving its number away is updated before the one taking it, and in a swap one channel's number is freed first. Before a channel takes a number the tool checks no other channel on the same side (inbound, or outbound) still has it; if one does (because its update failed), that change is skipped instead of doubling the number up. Then every channel is read back to confirm.
 4. **Review, log and revert.** The result shows what changed, what didn't and why. **Download log** saves the run; **Revert this change** puts the previous numbers back, in the same safe order.
 
 Calls to a number arrive at its new channel straight away.

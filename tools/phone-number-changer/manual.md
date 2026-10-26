@@ -22,8 +22,10 @@ An outbound profile is, under the hood, an outbound workstream with one voice ch
 
 In **New number**, pick the number the channel should use. The list shows:
 
-- numbers that can be used here, with **free** or **used by** how many channels;
-- numbers that can't (deactivated, or not enabled for inbound or outbound calls), greyed out;
+- first the channel's current number, marked **(current)**: leave it there to change nothing;
+- numbers that are **free** for this direction;
+- numbers **now on** another channel of the same direction (named): pick one only if that channel gets another number in the same change;
+- numbers that can't be used here (deactivated, or not enabled for inbound or outbound calls), greyed out;
 - **No number**, to take the number off the channel.
 
 On an outbound profile, **follows the number** keeps the caller ID the same as the number. Switch it off to keep the current caller ID.
@@ -39,9 +41,9 @@ On an outbound profile, **follows the number** keeps the caller ID the same as t
 The panel on the right lists every change. Rows with a problem turn red and say what's wrong:
 
 - the number is deactivated, or not enabled for the channel's direction;
-- the number would answer on **two inbound channels**. A call can only arrive in one place: give the other inbound channel another number in the same change.
+- the number would be on **two inbound channels**, or used by **two outbound profiles**. A number can be on one inbound channel and one outbound profile, no more: give the other channel another number in the same change.
 
-Warnings (in amber) don't block: a number that is also used by outbound profiles, a channel left without a number, or a deactivated channel.
+Warnings (in amber) don't block: a channel left without a number, or a deactivated channel.
 
 ## 5. Changing
 
@@ -49,6 +51,6 @@ Click **Change numbers**, read the confirmation (it names the environment) and c
 
 ## 6. Result, log and revert
 
-The result lists what changed. Anything that didn't is explained: a failed update, or a change that was skipped because another inbound channel still had the number. **Download log** saves a CSV of the run. **Revert this change** puts the previous numbers back on every channel that was changed.
+The result lists what changed. Anything that didn't is explained: a failed update, or a change that was skipped because another channel of the same direction still had the number. **Download log** saves a CSV of the run. **Revert this change** puts the previous numbers back on every channel that was changed.
 
 Afterwards, make a test call to each moved number.

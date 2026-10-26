@@ -32,16 +32,21 @@ describe("planChanges", () => {
     expect(errorsFor(outbound, "in")[0]).toMatch(/isn't enabled for outbound calls/);
     expect(errorsFor(inbound, "off")[0]).toMatch(/deactivated/);
     expect(errorsFor(inbound, "2")).toEqual([]);
-    expect(choicesFor(inbound, numbers).find((c) => c.number.id === "out")?.reason).toMatch(/inbound/);
+    const choices = choicesFor(inbound, numbers, [inbound, ch("b", "inbound", "2"), outbound]);
+    expect(choices.find((c) => c.number.id === "out")?.reason).toBe("not enabled for inbound");
+    expect(choices.some((c) => c.number.id === "1")).toBe(false);
+    // Free first, then numbers now on another inbound channel; an outbound profile on it doesn't count.
+    expect(choices.map((c) => [c.number.id, c.heldBy.map((h) => h.id)]).slice(0, 3)).toEqual([["3", []], ["in", []], ["2", ["b"]]]);
   });
 
-  test("never one number on two inbound channels; sharing with outbound profiles is fine (a warning)", () => {
-    const a = ch("a", "inbound", "1"), b = ch("b", "inbound", "2"), p = ch("p", "outbound", "3", "3");
-    const clash = planChanges([a, b, p], numbers, edits(["b", { numberId: "1" }]));
-    expect(clash.issues.find((i) => i.channelId === "b" && i.severity === "error")?.message).toMatch(/would also answer on "a"/);
-    const shared = planChanges([a, b, p], numbers, edits(["b", { numberId: "3" }]));
-    expect(shared.issues.filter((i) => i.severity === "error")).toEqual([]);
-    expect(shared.issues.find((i) => i.channelId === "b")?.message).toMatch(/also used by "p"/);
+  test("a number is on one inbound channel and one outbound profile at most; one of each may share it", () => {
+    const a = ch("a", "inbound", "1"), b = ch("b", "inbound", "2"), p = ch("p", "outbound", "3", "3"), q = ch("q", "proactive", "2", "2");
+    const inbound = planChanges([a, b, p, q], numbers, edits(["b", { numberId: "1" }]));
+    expect(inbound.issues.find((i) => i.channelId === "b" && i.severity === "error")?.message).toMatch(/is on "a".*one inbound channel only/);
+    const outbound = planChanges([a, b, p, q], numbers, edits(["q", { numberId: "3" }]));
+    expect(outbound.issues.find((i) => i.channelId === "q" && i.severity === "error")?.message).toMatch(/is on "p".*one outbound profile only/);
+    const shared = planChanges([a, b, p, q], numbers, edits(["b", { numberId: "3" }]));
+    expect(shared.issues).toEqual([]);
   });
 
   test("a move or a swap between inbound channels is fine when done together", () => {
@@ -76,11 +81,18 @@ describe("orderSteps", () => {
     expect(ids(orderSteps(plan, [a, b]))).toEqual(["a(free):none", "b:1", "a:2"]);
   });
 
-  test("outbound profiles have no order to keep, and send the caller ID with the number", () => {
-    const p = ch("p", "outbound", "1", "1"), q = ch("q", "outbound", "2", "2");
-    const plan = planChanges([p, q], numbers, edits(["p", { numberId: "2" }], ["q", { numberId: "1" }]));
-    const steps = orderSteps(plan, [p, q]);
-    expect(steps.map((s) => s.set)).toEqual([{ numberId: "2", callerIdId: "2" }, { numberId: "1", callerIdId: "1" }]);
+  test("outbound profiles keep the same order, and send the caller ID with the number", () => {
+    const p = ch("p", "outbound", "1", "1"), q = ch("q", "outbound", "2", "2"), a = ch("a", "inbound", "2");
+    const plan = planChanges([p, q, a], numbers, edits(["p", { numberId: "2" }], ["q", { numberId: "1" }]));
+    const steps = orderSteps(plan, [p, q, a]);
+    expect(ids(steps)).toEqual(["p(free):none", "q:1", "p:2"]);
+    expect(steps.map((s) => s.set)).toEqual([{ numberId: null }, { numberId: "1", callerIdId: "1" }, { numberId: "2", callerIdId: "2" }]);
+  });
+
+  test("an inbound channel and an outbound profile don't wait for each other", () => {
+    const a = ch("a", "inbound", "1"), p = ch("p", "outbound", "2", "2");
+    const plan = planChanges([a, p], numbers, edits(["a", { numberId: "2" }], ["p", { numberId: "1" }]));
+    expect(ids(orderSteps(plan, [a, p]))).toEqual(["a:2", "p:1"]);
   });
 });
 

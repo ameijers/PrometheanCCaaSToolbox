@@ -3,10 +3,11 @@
 
 import { NumberSource } from "./dataSource";
 import { ApplyResult, ChannelRow, PlannedChange, Step } from "./model";
+import { sideOf } from "./plan";
 
-// Sends the updates in the planned order, one at a time. Before an inbound channel takes a number, it
-// checks that no other inbound channel still has it (one that should have let go may have failed);
-// if one does, that update is skipped rather than putting the number on two inbound channels. Then
+// Sends the updates in the planned order, one at a time. Before a channel takes a number, it checks
+// that no other channel on the same side (inbound, or outbound) still has it (one that should have let
+// go may have failed); if one does, that update is skipped rather than doubling the number up. Then
 // it reads every channel back to confirm the platform kept the new numbers.
 
 export interface ApplyProgress {
@@ -25,7 +26,6 @@ function errorMessage(error: unknown): string {
 
 export async function applySteps(steps: Step[], channels: ChannelRow[], source: NumberSource, onProgress?: (p: ApplyProgress) => void): Promise<ApplyResult[]> {
   const state = new Map(channels.map((c) => [c.id, c.numberId]));
-  const inbound = channels.filter((c) => c.kind === "inbound");
   const results = new Map<string, ApplyResult>();
   const failed = new Set<string>();
   const changes: PlannedChange[] = [];
@@ -37,11 +37,12 @@ export async function applySteps(steps: Step[], channels: ChannelRow[], source: 
     onProgress?.({ done: i, total: steps.length, message: `${step.temporary ? "Freeing the number of" : "Updating"} "${step.change.channel.name}"` });
     if (failed.has(id)) continue;
     const takes = step.set.numberId;
-    if (!step.temporary && takes && step.change.channel.kind === "inbound") {
-      const holder = inbound.find((c) => c.id !== id && state.get(c.id) === takes);
+    const side = sideOf(step.change.channel.kind);
+    if (!step.temporary && takes && side) {
+      const holder = channels.find((c) => c.id !== id && sideOf(c.kind) === side && state.get(c.id) === takes);
       if (holder) {
         failed.add(id);
-        results.set(id, { change: step.change, status: "skipped", error: `Not changed: "${holder.name}" still has this number, so it can't go on a second inbound channel.`, at: new Date().toISOString() });
+        results.set(id, { change: step.change, status: "skipped", error: `Not changed: "${holder.name}" still has this number, so it can't go on a second ${side} channel.`, at: new Date().toISOString() });
         continue;
       }
     }

@@ -162,7 +162,7 @@ export function App(): React.ReactElement {
 
       <section className="content">
         <div className="selection-bar">
-          <span>Pick a new number for each channel to change. An outbound profile is an outbound workstream the admin center doesn't show; its caller ID follows the number unless you switch that off.</span>
+          <span>Pick a new number for each channel to change. A number can be on one inbound channel and one outbound profile; a number that is <em>now on</em> another channel can only be picked if that channel gets another number in the same change (a move or a swap). An outbound profile is an outbound workstream the admin center doesn't show; its caller ID follows the number unless you switch that off.</span>
           {edits.size > 0 && <button className="button ghost small" onClick={() => { setEdits(new Map()); setConfirming(false); }}>Undo all picks</button>}
         </div>
         <div className="data-table number-table" role="table" aria-label="Voice channels and their numbers">
@@ -184,11 +184,12 @@ export function App(): React.ReactElement {
                   const v = ev.target.value;
                   if (v === "") edit(c, undefined); else edit(c, { numberId: v === "none" ? null : v });
                 }}>
-                  <option value="">Keep {numberLabel(numberById, c.numberId)}</option>
-                  {choicesFor(c, numbers).filter((x) => x.number.id !== c.numberId).map(({ number, reason }) => {
-                    const users = (usedBy.get(number.id) ?? []).filter((u) => u.id !== c.id);
-                    return <option key={number.id} value={number.id} disabled={!!reason} title={reason}>{number.number}{reason ? " — not usable here" : users.length ? ` — used by ${users.length}` : " — free"}</option>;
-                  })}
+                  <option value="">{numberLabel(numberById, c.numberId)} (current)</option>
+                  {choicesFor(c, numbers, channels).map(({ number, reason, heldBy }) => (
+                    <option key={number.id} value={number.id} disabled={!!reason}>
+                      {number.number} — {reason ?? (heldBy.length ? `now on ${heldBy.map((h) => h.name).join(", ")}` : "free")}
+                    </option>
+                  ))}
                   {c.numberId && <option value="none">No number</option>}
                 </select>
                 {change && <small className="preview-change">{describeChange(change, numberById)}</small>}
