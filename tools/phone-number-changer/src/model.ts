@@ -16,6 +16,13 @@ export const KIND_LABELS: Record<Kind, string> = {
   other: "Other"
 };
 
+export const KIND_PLURALS: Record<Kind, string> = {
+  inbound: "Inbound workstreams",
+  outbound: "Outbound profiles",
+  proactive: "Proactive outbound workstreams",
+  other: "Other voice channels"
+};
+
 // Whether a kind places calls out, and so uses an outbound-enabled number and a caller ID.
 export const isOutbound = (kind: Kind): boolean => kind === "outbound" || kind === "proactive";
 

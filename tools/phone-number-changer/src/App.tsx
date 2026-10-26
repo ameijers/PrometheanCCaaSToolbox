@@ -10,7 +10,7 @@ import { NumberSource } from "./dataSource";
 import { clientUrl, dataverseSource, isDataverseAvailable } from "./dataverse";
 import { demoSource } from "./demoData";
 import { runLogCsv } from "./export";
-import { ApplyResult, ChannelRow, Edit, isOutbound, Kind, KIND_LABELS, PhoneNumber } from "./model";
+import { ApplyResult, ChannelRow, Edit, isOutbound, Kind, KIND_LABELS, KIND_PLURALS, PhoneNumber } from "./model";
 import { choicesFor, describeChange, numberLabel, orderSteps, planChanges, revertEdits } from "./plan";
 
 interface Filter { search: string; kind: "all" | Kind; includeInactive: boolean; changedOnly: boolean; }
@@ -42,7 +42,7 @@ export function App(): React.ReactElement {
     try {
       const data = await source.load();
       const order: Kind[] = ["inbound", "outbound", "proactive", "other"];
-      setChannels(data.channels.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || a.workstreamName.localeCompare(b.workstreamName) || a.name.localeCompare(b.name)));
+      setChannels(data.channels.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || a.workstreamName.localeCompare(b.workstreamName) || (a.workstreamId ?? "").localeCompare(b.workstreamId ?? "") || a.name.localeCompare(b.name)));
       setNumbers(data.numbers.sort((a, b) => a.number.localeCompare(b.number)));
     } catch (error) {
       setMessage(`Couldn't read the voice channels and numbers: ${error instanceof Error ? error.message : String(error)}`);
@@ -74,6 +74,22 @@ export function App(): React.ReactElement {
     const q = filter.search.trim().toLowerCase();
     return !q || [c.name, c.workstreamName, numberLabel(numberById, c.numberId), numberLabel(numberById, c.callerIdId)].some((v) => v.toLowerCase().includes(q));
   }), [channels, filter, changeById, numberById]);
+
+  // The list grouped: a heading per kind, then per workstream, with its voice channels under it.
+  type Item = { type: "kind"; kind: Kind; count: number } | { type: "workstream"; key: string; name: string; kind: Kind; channels: number } | { type: "channel"; channel: ChannelRow; flat: boolean };
+  const grouped = useMemo(() => {
+    const items: Item[] = [];
+    let kind: Kind | undefined, ws: string | undefined;
+    visible.forEach((c) => {
+      if (c.kind !== kind) { kind = c.kind; ws = undefined; items.push({ type: "kind", kind, count: visible.filter((v) => v.kind === kind).length }); }
+      // An outbound profile is a workstream with one voice channel: one row, no heading of its own.
+      const flat = isOutbound(c.kind) && visible.filter((v) => v.workstreamId === c.workstreamId).length === 1;
+      const key = c.workstreamId ?? c.workstreamName;
+      if (!flat && key !== ws) { ws = key; items.push({ type: "workstream", key, name: c.workstreamName, kind: c.kind, channels: visible.filter((v) => (v.workstreamId ?? v.workstreamName) === key).length }); }
+      items.push({ type: "channel", channel: c, flat });
+    });
+    return items;
+  }, [visible]);
 
   function edit(channel: ChannelRow, patch: Partial<Edit> | undefined) {
     setConfirming(false);
@@ -135,7 +151,7 @@ export function App(): React.ReactElement {
           <span className="filter-label">Kind</span>
           <select value={filter.kind} onChange={(e) => setFilter((f) => ({ ...f, kind: e.target.value as Filter["kind"] }))}>
             <option value="all">All ({channels.length})</option>
-            {(Object.keys(KIND_LABELS) as Kind[]).filter((k) => counts[k]).map((k) => <option key={k} value={k}>{KIND_LABELS[k]}s ({counts[k]})</option>)}
+            {(Object.keys(KIND_LABELS) as Kind[]).filter((k) => counts[k]).map((k) => <option key={k} value={k}>{KIND_PLURALS[k]} ({counts[k]})</option>)}
           </select>
         </div>
         <label className="checkbox-row"><input type="checkbox" checked={filter.changedOnly} onChange={(e) => setFilter((f) => ({ ...f, changedOnly: e.target.checked }))} /> Only channels I'm changing</label>
@@ -151,14 +167,17 @@ export function App(): React.ReactElement {
         </div>
         <div className="data-table number-table" role="table" aria-label="Voice channels and their numbers">
           <div className="data-head" role="row"><span>Channel</span><span>Number now</span><span>New number</span><span>Caller ID</span></div>
-          {visible.length ? visible.map((c) => {
+          {visible.length ? grouped.map((item) => {
+            if (item.type === "kind") return <div role="row" key={`kind:${item.kind}`} className="kind-head"><span>{KIND_PLURALS[item.kind]}</span><span>{item.count} channel{item.count === 1 ? "" : "s"}</span></div>;
+            if (item.type === "workstream") return <div role="row" key={`ws:${item.key}`} className="group-head"><span>{item.name}</span><span>{item.channels > 1 ? `${item.channels} voice channels` : item.kind === "inbound" ? "1 voice channel" : ""}</span></div>;
+            const c = item.channel;
             const e = edits.get(c.id);
             const change = changeById.get(c.id);
             const issues = issuesById.get(c.id) ?? [];
             const out = isOutbound(c.kind);
             const value = e === undefined ? "" : e.numberId === null ? "none" : e.numberId;
             return <div role="row" key={c.id} className={`data-row ${change ? "selected" : ""} ${issues.some((i) => i.severity === "error") ? "has-error" : ""}`}>
-              <span className="cell-strong">{c.name}<small>{KIND_LABELS[c.kind]}{c.workstreamName !== c.name ? ` · ${c.workstreamName}` : ""}{c.active ? "" : " · deactivated"}</small></span>
+              <span className={`cell-strong ${item.flat ? "" : "channel-cell"}`}>{c.name}{item.flat && c.workstreamName !== c.name && <small>workstream {c.workstreamName}</small>}{!c.active && <small>deactivated</small>}</span>
               <span>{numberLabel(numberById, c.numberId)}{out && <small>caller ID {numberLabel(numberById, c.callerIdId)}</small>}</span>
               <span>
                 <select aria-label={`New number for ${c.name}`} value={value} disabled={busy} onChange={(ev) => {

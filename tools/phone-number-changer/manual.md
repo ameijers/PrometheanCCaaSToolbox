@@ -14,7 +14,7 @@ Open **Phone Number Changer** in the app's Site Map. The top bar names the envir
 
 ## 2. Finding the channels
 
-The list shows every voice channel with its kind (**Inbound workstream**, **Outbound profile**, **Proactive outbound**), its workstream, its number now and, for outbound, its caller ID. On the left: search by channel, workstream or number, filter by kind, **Only channels I'm changing**, and **Show deactivated channels**.
+The list is grouped: first by kind (**Inbound workstreams**, **Outbound profiles**, **Proactive outbound workstreams**), then by workstream, with each workstream's voice channels under it. An outbound profile is a single row. Each channel shows its number now and, for outbound, its caller ID. On the left: search by channel, workstream or number, filter by kind, **Only channels I'm changing**, and **Show deactivated channels**.
 
 An outbound profile is, under the hood, an outbound workstream with one voice channel; the admin center doesn't show that workstream, the tool does (next to the profile's name).
 

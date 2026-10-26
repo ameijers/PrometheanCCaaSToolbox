@@ -27,8 +27,12 @@ const num = (n: number) => NUMBERS[n - 1].id;
 // The channel whose updates fail, to show how a failure is reported.
 const LOCKED = "Claims – after hours";
 
+const WORKSTREAMS = ["Sales – Voice", "Support – Voice", "Billing – Voice", "Claims – Voice", "Sales outbound", "Support outbound", "Collections outbound", "Missed-call callbacks", "Legacy – Voice"];
+
 function channel(n: number, name: string, workstreamName: string, kind: ChannelRow["kind"], numberId?: string, callerIdId?: string, extra: Partial<ChannelRow> = {}): ChannelRow {
-  return { id: id("cc", n), name, workstreamId: id("ee", n), workstreamName, kind, active: true, numberId, callerIdId, ...extra };
+  // A workstream id per workstream name, so channels of one workstream group together.
+  const ws = [...new Set(WORKSTREAMS)].indexOf(workstreamName) + 1;
+  return { id: id("cc", n), name, workstreamId: id("ee", ws), workstreamName, kind, active: true, numberId, callerIdId, ...extra };
 }
 
 const CHANNELS: ChannelRow[] = [

@@ -10,7 +10,7 @@ See the [manual](manual.md) for a walkthrough, and [IMPLEMENTATION_STATUS.md](IM
 
 ## What it lists
 
-Every voice channel (`msdyn_ocvoicechannelsetting`), with what its workstream is used for (from `msdyn_direction`):
+Every voice channel (`msdyn_ocvoicechannelsetting`), grouped by what its workstream is used for (from `msdyn_direction`) and then by workstream, with each workstream's voice channels under it. An outbound profile is one row: it's a workstream with a single voice channel.
 
 | Kind | What it is |
 | --- | --- |

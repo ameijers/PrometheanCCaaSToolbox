@@ -150,3 +150,9 @@ h2, h3, p { margin-top: 0; }
   .number-table .data-head, .number-table .data-row { grid-template-columns: 1fr 1fr; }
   .number-table .data-head span:nth-child(2), .number-table .data-row > span:nth-child(2) { display: none; }
 }
+/* Grouped list: a heading per kind, then per workstream, its voice channels under it. */
+.kind-head { display: flex; justify-content: space-between; padding: 12px 12px 6px; border-top: 1px solid #dce8e5; background: #f4f9f7; color: #17766c; font: 700 11px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .06em; }
+.kind-head span:last-child { color: #6e898a; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.group-head { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 12px 4px; border-top: 1px solid #edf2f0; font-size: 13px; font-weight: 800; color: #172a36; }
+.group-head span:last-child { color: #7c9696; font: 10px 'DM Mono', monospace; font-weight: 400; }
+.number-table .channel-cell { padding-left: 26px !important; }
