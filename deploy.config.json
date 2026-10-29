@@ -79,6 +79,18 @@
         { "name": "pct_/tools/recordingprovisioner/bundle.js", "path": "dist/webresource/recordingprovisioner/bundle.js", "type": 3, "displayName": "Recording & Transcription Provisioner - bundle.js" }
       ]
     },
+    "numberchanger": {
+      "displayName": "Phone Number Changer",
+      "stage": [
+        { "from": "tools/phone-number-changer/webresource/numberchanger.html", "to": "dist/webresource/numberchanger/index.html" },
+        { "from": "tools/phone-number-changer/css/phoneNumberChanger.css", "to": "dist/webresource/numberchanger/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/numberchanger/index.html", "path": "dist/webresource/numberchanger/index.html", "type": 1, "displayName": "Phone Number Changer - index.html", "cacheBust": true },
+        { "name": "pct_/tools/numberchanger/style.css", "path": "dist/webresource/numberchanger/style.css", "type": 2, "displayName": "Phone Number Changer - style.css" },
+        { "name": "pct_/tools/numberchanger/bundle.js", "path": "dist/webresource/numberchanger/bundle.js", "type": 3, "displayName": "Phone Number Changer - bundle.js" }
+      ]
+    },
     "queuebuilder": {
       "displayName": "Queue Builder",
       "stage": [

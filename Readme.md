@@ -45,6 +45,7 @@ Please open an [issue on GitHub](https://github.com/ameijers/PrometheanCCaaSTool
 | [Voicemail Builder](tools/voicemail-builder/README.md) | Sets up voicemail for voice queues in bulk from a CSV file, each with its own voicemail location: overflow to voicemail on the queue (added or updated; existing rules with another action overwritten or skipped, as chosen), a voicemail Record queue with members, a voicemail workstream, and the intake rule that routes the queue's voicemails there. | Creates `queue` (Record), `msdyn_liveworkstream` (voicemail workstreams) and `msdyn_decisionruleset` (overflow); adds queue members; updates only overflow and voicemail intake rules and a queue's overflow links. Never deletes. |
 | [Business Unit Builder](tools/business-unit-builder/README.md) (*Business Units Builder* in the app) | Creates business units in bulk from a CSV file — whole hierarchies in one file, in any row order: a parent can be an existing business unit or another row. Shows the resulting hierarchy as a tree before anything is created, and creates parents first. | Creates only: `businessunit`. Never updates, disables or deletes. |
 | [Recording & Transcription Provisioner](tools/voice-recording-provisioner/README.md) (*Recording & Transcription* in the app) | Sets transcript and recording on a selection of voice channels at once — None, Transcript, or Transcript and Recording — with a per-channel preview, a read-back check afterwards, and a one-click revert. | Updates only the recording/transcription columns of `msdyn_ocvoicechannelsetting`. Never creates or deletes. |
+| [Phone Number Changer](tools/phone-number-changer/README.md) | Changes which phone number voice channels use: inbound workstreams, outbound profiles (their hidden outbound workstreams) and proactive outbound. Move a number from one to another (optionally taking it off its old channel automatically), swap two, or give a channel a new one, in one go: only numbers enabled for the direction, a number on at most one inbound channel and one outbound profile, a safe order, a read-back check and a revert. The number must already be synced into Contact Center. **New: tried on sample data; not yet tested live or in the solution zip.** | Updates only `msdyn_phonenumberid` and `msdyn_calleridphonenumberid` of `msdyn_ocvoicechannelsetting`. Never creates or deletes, and never changes the numbers themselves. |
 | [Assignment Method Copier](tools/assignment-method-copier/README.md) (*Queue Assignment Method Copier* in the app) | Copies one queue's custom assignment method (its prioritization and assignment rulesets) to a selection of other queues, with a per-queue preview, a read-back check and a switch back. | Creates `msdyn_assignmentconfiguration`, `msdyn_assignmentconfigurationstep` and `msdyn_decisionruleset`; updates only `msdyn_isactiveconfiguration` on a method and `msdyn_assignmentstrategy` on a `queue`. Never deletes. |
 
 ### Onboarding agents (provisioning tools)
@@ -114,7 +115,7 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 > 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_16.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_16.zip)
 >
-> **Version 1.0.0.16 contains all eighteen tools**, with the guided tours in both 3D tools, already in the app's Site Map in five groups: **Tools** (the four diagnostic tools), **3D** (3D Contact Center, 3D Explorer), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.16 contains eighteen of the nineteen tools** (all but the new Phone Number Changer), with the guided tours in both 3D tools, already in the app's Site Map in five groups: **Tools** (the four diagnostic tools), **3D** (3D Contact Center, 3D Explorer), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -162,6 +163,7 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Provisioning | Recording & Transcription | `pct_/tools/recordingprovisioner/index.html` |
 | Provisioning | Queue Membership | `pct_/tools/queuemembership/index.html` |
 | Provisioning | Skill Assignment | `pct_/tools/skillassignment/index.html` |
+| Provisioning | Phone Number Changer (not in the solution zip yet) | `pct_/tools/numberchanger/index.html` |
 | Security | Business Units Builder | `pct_/tools/businessunitbuilder/index.html` |
 | Security | Team Builder | `pct_/tools/teambuilder/index.html` |
 | Security | User Setup | `pct_/tools/usersetup/index.html` |
@@ -250,6 +252,7 @@ Each tool can be run locally in its offline demo mode:
 | Voicemail Builder | `voicemailbuilder` | `npm run demo:voicemailbuilder` → http://localhost:5447/index.html |
 | Environment 3D Explorer | `explorer3d` | `npm run demo:explorer3d` → http://localhost:5448/index.html |
 | 3D Contact Center | `contactcenter3d` | `npm run demo:contactcenter3d` → http://localhost:5449/index.html |
+| Phone Number Changer | `numberchanger` | `npm run demo:numberchanger` → http://localhost:5450/index.html |
 
 ## Deployment
 
