@@ -31,7 +31,7 @@ This is a **read-only** tool: it never writes to a call or its context variables
 
 Same shape as Visual Routing Tester: a plain HTML/CSS/React (TypeScript) app, deployed as a trio of Dataverse web resources and hosted via its own Site Map subarea — see the [toolbox README](../../Readme.md#architecture) for why this toolbox defaults to web resources over PCF controls.
 
-It reads `msdyn_ocliveworkitem` (the call/work item record) and `msdyn_ocliveworkitemcontextitemelastic` (an elastic/Cosmos-backed table holding each captured name/value pair), matching captured values to their context-variable definitions **by name** rather than by lookup, since that lookup is null in practice on real calls.
+It reads `msdyn_ocliveworkitem` (the call/work item record, by its key `activityid`) and the captured name/value pairs from **both** `msdyn_ocliveworkitemcontextitemelastic` (an elastic/Cosmos-backed table) and `msdyn_ocliveworkitemcontextitem`, because which one an environment uses differs: the newest value per name is shown. It matches captured values to their context-variable definitions **by name** rather than by lookup, since that lookup is null in practice on real calls.
 
 For the full technical detail — real schema findings, how entity-reference values are unwrapped, and known open questions — see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
 
