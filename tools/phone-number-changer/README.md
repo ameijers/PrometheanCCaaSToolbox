@@ -52,4 +52,4 @@ It never creates or deletes anything, and never changes the phone numbers themse
 - Demo with sample data: `npm run demo:numberchanger` → http://localhost:5450/index.html (outside Dataverse the tool always uses the sample, and writes nothing).
 - Tests: `npx jest tools/phone-number-changer`
 - Deploy: `pwsh ./scripts/deploy.ps1 -Tool numberchanger` (add `-CreateIfMissing` the first time in an environment).
-- Web resources: `pct_/tools/numberchanger/{index.html,style.css,bundle.js}`. Not in the packaged solution yet: add a Site Map subarea of type Web Resource for `pct_/tools/numberchanger/index.html` (suggested: **Provisioning → Phone Number Changer**).
+- Web resources: `pct_/tools/numberchanger/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.17** (Site Map: **Provisioning → Phone Number Changer**). For an environment on an older solution version, add a subarea of type Web Resource for `pct_/tools/numberchanger/index.html` by hand (see the [toolbox README](../../Readme.md#site-map-subareas)).

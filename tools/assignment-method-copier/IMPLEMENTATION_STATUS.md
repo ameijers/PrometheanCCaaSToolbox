@@ -89,7 +89,7 @@ Tested in `academyexperiment` from the deployed tool, with *Contoso Flags Retail
 
 ## Site Map subarea
 
-Included in the packaged solution from **1.0.0.9** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_16.zip`): **Creation → Queue Assignment Method Copier**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/assignmentmethodcopier/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
+Included in the packaged solution from **1.0.0.9** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_17.zip`): **Creation → Queue Assignment Method Copier**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/assignmentmethodcopier/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
 
 ## Not done
 

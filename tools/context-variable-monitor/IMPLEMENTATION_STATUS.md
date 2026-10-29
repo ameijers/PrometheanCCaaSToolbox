@@ -30,7 +30,7 @@ The tool showed no captured values in a second environment, `pt-ccaas-dev` (Atla
 - **Entity references without a display value** (`"PrimaryDisplayValue": null`) occur, for example the contact a call is linked to.
 - Workstreams: the inbound voice workstreams have `msdyn_enablevoicev2` true there too, so the picker's filter held.
 
-Fix: the tool reads **both** tables and keeps the newest value per name (case-insensitive); a table that can't be read is skipped while the other one can be. Calls are keyed by `activityid`. An entity reference without a display value shows its record id; one stored without a data type is recognised by its shape. Tests: `tests/dataverse.test.ts` (both tables, newest wins, one unreadable table, `activityid`, display values). **Still to confirm in `pt-ccaas-dev`** with a real call after deploying there.
+Fix: the tool reads **both** tables and keeps the newest value per name (case-insensitive); a table that can't be read is skipped while the other one can be. Calls are keyed by `activityid`. An entity reference without a display value shows its record id; one stored without a data type is recognised by its shape. Tests: `tests/dataverse.test.ts` (both tables, newest wins, one unreadable table, `activityid`, display values). **Confirmed in `pt-ccaas-dev`** by the user with a real call (2026-10-29), after checking `academyexperiment` still worked. In the packaged solution from **1.0.0.17**; merged to main on 2026-10-29.
 
 ## Complete
 
