@@ -19,7 +19,18 @@ Pick a workstream, see its defined context variables, and watch the actual value
 - Rows are written **progressively during the call** (confirmed two rows on the same real call 11 seconds apart) — the "watch it fill in live" behavior is grounded in real platform behavior, not just a nice idea.
 - The row's own lookup back to the variable definition record is **null in practice** on every real row checked — captured values are matched to their definition **by name** (case-insensitive), not by that lookup. This mirrors how condition XML elsewhere in the toolbox already references variables by name rather than id.
 - `msdyn_value` is a plain string for text/number/boolean, but a JSON array (`[{"RecordId":"...","PrimaryDisplayValue":"..."}]`) for an entity-reference (`msdyn_datatype` 192350100 — the same enum Visual Routing Tester uses) — unwrapped to `PrimaryDisplayValue` for display.
-- A non-elastic sibling table, `msdyn_ocliveworkitemcontextitem`, exists but was found consistently empty for every real call checked — not used by this tool.
+- A non-elastic sibling table, `msdyn_ocliveworkitemcontextitem`, was empty for every real call checked in `academyexperiment`; but see the second environment below, where it held everything.
+
+## Second environment (2026-10-29)
+
+The tool showed no captured values in a second environment, `pt-ccaas-dev` (Atlas Copco). Read-only checks there (the user opened the Web API queries in their browser) showed:
+
+- **The values are in the other table.** `msdyn_ocliveworkitemcontextitemelastic` was empty; `msdyn_ocliveworkitemcontextitem` held every captured value (defined variables like `Brand`, `ParentMenu`, and bot values like `va_BotName`, `va_Scope`, `IsLoggedIn`), with the same columns (`msdyn_name`, `msdyn_value`, `msdyn_datatype`, lookup `msdyn_ocliveworkitemid`).
+- **A call's key is `activityid`** (`msdyn_ocliveworkitem` is an activity table; confirmed in `academyexperiment`'s metadata). The tool used `msdyn_ocliveworkitemid`, which is only a text column: it held the same id in `academyexperiment`, but can't be relied on.
+- **Entity references without a display value** (`"PrimaryDisplayValue": null`) occur, for example the contact a call is linked to.
+- Workstreams: the inbound voice workstreams have `msdyn_enablevoicev2` true there too, so the picker's filter held.
+
+Fix: the tool reads **both** tables and keeps the newest value per name (case-insensitive); a table that can't be read is skipped while the other one can be. Calls are keyed by `activityid`. An entity reference without a display value shows its record id; one stored without a data type is recognised by its shape. Tests: `tests/dataverse.test.ts` (both tables, newest wins, one unreadable table, `activityid`, display values). **Still to confirm in `pt-ccaas-dev`** with a real call after deploying there.
 
 ## Complete
 

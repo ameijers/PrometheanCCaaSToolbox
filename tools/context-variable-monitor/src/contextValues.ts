@@ -14,21 +14,41 @@ export function variableType(datatype: unknown): ContextVariableType {
   return "unknown";
 }
 
-// A captured elastic context item's msdyn_value is a plain string for text/number/boolean, but for
-// an entity-reference it's a JSON array like [{"RecordId":"...","PrimaryDisplayValue":"..."}] —
-// confirmed against real captured call data. Unwrap it to the human-readable display value.
+// A captured context item's msdyn_value is a plain string for text/number/boolean, but for an
+// entity-reference it's a JSON array like [{"RecordId":"...","PrimaryDisplayValue":"..."}] —
+// confirmed against real captured call data. Unwrap it to the human-readable display value, or the
+// record id when there's no display value (seen as null on real calls).
 export function parseDisplayValue(rawValue: string, type: ContextVariableType): string {
   if (type === "entityReference") {
     try {
       const parsed = JSON.parse(rawValue);
-      if (Array.isArray(parsed) && parsed[0] && typeof parsed[0] === "object" && "PrimaryDisplayValue" in parsed[0]) {
-        return String((parsed[0] as { PrimaryDisplayValue: unknown }).PrimaryDisplayValue);
+      if (Array.isArray(parsed) && parsed[0] && typeof parsed[0] === "object") {
+        const first = parsed[0] as { PrimaryDisplayValue?: unknown; RecordId?: unknown };
+        if (first.PrimaryDisplayValue !== null && first.PrimaryDisplayValue !== undefined && first.PrimaryDisplayValue !== "") return String(first.PrimaryDisplayValue);
+        if (first.RecordId) return `record ${String(first.RecordId)}`;
       }
     } catch {
       // Not JSON after all — fall through and show the raw value rather than hide it.
     }
   }
   return rawValue;
+}
+
+// A value stored as an entity reference, even when its row doesn't say so.
+export function looksLikeEntityReference(rawValue: unknown): boolean {
+  return typeof rawValue === "string" && /^\s*\[\s*\{[^]*"RecordId"/.test(rawValue);
+}
+
+// One value per name (case-insensitive): the newest, when a name was captured more than once (or is
+// in both tables).
+export function latestByName(values: CapturedValue[]): CapturedValue[] {
+  const byName = new Map<string, CapturedValue>();
+  values.forEach((v) => {
+    const key = v.name.toLowerCase();
+    const current = byName.get(key);
+    if (!current || (v.capturedOn ?? "") > (current.capturedOn ?? "")) byName.set(key, v);
+  });
+  return [...byName.values()];
 }
 
 // Captured values are matched back to their variable definition by name (case-insensitive) —

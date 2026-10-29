@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Alexander Meijers
 // SPDX-License-Identifier: MIT
 
-import { variableType, parseDisplayValue } from "./contextValues";
+import { latestByName, looksLikeEntityReference, parseDisplayValue, variableType } from "./contextValues";
 import { CapturedValue, ContextVariableDefinition, WorkItemSummary, Workstream } from "./model";
 
 declare const Xrm: any;
@@ -26,7 +26,8 @@ const definitions = [
   { logicalName: "msdyn_liveworkstream", setName: "msdyn_liveworkstreams" },
   { logicalName: "msdyn_ocliveworkstreamcontextvariable", setName: "msdyn_ocliveworkstreamcontextvariables" },
   { logicalName: "msdyn_ocliveworkitem", setName: "msdyn_ocliveworkitems" },
-  { logicalName: "msdyn_ocliveworkitemcontextitemelastic", setName: "msdyn_ocliveworkitemcontextitemelastics" }
+  { logicalName: "msdyn_ocliveworkitemcontextitemelastic", setName: "msdyn_ocliveworkitemcontextitemelastics" },
+  { logicalName: "msdyn_ocliveworkitemcontextitem", setName: "msdyn_ocliveworkitemcontextitems" }
 ];
 
 async function findDefinition(logicalName: string): Promise<EntityDefinition> {
@@ -92,21 +93,33 @@ export async function loadDefinitions(workstreamId: string): Promise<ContextVari
 }
 
 export async function loadRecentWorkItems(workstreamId: string, top = 10): Promise<WorkItemSummary[]> {
-  const rows = await read("msdyn_ocliveworkitem", `?$select=msdyn_ocliveworkitemid,msdyn_title,createdon,statecode&$filter=_msdyn_liveworkstreamid_value eq ${workstreamId}&$orderby=createdon desc&$top=${top}`);
+  // msdyn_ocliveworkitem is an activity table: its key is activityid. (msdyn_ocliveworkitemid is only
+  // a text column; it held the same id in one environment, but not everywhere.)
+  const rows = await read("msdyn_ocliveworkitem", `?$select=activityid,msdyn_title,createdon,statecode&$filter=_msdyn_liveworkstreamid_value eq ${workstreamId}&$orderby=createdon desc&$top=${top}`);
   return rows.map((row) => ({
-    id: row.msdyn_ocliveworkitemid,
-    title: row.msdyn_title ?? row.msdyn_ocliveworkitemid,
+    id: row.activityid,
+    title: row.msdyn_title ?? row.activityid,
     createdOn: row.createdon,
     active: row.statecode === 0
   }));
 }
 
+// Where a call's captured values are stored differs per environment: in one, the elastic table
+// (msdyn_ocliveworkitemcontextitemelastic) held them and the regular one was empty; in another, the
+// other way round. So both are read and combined, newest value per name; a table that can't be read
+// is skipped, as long as the other one can be.
+export const CONTEXT_ITEM_TABLES = ["msdyn_ocliveworkitemcontextitemelastic", "msdyn_ocliveworkitemcontextitem"] as const;
+
 export async function loadCapturedValues(workItemId: string): Promise<CapturedValue[]> {
-  const rows = await read("msdyn_ocliveworkitemcontextitemelastic", `?$select=msdyn_name,msdyn_value,msdyn_datatype,createdon&$filter=_msdyn_ocliveworkitemid_value eq ${workItemId}`);
-  return rows
+  const query = `?$select=msdyn_name,msdyn_value,msdyn_datatype,createdon&$filter=_msdyn_ocliveworkitemid_value eq ${workItemId}`;
+  const reads = await Promise.allSettled(CONTEXT_ITEM_TABLES.map((table) => read(table, query)));
+  if (reads.every((r) => r.status === "rejected")) throw (reads[0] as PromiseRejectedResult).reason;
+  const rows = reads.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+  return latestByName(rows
     .filter((row) => row.msdyn_name && row.msdyn_value !== null && row.msdyn_value !== undefined)
     .map((row) => {
-      const type = variableType(row.msdyn_datatype);
+      const declared = variableType(row.msdyn_datatype);
+      const type = declared === "unknown" && looksLikeEntityReference(row.msdyn_value) ? "entityReference" : declared;
       return { name: row.msdyn_name, rawValue: row.msdyn_value, displayValue: parseDisplayValue(row.msdyn_value, type), type, capturedOn: row.createdon };
-    });
+    }));
 }

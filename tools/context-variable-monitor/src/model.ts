@@ -16,8 +16,8 @@ export interface ContextVariableDefinition {
   type: ContextVariableType;
 }
 
-// One value actually captured on a specific call, as written to
-// msdyn_ocliveworkitemcontextitemelastic — includes both officially-defined context variables and
+// One value actually captured on a specific call, as written to msdyn_ocliveworkitemcontextitemelastic
+// or msdyn_ocliveworkitemcontextitem (which one differs per environment) — includes both officially-defined context variables and
 // bot/system-internal values (e.g. va_BotName) that were never declared as a context variable.
 export interface CapturedValue {
   name: string;
