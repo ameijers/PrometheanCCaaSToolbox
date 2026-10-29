@@ -1,3 +1,5 @@
 node_modules/
 dist/
 *.log
+# Full-size video recordings stay local; the repo keeps a compressed copy (under 10 MB).
+tools/environment-3d-explorer/video/environment-3d-explorer.mp4

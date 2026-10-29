@@ -92,6 +92,10 @@ After the user's review: the left panel had grown too long, layers were hard to 
 - `tests/tour.test.ts` (explorer): every record the scripts name is in the sample, and the planned ride reaches the agent.
 - After review: a step no longer starts over during live activity (the step clock belongs to its step; the page redraws every few seconds then), and a finished step can't end the next one too. While a tour plays the camera drifts: it slowly circles what it looks at, between flights (`drift` on `CameraRig`; the orbit controls' auto-rotate kept a flight from arriving). The **Play the tour** button has its own style (`.tour-start`).
 
+## Video (2026-10-29)
+
+- `video/environment-3d-explorer-tour.mp4`: a recording of the guided tour by the user (4K, 2 min 18 s), compressed for GitHub to 1280 × 800, H.264 at about 540 kbit/s in two passes, without the silent audio track, `+faststart`: 8.9 MB, under GitHub's 10 MB limit for videos in a README on a free plan. The full recording (665 MB) stays local and is in `.gitignore`.
+
 ## Open questions / next ideas
 
 - Live test: data volumes, load time, frame rate with a few thousand agents.

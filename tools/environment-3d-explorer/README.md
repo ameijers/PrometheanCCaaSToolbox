@@ -4,6 +4,10 @@ Shows the whole contact center as a 3D cloud of records you can rotate, zoom int
 
 ![Overview](images/00-overview.png)
 
+## Video
+
+▶ **[Watch the guided tour](video/environment-3d-explorer-tour.mp4)** (2 min 18 s, no sound): the explorer's own tour, from the layers and layer distance to focusing a record, following a call, live activity and health, on the sample data. Play it yourself with **▶ Play the tour** on the **Help** tab.
+
 ## What you see
 
 Each record type sits on its own depth layer. Front to back follows the way a conversation travels:
