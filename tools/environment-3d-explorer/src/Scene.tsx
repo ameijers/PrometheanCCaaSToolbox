@@ -337,6 +337,10 @@ export function CameraRig({ mode, goal, handle, ride, depth, rideScale = 1, drif
     if (ratio === 1) return;
     camera.position.z *= ratio;
     if (controls) { controls.target.z *= ratio; controls.update(); }
+    // A flight under way moves along too, or it would land where the record was before (the guided
+    // tour changes the distance back right as the next step starts flying).
+    const f = flight.current;
+    if (f) { f.position.z *= ratio; f.target.z *= ratio; f.current.z *= ratio; }
   }, [depth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
