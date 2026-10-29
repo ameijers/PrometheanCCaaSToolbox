@@ -94,7 +94,7 @@ After the user's review: the left panel had grown too long, layers were hard to 
 
 ## Video (2026-10-29)
 
-- `video/environment-3d-explorer-tour.mp4`: a recording of the guided tour by the user (4K, 2 min 18 s), compressed for GitHub to 1280 × 800, H.264 at about 540 kbit/s in two passes, without the silent audio track, `+faststart`: 8.9 MB, under GitHub's 10 MB limit for videos in a README on a free plan. The full recording (665 MB) stays local and is in `.gitignore`.
+- `video/environment-3d-explorer-tour.mp4`: a recording of the guided tour by the user (4K, 2 min 18 s), compressed for GitHub to 1280 × 800, H.264 at about 540 kbit/s in two passes, without the silent audio track, `+faststart`: 8.9 MB, under GitHub's 10 MB limit for videos in a README on a free plan. Only this compressed copy is kept; the full recording (665 MB) was too big for GitHub (over 100 MB) and was removed.
 
 ## Open questions / next ideas
 
