@@ -229,8 +229,8 @@ export function App(): React.ReactElement {
   const select = useCallback((key: string) => {
     setSelected(key);
     const p = positions.get(key);
-    if (p) setGoal((g) => ({ position: [p[0] + 26, p[1] + 14, p[2] + 42], target: p, serial: (g?.serial ?? 0) + 1 }));
-  }, [positions]);
+    if (p) setGoal((g) => ({ position: [p[0] + 26, p[1] + 14, p[2] + 42], target: p, serial: (g?.serial ?? 0) + 1, depth }));
+  }, [positions, depth]);
 
   // ?focus=<name> (see urlOptions.ts) opens the explorer focused on that record.
   useEffect(() => {
@@ -242,7 +242,7 @@ export function App(): React.ReactElement {
 
   const clear = useCallback(() => { setSelected(undefined); setChainOnly(false); }, []);
   const flyTo = (position: CameraGoal["position"], target: CameraGoal["target"]) => setGoal((g) => ({ position, target, serial: (g?.serial ?? 0) + 1 }));
-  const resetView = () => flyTo([START_POSITION[0], START_POSITION[1], START_POSITION[2] * depth], [0, 0, 0]);
+  const resetView = () => setGoal((g) => ({ position: [START_POSITION[0], START_POSITION[1], START_POSITION[2] * depth], target: [0, 0, 0], serial: (g?.serial ?? 0) + 1, depth }));
 
   // "Follow the call": ride from the selected record (or the first phone number) along the route.
   const startRide = (from?: string) => {

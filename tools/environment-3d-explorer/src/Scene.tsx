@@ -21,6 +21,9 @@ export interface CameraGoal {
   target: Vec3;
   // A new number makes the camera fly again, even to the same place.
   serial: number;
+  // The layer distance the goal was worked out at: if it has changed since, the goal moves along
+  // (the guided tour changes it back right as the next step starts flying).
+  depth?: number;
 }
 
 export const BACKGROUND = "#060a12";
@@ -382,7 +385,13 @@ export function CameraRig({ mode, goal, handle, ride, depth, rideScale = 1, drif
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction);
     const current = controls ? controls.target.clone() : camera.position.clone().addScaledVector(direction, 60);
-    flight.current = { position: new THREE.Vector3(...goal.position), target: new THREE.Vector3(...goal.target), current };
+    const along = goal.depth ? depth / goal.depth : 1;
+    // The target moves with its layer; the camera keeps the same view of it.
+    const target = new THREE.Vector3(...goal.target);
+    const position = new THREE.Vector3(...goal.position).sub(target);
+    target.z *= along;
+    position.add(target);
+    flight.current = { position, target, current };
   }, [goal?.serial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Zooming, rotating or dragging yourself stops a flight, so it doesn't fight you. (A click that
