@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import * as React from "react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ParsedCsv, downloadCsv, parseCsv } from "../../voice-workstream-builder/src/csv";
 import { RunInfo, logFileName } from "../../voice-workstream-builder/src/runLog";
 import { ColumnDef } from "./columns";
@@ -50,6 +50,7 @@ export interface SelectionInput<C> {
   tabLabel: string;          // e.g. "Select users and skills"
   // Renders the selection page for the loaded catalog; calls onReview with the plan it built.
   component: React.ComponentType<{ catalog: C; onReview: (plan: Plan) => void }>;
+  openFirst?: boolean;       // open on the selection page instead of the CSV upload
 }
 
 type InputMode = "file" | "selection";
@@ -76,6 +77,8 @@ export function ProvisioningApp<C>({ config }: { config: ToolConfig<C> }): React
   const [mode, setMode] = useState<InputMode>("file");
   const [catalog, setCatalog] = useState<C | undefined>(undefined);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (config.selection?.openFirst) void openSelection(); }, []);
 
   async function openSelection() {
     setMode("selection");

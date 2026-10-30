@@ -23,6 +23,8 @@ Please open an [issue on GitHub](https://github.com/ameijers/PrometheanCCaaSTool
 
 ## Tools
 
+The app opens best on **[Toolbox Home](tools/toolbox-home/README.md)**: a landing page with every tool as a card, grouped as in the Site Map, with a search box. A click opens the tool in the app, next to the left menu.
+
 ### Diagnostic tools (read-only)
 
 | Tool | What it does |
@@ -31,7 +33,7 @@ Please open an [issue on GitHub](https://github.com/ameijers/PrometheanCCaaSTool
 | [Context Variable Monitor](tools/context-variable-monitor/README.md) | Watches the actual context-variable values a real call captures, live, as it moves through the IVR and unified routing — for debugging against real traffic rather than simulated configuration. |
 | [Agent Readiness Checker](tools/agent-readiness-checker/README.md) | Answers "why isn't this agent receiving calls?" — checks one agent or the whole roster against every prerequisite for receiving voice work (account, roles, channel, queue membership, workstream reachability, capacity, skills, presence) with plain-language evidence and suggested fixes. |
 | [Environment Artifact Finder](tools/environment-artifact-finder/README.md) | Finds configuration you could clean up: records nothing active uses any more, records that are wired in but can never do anything (e.g. a voice workstream with no phone number, a queue no route reaches), broken references, and housekeeping items (old bulk-delete jobs, stale saved views). Recommends only. Every finding is a candidate for review, with its evidence and a confidence level. |
-| [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. A health overlay marks problems (an empty queue that is routed to, a rule to a deleted queue, a workstream that routes nowhere) in the picture. Also: a health overlay for structural problems, follow-the-call rides, live presence and queue load, bots, overflow and operating hours, tabs, a layer distance slider, full screen and a guided tour. In the Site Map as **3D → 3D Explorer**; current version in solution 1.0.0.17. ▶ [Video of the guided tour](tools/environment-3d-explorer/video/environment-3d-explorer-tour.mp4). **Tried live in `academyexperiment`; live activity still to be seen with real traffic.** |
+| [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. A health overlay marks problems (an empty queue that is routed to, a rule to a deleted queue, a workstream that routes nowhere) in the picture. Also: a health overlay for structural problems, follow-the-call rides, live presence and queue load, bots, overflow and operating hours, tabs, a layer distance slider, full screen and a guided tour. In the Site Map as **3D → 3D Explorer**; current version in solution 1.0.0.17 and later. ▶ [Video of the guided tour](tools/environment-3d-explorer/video/environment-3d-explorer-tour.mp4). **Tried live in `academyexperiment`; live activity still to be seen with real traffic.** |
 | [3D Contact Center](tools/contact-center-3d/README.md) | The same environment from a business perspective: each customer center is an open-roofed building on a campus, with entrance doors (voice channels and their numbers), an automated reception (bot), lobbies (workstreams), signposts (routing rules), rooms (queues) with a desk per agent, and overflow at the room doors. Create customer centers and move workstreams into them (remembered); one front desk per center and a wing per kind of work (phone, chat, email). Live callers, follow a call, health, skills, sample data inside the app, and a guided tour. In the Site Map as **3D → 3D Contact Center**, from solution 1.0.0.15. **Tried live in `academyexperiment`.** |
 
 ### Creation and provisioning tools
@@ -50,7 +52,7 @@ Please open an [issue on GitHub](https://github.com/ameijers/PrometheanCCaaSTool
 
 ### Onboarding agents (provisioning tools)
 
-Four tools, one step each, to get an agent from "synced user" to "taking work from a queue" with the right skills. Run them in this order; each one is safe to run again with the same file (anything already in place is left alone).
+Four tools, one step each, plus a fifth for capacity profiles later on, to get an agent from "synced user" to "taking work from a queue" with the right skills. Run them in this order; each one is safe to run again with the same file (anything already in place is left alone).
 
 | Step | Tool | What it does | Writes |
 | --- | --- | --- | --- |
@@ -58,6 +60,7 @@ Four tools, one step each, to get an agent from "synced user" to "taking work fr
 | 2 | [User Setup](tools/user-setup/README.md) | For users already synced from Entra ID: assigns security roles **directly** and/or adds them to **owner teams**, makes each one a **bookable resource** and links **capacity profiles** (default Default voice inbound + outbound). | Assigns roles (`systemuserroles_association`), `AddMembersTeam`, creates `bookableresource` and `msdyn_bookableresourcecapacityprofile`. Never creates users, removes or deletes. |
 | 3 | [Queue Membership](tools/queue-membership/README.md) | Adds users who are bookable resources to one or more advanced queues. | Adds members (`queuemembership_association`). Never removes. |
 | 4 | [Skill Assignment](tools/skill-assignment/README.md) | Assigns existing **skills** with a rating to users who are bookable resources, for skill-based routing — **from a CSV or by selecting users and skills in the page**. A user who already has the skill with another rating gets the new rating. | Creates `bookableresourcecharacteristic`; updates only its rating. Never removes skills. |
+| any time | [Capacity Profile Assignment](tools/capacity-profile-assignment/README.md) | Gives many users one or more **capacity profiles** at once — **by selecting users and profiles in the page** (with a filter for users who have none yet) or from a CSV. For users who are already bookable resources; profiles they already have are left alone. In the Site Map as **Provisioning → Capacity Profile Assignment**, from solution 1.0.0.18. | Creates `msdyn_bookableresourcecapacityprofile`. Never removes a profile or changes its units. |
 
 Users themselves come from Microsoft Entra ID: a user is in the environment once they're licensed and in the environment's security group. User Setup reports users who aren't synced yet instead of guessing.
 
@@ -95,7 +98,7 @@ The four creation tools share one flow and one set of conventions:
 3. **Create.** After a confirmation that names the target environment, records are created one by one and reported with status, id and a link. A failure stops only the affected item; nothing is ever deleted automatically.
 4. **Download log.** A CSV of the run: tool, environment, user, start and finish time, and every record with its status, id and time, plus notes and the warnings accepted at review.
 
-The onboarding tools use the same flow, but each row becomes a list of **actions** shown as *Will do* or *In place*: anything already in place isn't written again, so a file can be run as often as needed. Skill Assignment also offers a second way in: **select users and skills in the page** instead of uploading a file; the selection goes through the same review, run and log.
+The onboarding tools use the same flow, but each row becomes a list of **actions** shown as *Will do* or *In place*: anything already in place isn't written again, so a file can be run as often as needed. Skill Assignment and Capacity Profile Assignment also offer a second way in: **select users and skills (or capacity profiles) in the page** instead of uploading a file; the selection goes through the same review, run and log.
 
 The Recording & Transcription Provisioner works on a selection instead of a file: filter and select records, choose the setting, check the per-record preview, confirm, and afterwards download the log or revert.
 
@@ -113,9 +116,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_17.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_17.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_18.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_18.zip)
 >
-> **Version 1.0.0.17 contains all nineteen tools**, with the guided tours in both 3D tools, already in the app's Site Map in five groups: **Tools** (the four diagnostic tools), **3D** (3D Contact Center, 3D Explorer), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment, Phone Number Changer) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.18 contains all twenty tools and Toolbox Home**, already in the app's Site Map in six groups: **Home** (Toolbox Home, the landing page with every tool as a card), **3D** (3D Contact Center, 3D Explorer), **Tools** (the four diagnostic tools), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment, Phone Number Changer, Capacity Profile Assignment), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -125,7 +128,7 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_17.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_18.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
@@ -144,10 +147,11 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.17 already has all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.18 already has all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
+| Home | Toolbox Home | `pct_/tools/home/index.html` |
 | Tools | Visual Routing Tester | `pct_/tools/routingtester/index.html` |
 | Tools | Context Variable Monitor | `pct_/tools/contextvariablemonitor/index.html` |
 | Tools | Agent Readiness Checker | `pct_/tools/agentreadiness/index.html` |
@@ -164,6 +168,7 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Provisioning | Queue Membership | `pct_/tools/queuemembership/index.html` |
 | Provisioning | Skill Assignment | `pct_/tools/skillassignment/index.html` |
 | Provisioning | Phone Number Changer | `pct_/tools/numberchanger/index.html` |
+| Provisioning | Capacity Profile Assignment | `pct_/tools/capacityassignment/index.html` |
 | Security | Business Units Builder | `pct_/tools/businessunitbuilder/index.html` |
 | Security | Team Builder | `pct_/tools/teambuilder/index.html` |
 | Security | User Setup | `pct_/tools/usersetup/index.html` |
@@ -253,6 +258,8 @@ Each tool can be run locally in its offline demo mode:
 | Environment 3D Explorer | `explorer3d` | `npm run demo:explorer3d` → http://localhost:5448/index.html |
 | 3D Contact Center | `contactcenter3d` | `npm run demo:contactcenter3d` → http://localhost:5449/index.html |
 | Phone Number Changer | `numberchanger` | `npm run demo:numberchanger` → http://localhost:5450/index.html |
+| Capacity Profile Assignment | `capacityassignment` | `npm run demo:capacityassignment` → http://localhost:5451/index.html |
+| Toolbox Home | `home` | `npm run demo:home` → http://localhost:5452/home/index.html |
 
 ## Deployment
 

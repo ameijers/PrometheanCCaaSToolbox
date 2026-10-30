@@ -198,6 +198,7 @@ h2, h3, p { margin-top: 0; }
 .pick-main small { font-size: 11px; color: #607b7c; }
 .pick-list li.disabled .pick-main small { color: #9aaeae; }
 .pick-current { font-style: italic; }
+.pick-option { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; }
 .pick-rating { padding: 5px 6px; border: 1px solid #cfe0dc; font: inherit; font-size: 12px; background: #fff; max-width: 50%; }
 .pick-empty { color: #7c9696; font-size: 12px; justify-content: center !important; }
 .pick-footer { max-width: 1520px; margin: 0 auto 18px; display: flex; justify-content: flex-end; align-items: center; gap: 14px; }

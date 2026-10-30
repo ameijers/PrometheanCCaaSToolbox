@@ -20,7 +20,8 @@ const SCOPES: Scope[] = [
   { tool: "team-builder", createTables: ["TEAM_TABLE"], posts: [/teams\(\$\{teamId\}\)\/teamroles_association\/\$ref/] },
   { tool: "user-setup", createTables: ["RESOURCE_TABLE", "CAPACITY_LINK_TABLE"], posts: [/systemuserroles_association\/\$ref/, /Microsoft\.Dynamics\.CRM\.AddMembersTeam/] },
   { tool: "queue-membership", createTables: [], posts: [/queues\(\$\{queueId\}\)\/queuemembership_association\/\$ref/] },
-  { tool: "skill-assignment", createTables: ["ASSIGNMENT_TABLE"], posts: [], update: { table: "ASSIGNMENT_TABLE", keys: ["RATING_BIND"] } }
+  { tool: "skill-assignment", createTables: ["ASSIGNMENT_TABLE"], posts: [], update: { table: "ASSIGNMENT_TABLE", keys: ["RATING_BIND"] } },
+  { tool: "capacity-profile-assignment", createTables: ["LINK_TABLE"], posts: [] }
 ];
 
 const FORBIDDEN = ["deleteRecord", "executeMultiple", "execute(", "RemoveMembersTeam", "\"DELETE\"", "\"PATCH\"", "disassociate"];

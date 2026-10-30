@@ -5,7 +5,7 @@
 - Built on branch `phone-number-changer`, after the user asked for a tool to move numbers between workstreams and outbound profiles (blog: replacing a phone number in a voice channel bound to a workstream). Scope agreed with the user: **only changing the number of a voice channel or outbound profile** (outbound workstreams included); the number is expected to be set up and synced into Contact Center already.
 - Runs end to end on the sample data. Tests: `plan.test.ts` (usable numbers, the inbound check, caller ID, order of a move and a swap, revert), `apply.test.ts` (swap, skip instead of doubling up, failure in a swap, the sample change and revert), `dataverse.test.ts`, `writeScope.test.ts`.
 - **Tested live** by the user on 2026-10-29: changing numbers through the tool works in the environment.
-- Included in the packaged solution from **1.0.0.17** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_17.zip`): **Provisioning → Phone Number Changer**. Merged to main on 2026-10-29. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/numberchanger/index.html`.
+- Included in the packaged solution from **1.0.0.17** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_18.zip`): **Provisioning → Phone Number Changer**. Merged to main on 2026-10-29. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/numberchanger/index.html`.
 
 ## Step 0 — schema (2026-10-26, read-only)
 
