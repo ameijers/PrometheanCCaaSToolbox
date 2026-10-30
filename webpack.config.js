@@ -26,7 +26,9 @@ module.exports = {
     voicemailbuilder: "./tools/voicemail-builder/webresource/index.tsx",
     explorer3d: "./tools/environment-3d-explorer/webresource/index.tsx",
     contactcenter3d: "./tools/contact-center-3d/webresource/index.tsx",
-    numberchanger: "./tools/phone-number-changer/webresource/index.tsx"
+    numberchanger: "./tools/phone-number-changer/webresource/index.tsx",
+    capacityassignment: "./tools/capacity-profile-assignment/webresource/index.tsx",
+    home: "./tools/toolbox-home/webresource/index.tsx"
   },
   output: {
     path: path.resolve(__dirname, "dist/webresource"),

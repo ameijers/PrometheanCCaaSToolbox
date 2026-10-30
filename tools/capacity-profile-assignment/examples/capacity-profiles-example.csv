@@ -1,0 +1,4 @@
+user,capacity_profiles
+anna@contoso.com,Escalation profile
+bram@contoso.com,Default voice inbound|Default voice outbound
+dana.smit@contoso.com,msdyn_voice_inbound_profile|Default voice outbound

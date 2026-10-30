@@ -1,0 +1,48 @@
+/* Copyright (c) 2026 Alexander Meijers. SPDX-License-Identifier: MIT */
+
+:root { font-family: Manrope, "Segoe UI", sans-serif; color: #172a36; background: #f5f8f7; font-size: 14px; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: #17766c; }
+
+.home { min-height: 100vh; background: radial-gradient(circle at 80% 0%, #e1f3ef 0, transparent 35%), #f5f8f7; }
+
+.hero { background: #103f46; color: #eaf6f2; padding: 36px 28px 30px; }
+.hero-inner { max-width: 1240px; margin: 0 auto; }
+.eyebrow { margin: 0 0 8px; color: #8fc7b8; text-transform: uppercase; font: 500 11px 'DM Mono', Consolas, monospace; letter-spacing: .08em; }
+.hero h1 { margin: 0 0 10px; font-size: 28px; letter-spacing: -.02em; }
+.lead { margin: 0 0 20px; max-width: 720px; color: #c4e2d9; font-size: 15px; line-height: 1.5; }
+.search { width: 100%; max-width: 520px; padding: 11px 14px; border: 1px solid #2c6870; border-radius: 4px; background: #0c3238; color: #fff; font: inherit; }
+.search::placeholder { color: #7fa9a6; }
+.search:focus { outline: 2px solid #5fc3a8; outline-offset: 1px; }
+
+.groups { max-width: 1296px; margin: 0 auto; padding: 8px 28px 12px; }
+.group { margin-top: 28px; }
+.group-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; border-bottom: 1px solid #dce8e5; padding-bottom: 8px; }
+.group-head h2 { margin: 0; font-size: 17px; letter-spacing: -.01em; }
+.group-head p { margin: 0; color: #6b8585; font-size: 12.5px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+.tool-card { display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: #fff; border: 1px solid #dce8e5; border-radius: 6px; color: inherit; text-decoration: none; transition: border-color .12s, box-shadow .12s, transform .12s; }
+.tool-card:hover, .tool-card:focus-visible { border-color: #17766c; box-shadow: 0 4px 14px rgba(16, 63, 70, .10); transform: translateY(-1px); outline: none; }
+.tool-mark { flex-shrink: 0; width: 40px; height: 40px; display: grid; place-items: center; background: #103f46; color: #d9f3e9; font-weight: 800; font-size: 12px; letter-spacing: -.04em; border-radius: 4px; }
+.tool-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.tool-name { font-weight: 700; font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
+.tool-text { color: #4f6a6b; font-size: 12.5px; line-height: 1.45; }
+.tool-arrow { color: #9db6b2; font-size: 18px; align-self: center; transition: color .12s, transform .12s; }
+.tool-card:hover .tool-arrow { color: #17766c; transform: translateX(2px); }
+
+.tag { align-self: flex-start; padding: 2px 7px; border-radius: 3px; font: 500 10.5px 'DM Mono', Consolas, monospace; letter-spacing: .02em; }
+.tag.reads { color: #24565b; background: #e6f2ef; }
+.tag.writes { color: #8a5a12; background: #fdf3de; }
+.tag.new { color: #fff; background: #17766c; }
+
+.empty { margin-top: 28px; color: #6b8585; }
+
+.foot { max-width: 1296px; margin: 20px auto 0; padding: 18px 28px 32px; color: #6b8585; font-size: 12.5px; line-height: 1.6; border-top: 1px solid #dce8e5; }
+.foot p { margin: 0 0 4px; }
+
+@media (max-width: 600px) {
+  .hero, .groups, .foot { padding-left: 16px; padding-right: 16px; }
+  .cards { grid-template-columns: 1fr; }
+}
