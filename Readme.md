@@ -7,7 +7,7 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 - **Diagnostic tools** are read-only: they never write to your configuration or call data.
 - **Creation and provisioning tools** write configuration in bulk: they create new records from a CSV file, or apply one setting to many records at once. Each one writes only to a small, fixed set of tables and columns, shows a preview first, and writes nothing until you confirm.
 
-<p align="center"><img src="images/infographic.png" alt="Promethean CCaaS Toolbox infographic: 19 tools in four groups — Diagnose, See it in 3D, Build and change in bulk, and Onboard agents" width="540"></p>
+<p align="center"><img src="images/infographic.png" alt="Promethean CCaaS Toolbox infographic: 20 tools in four groups — Diagnose, See it in 3D, Build and change in bulk, and Onboard agents" width="540"></p>
 
 ## Testing, bugs and feedback
 
