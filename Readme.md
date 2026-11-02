@@ -117,9 +117,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_19.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_19.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_20.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_20.zip)
 >
-> **Version 1.0.0.19 contains all twenty-one tools and Toolbox Home**, already in the app's Site Map in six groups: **Home** (Toolbox Home, the landing page with every tool as a card), **Visualization** (3D Contact Center, 3D Explorer, Environment Diagram), **Tools** (the four diagnostic tools), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment, Phone Number Changer, Capacity Profile Assignment), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.20 contains all twenty-one tools and Toolbox Home**, already in the app's Site Map in six groups: **Home** (Toolbox Home, the landing page with every tool as a card), **Visualization** (3D Contact Center, 3D Explorer, Environment Diagram), **Tools** (the four diagnostic tools), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment, Phone Number Changer, Capacity Profile Assignment), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -129,7 +129,7 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_19.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_20.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
@@ -148,7 +148,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.19 already has all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.20 already has all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
