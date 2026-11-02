@@ -26,7 +26,7 @@ export const FOV = 28;
 export const CAMERA_DISTANCE = Math.tan((50 / 2) * Math.PI / 180) / Math.tan((FOV / 2) * Math.PI / 180);
 const WALL = "#8fd3ff";
 const WOOD = "#dbe6f5";
-const SCREEN = "#1d4ed8";
+const SCREEN = "#17325e";
 const PERSON = "#e6edf8";
 const SKIN = "#eef3fb";
 // What glows (edges, lines, lit screens) is drawn brighter than white, so only it blooms.
@@ -204,12 +204,12 @@ function ModelDesks({ desks, screens, showUnits, onPick }: DesksProps) {
       screens: desks.map((f) => at(f, 0, top, -0.2)),
       keyboards: desks.map((f) => at(f, 0, top, 0.2, { key: undefined })),
       chairs: desks.map((f) => at(f, 0, 0, 0.95, { key: undefined })),
-      agents: models.people.sit.map((_, i) => desks.filter((f) => lookOf(f.key ?? "", hash) === i).map((f) => at(f, 0, SEATED_Y, 0.95))),
+      agents: models.people.sit.map((_, i) => desks.filter((f) => lookOf(f.key ?? "", hash) === i).map((f) => at(f, 0, SEATED_Y, 0.78))),
       badges: desks.flatMap((f) => (f.skills ?? []).slice(0, 3).map((s, i) => box(f, -0.5 + i * 0.5, top - 0.25, 0.42, 0.3, 0.18, 0.04, { color: glow(colorFor(s), 1.3) }))),
       carpets: showUnits ? desks.filter((f) => f.unit).map((f) => box(f, 0, 0.03, 0.3, 3, 0.02, 3, { color: new THREE.Color(colorFor(f.unit!)), key: undefined })) : []
     };
   }, [desks, screens, showUnits, models]);
-  const display = useMemo<Tint>(() => ({ part: isDisplay, glow: true, colors: desks.map((f) => (screens?.get(f.key ?? "") ? glow(screens.get(f.key ?? "")!, 1.8) : new THREE.Color(SCREEN).multiplyScalar(0.9))) }), [desks, screens]);
+  const display = useMemo<Tint>(() => ({ part: isDisplay, glow: true, colors: desks.map((f) => (screens?.get(f.key ?? "") ? new THREE.Color(screens.get(f.key ?? "")!).lerp(new THREE.Color(SCREEN), 0.3).multiplyScalar(1.05) : new THREE.Color(SCREEN).multiplyScalar(0.9))) }), [desks, screens]);
   const pick = pickDesk(desks, onPick);
   return (
     <>
@@ -870,3 +870,4 @@ export function CampusScene({ drift, plan, mode, goal, selected, selectedSpot, w
     </Canvas>
   );
 }
+
