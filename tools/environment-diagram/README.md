@@ -1,8 +1,8 @@
 # Environment Diagram
 
-Part of the [Promethean CCaaS Toolbox](../../Readme.md). The whole Dynamics 365 Contact Center as one **Visio-style diagram**: a cross-functional flowchart that reads left to right, the way a call travels. It's the 2D twin of the [Environment 3D Explorer](../environment-3d-explorer/README.md) and [3D Contact Center](../contact-center-3d/README.md), on the same data and with the same features. Read-only.
+Part of the [Promethean CCaaS Toolbox](../../Readme.md). The whole Dynamics 365 Contact Center as one **Visio-style diagram**: a cross-functional flowchart that reads left to right, the way a call travels. It's the 2D twin of the [Environment 3D Explorer](../environment-3d-explorer/README.md) and [3D Contact Center](../contact-center-3d/README.md), on the same data and with the same features. Read-only. Step by step: the [manual](manual.md).
 
-![Environment Diagram](images/01-diagram.png)
+![Environment Diagram](images/01-start.png)
 
 ## How the diagram is laid out
 
