@@ -139,9 +139,9 @@ export function figure(pose: Pose, material: THREE.Material): Model {
   const parts: THREE.BufferGeometry[] = [];
   const add = (g: THREE.BufferGeometry, x: number, y: number, z: number) => { g.translate(x, y, z); parts.push(g.toNonIndexed()); };
   if (pose === "sit") {
-    add(new THREE.CylinderGeometry(0.17, 0.22, 0.62, 18), 0, 0.31, 0.05);
-    add(new THREE.BoxGeometry(0.4, 0.15, 0.46), 0, 0.075, -0.2);
-    add(new THREE.SphereGeometry(0.15, 18, 14), 0, 0.8, 0.05);
+    add(new THREE.CylinderGeometry(0.18, 0.23, 0.82, 18), 0, 0.41, 0.05);
+    add(new THREE.BoxGeometry(0.42, 0.16, 0.5), 0, 0.08, -0.22);
+    add(new THREE.SphereGeometry(0.17, 18, 14), 0, 1.02, 0.05);
   } else {
     add(new THREE.CylinderGeometry(0.16, 0.2, 1.22, 18), 0, 0.61, 0);
     add(new THREE.SphereGeometry(0.15, 18, 14), 0, 1.45, 0);

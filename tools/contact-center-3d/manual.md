@@ -26,15 +26,15 @@ To demonstrate or try it without your own data, click **Use sample data** next t
 
 From the front (the entrance) to the back:
 
-1. **Entrance doors**: one per voice channel. The blue sign above shows its phone numbers. A **screen** at the entrance stands for the digital channels (chat, messaging, email).
-2. **Purple kiosk**: a workstream's bot, the automated reception.
-3. **Front desk**: one per customer center. Each **blue counter** on it is a workstream; a clipboard on a counter means the workstream has context variables.
-4. **Signposts** at the corridor: the routing rules. A red line on the floor leads to the room each rule sends calls to.
+1. **Entrance doors**: one per voice channel. The sign above shows its phone numbers; a ring of light on the floor marks the way in. A **screen** at the entrance stands for the digital channels (chat, messaging, email).
+2. **Kiosk with a violet screen**: a workstream's bot, the automated reception.
+3. **Front desk**: one per customer center. Each **counter** on it (its front edge lit) is a workstream; a clipboard on a counter means the workstream has context variables.
+4. **Signposts** at the corridor: the routing rules. A cyan line of light on the floor leads to the room each rule sends calls to.
 5. **Wings**, side by side: **Phone**, **Chat & messaging** and **Email & records**, each with its name on the floor. A queue's room is in the wing of its type.
-6. **Rooms**: the queues. The blue bench inside, beside the door, is where callers wait. Each **desk** has the agent behind it; the small coloured badges on the desk are the agent's skills.
-7. **By a room's door**: its opening hours (dark sign) and its overflow: a red mailbox for voicemail, a glass phone booth for a callback, a green exit for ending the conversation. A **purple door in the back wall** is an overflow transfer to another queue: the dashed red line leads from it to that room.
+6. **Rooms**: the queues. The chairs inside, beside the door, are where callers wait. Each **desk** has the agent behind it (a slim figure); the small coloured badges on the desk are the agent's skills. The room's name floats on a card above its front wall; a room without desks shows faint desk places on its floor.
+7. **By a room's door**: its opening hours (dark sign) and its overflow: a mailbox for voicemail (orange light), a glass phone booth for a callback, a green exit sign for ending the conversation. A **door with a magenta lit frame in the back wall** is an overflow transfer to another queue: the dashed magenta line leads from it to that room.
 
-A blue **skybridge** goes to a room in another customer center. A faint dashed yellow line goes to a workstream's default queue, the fallback when none of its rules match. A workstream **without routing rules** sends every call to its default queue: that route is a solid orange line, an orange sign behind its counter says "No routing rules: everything goes to …", and the room's name gets "· default". A dashed red line is an overflow transfer to another queue. Arrowheads on the curved lines point the way they go, towards the room. The **Lines** legend in the bottom-right corner shows them all; click it to fold it away.
+An arc of light (a **skybridge**) goes to a room in another customer center. A faint dashed blue line goes to a workstream's default queue, the fallback when none of its rules match; it lights up when you select the workstream. A workstream **without routing rules** sends every call to its default queue: that route is a solid turquoise line, a sign behind its counter says "No routing rules: everything goes to …", and the room's name gets "default". A dashed magenta line is an overflow transfer to another queue. Small pulses of light run along the lines the way a call goes. The **Lines** legend in the bottom-right corner shows them all; click it to fold it away.
 
 Click anything to see what it is, its details, and what it's linked to. Click a link to go there.
 
@@ -75,7 +75,7 @@ Open the **Live** tab and tick **Live activity**. It reads again every 15 second
 
 ## 7. Finding problems
 
-Open the **Health** tab and tick **Show problems**. Records with a problem get a red cone above them, warnings an amber one. The list shows them all; click one to fly there. The checks are the explorer's: see its [README](../environment-3d-explorer/README.md#health-overlay).
+Open the **Health** tab and tick **Show problems**. Records with a problem get a red diamond of light above them, warnings an amber one. The list shows them all; click one to fly there. The checks are the explorer's: see its [README](../environment-3d-explorer/README.md#health-overlay).
 
 ## 8. The guided tour
 

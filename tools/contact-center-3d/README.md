@@ -1,6 +1,6 @@
 # 3D Contact Center
 
-The same environment as the [Environment 3D Explorer](../environment-3d-explorer/README.md), shown from a business perspective: each customer center is a building on a floating platform, open at the top so you look inside from above, drawn like an architect's model in deep blue with glowing edges and lines of light. Read-only. Step by step: the [manual](manual.md) (its screenshots still show the earlier, lighter look; what you can do is the same).
+The same environment as the [Environment 3D Explorer](../environment-3d-explorer/README.md), shown from a business perspective: each customer center is a building on a floating platform, open at the top so you look inside from above, drawn like an architect's model in deep blue with glowing edges and lines of light. Read-only. Step by step: the [manual](manual.md).
 
 ![The campus](images/00-campus.png)
 
@@ -31,7 +31,7 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 
 ![Desks: an agent at each, the screen in their presence colour](images/04-desks.png)
 
-![Callers waiting in a room](images/05-waiting.png)
+![A caller at an agent's desk, during live activity](images/05-waiting.png)
 
 ## Customer centers
 
