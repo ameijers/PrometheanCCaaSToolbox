@@ -247,6 +247,18 @@
         { "name": "pct_/tools/explorer3d/bundle.js", "path": "dist/webresource/explorer3d/bundle.js", "type": 3, "displayName": "Environment 3D Explorer - bundle.js" }
       ]
     },
+    "diagram2d": {
+      "displayName": "Environment Diagram",
+      "stage": [
+        { "from": "tools/environment-diagram/webresource/diagram2d.html", "to": "dist/webresource/diagram2d/index.html" },
+        { "from": "tools/environment-diagram/css/environmentDiagram.css", "to": "dist/webresource/diagram2d/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/diagram2d/index.html", "path": "dist/webresource/diagram2d/index.html", "type": 1, "displayName": "Environment Diagram - index.html", "cacheBust": true },
+        { "name": "pct_/tools/diagram2d/style.css", "path": "dist/webresource/diagram2d/style.css", "type": 2, "displayName": "Environment Diagram - style.css" },
+        { "name": "pct_/tools/diagram2d/bundle.js", "path": "dist/webresource/diagram2d/bundle.js", "type": 3, "displayName": "Environment Diagram - bundle.js" }
+      ]
+    },
     "contactcenter3d": {
       "displayName": "3D Contact Center",
       "stage": [

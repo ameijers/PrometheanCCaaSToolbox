@@ -260,3 +260,24 @@ h3 { margin: 16px 0 6px; font-size: 11px; text-transform: uppercase; letter-spac
 .tour-start { width: 100%; margin-bottom: 8px; padding: 9px 10px; background: #0284c7; border: 1px solid #0284c7; border-radius: 4px; color: #fff; font-size: 13px; font-weight: 700; }
 .tour-start:hover:not(:disabled) { background: #0369a1; border-color: #0369a1; }
 .tour-start:disabled { opacity: .4; cursor: default; }
+
+/* The professional look: the campus on deep navy, labels as dark glass chips with a thin lit border. */
+:root, .campus { background: #0a1532; }
+.building-label { padding: 5px 14px; font: 700 12px Manrope, "Segoe UI", sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #e0f2fe; background: rgba(10, 21, 50, .82); border: 1px solid; border-radius: 4px; box-shadow: 0 0 16px rgba(56, 189, 248, .35), inset 0 0 12px rgba(56, 189, 248, .12); backdrop-filter: blur(4px); }
+.building-label:hover { background: rgba(14, 40, 86, .92); }
+.area-label { padding: 1px 6px; font-weight: 600; color: #dbeafe; background: rgba(10, 21, 50, .78); border: 1px solid rgba(125, 211, 252, .35); border-radius: 3px; }
+.area-label.lobby { color: #fde68a; }
+.area-label .tag, .area-label .suffix { color: #fcd34d; }
+.fixture-label, .fixture-label.signpost, .fixture-label.numbers, .fixture-label.hours, .fixture-label.kiosk, .fixture-label.counter, .fixture-label.portal, .fixture-label.notice { color: #e0f2fe; background: rgba(10, 21, 50, .85); border: 1px solid rgba(125, 211, 252, .3); }
+.fixture-label.signpost { border-color: rgba(56, 189, 248, .7); }
+.fixture-label.kiosk { border-color: rgba(167, 139, 250, .7); }
+.fixture-label.notice { border-color: rgba(251, 191, 36, .7); }
+.fixture-label.numbers { font-weight: 700; border-color: rgba(125, 211, 252, .6); }
+.wing-label { color: #e0f2fe; background: rgba(10, 21, 50, .85); border-left: 3px solid #38bdf8; letter-spacing: .08em; }
+.floor-label { color: #e0f2fe; background: rgba(10, 21, 50, .88); }
+.overlay { background: rgba(10, 21, 50, .8); color: #e0f2fe; }
+
+/* A room's floating card, on a lit stem above its front edge. */
+.holo-card { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 10px 5px; min-width: 70px; background: linear-gradient(180deg, rgba(14, 40, 86, .9), rgba(10, 21, 50, .9)); border: 1px solid rgba(125, 211, 252, .45); border-top: 2px solid #38bdf8; border-radius: 3px; box-shadow: 0 0 14px rgba(56, 189, 248, .3); white-space: nowrap; }
+.holo-name { font: 700 10.5px Manrope, "Segoe UI", sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #e0f2fe; }
+.holo-sub { font: 500 9.5px 'DM Mono', Consolas, monospace; color: #fcd34d; }

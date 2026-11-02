@@ -1,6 +1,6 @@
 # 3D Contact Center
 
-The same environment as the [Environment 3D Explorer](../environment-3d-explorer/README.md), shown from a business perspective: each customer center is a building on a campus, open at the top so you look inside from above. Read-only. Step by step: the [manual](manual.md).
+The same environment as the [Environment 3D Explorer](../environment-3d-explorer/README.md), shown from a business perspective: each customer center is a building on a floating platform, open at the top so you look inside from above, drawn like an architect's model in deep blue with glowing edges and lines of light. Read-only. Step by step: the [manual](manual.md) (its screenshots still show the earlier, lighter look; what you can do is the same).
 
 ![The campus](images/00-campus.png)
 
@@ -11,19 +11,19 @@ The same environment as the [Environment 3D Explorer](../environment-3d-explorer
 | Building | a customer center: the workstreams you put in it (or one workstream, while it's in no center) |
 | Entrance door, with the phone numbers on a sign above it | voice channel and its phone numbers |
 | Screen at the entrance | the digital channels of the center's chat and email workstreams |
-| One front desk, with a blue counter and a receptionist per workstream; plants in the lobby corners | workstream; a clipboard on the counter means it has context variables |
-| Purple kiosk in front of the front desk | a workstream's bot (automated reception) |
-| Signpost at the corridor, with a red line on the floor to its room | routing rule |
+| One front desk, with a counter (its edge lit) and a receptionist per workstream; plants in the lobby corners | workstream; a clipboard on the counter means it has context variables |
+| Kiosk with a violet screen in front of the front desk | a workstream's bot (automated reception) |
+| Signpost at the corridor, with a cyan line of light on the floor to its room | routing rule |
 | Wing behind the corridor: **Phone**, **Chat & messaging**, **Email & records**, side by side | the kind of work: a queue's room is in the wing of its type |
-| Room, with four waiting chairs inside, beside the door | queue; with live activity, waiting callers sit on the chairs (and stand beside them when they're full) |
-| Desk with a monitor, an office chair and an agent sitting at it, small badges on its front | agent and their skills; with live activity the screen shows their presence colour |
+| Room, with waiting chairs inside, beside the door, and a floating card with its name; a room without desks shows faint desk places | queue; with live activity, waiting callers sit on the chairs (and stand beside them when they're full) |
+| Desk with a monitor, an office chair and an agent (a slim scale-model figure) sitting at it, small glowing badges on its front | agent and their skills; with live activity the screen shows their presence colour |
 | Carpet under a desk (when switched on) | the agent's business unit |
 | Sign by the room's door | operating hours |
 | Outside the room's front door | overflow: a mailbox (voicemail), a phone booth (callback or transfer to phone), an exit (end conversation), an amber block (remain in queue) |
-| Purple door in the room's back wall | overflow: a transfer to another queue, with a dashed red line to that room |
-| Blue skybridge | a routing rule to a room in another customer center |
-| Solid orange line | a workstream without routing rules: its default queue is where every call goes; a sign behind its counter says so |
-| Faint dashed yellow line | a workstream's default queue, the fallback beside its routing rules |
+| Door with a magenta lit frame in the room's back wall | overflow: a transfer to another queue, with a dashed magenta line to that room |
+| Arc of light between buildings (skybridge) | a routing rule to a room in another customer center |
+| Solid line of light, turquoise | a workstream without routing rules: its default queue is where every call goes; a sign behind its counter says so |
+| Faint dashed blue line, bright when its workstream is selected | a workstream's default queue, the fallback beside its routing rules |
 | "· default" after a room's name | the room is a shown workstream's default queue |
 | "Not routed" building | queues no shown workstream routes to; hidden until you tick **Show queues nothing routes to** on the Centers tab |
 
@@ -79,8 +79,8 @@ It reuses the explorer's code rather than copying it: the Dataverse reads and th
 - `src/centers.ts`: the customer centers (create, move, delete, rename, recolour, hide, and matching a saved grouping to today's workstreams).
 - `src/store.ts`: where the grouping is kept.
 - `src/floorplan.ts`: the plan, from graph and grouping to buildings, wings, areas, walls, fixtures, paths, anchors, waiting-bench seats, room doors and ways in. Pure.
-- `src/CampusScene.tsx`: draws it. Floors and walls are instanced boxes; the desks, waiting chairs, plants and people are 3D models, drawn as one instanced mesh per model part, so large centers stay smooth.
-- `src/models.ts`: the 3D models, from `models/` (Kenney's Furniture Kit and Mini Characters, CC0, see the licence files there). They're inlined in the bundle as data URLs (a web resource can't be a `.glb` file), and the characters are put in their sitting, standing and walking poses once, when they load. While they load, or if they can't, everything is boxes as before. The doors, signposts, kiosks and overflow fixtures (mailbox, phone booth, exit) stay simple shapes: the two kits have nothing that fits.
+- `src/CampusScene.tsx`: draws it. Floors and walls are instanced boxes; the desks, waiting chairs, plants and people are drawn as one instanced mesh per model part, so large centers stay smooth. The look: a narrow, near-isometric camera (28°), a gradient sky over a faint grid, two-tier platforms with lit edges, glass walls, circuit traces on the floors, thin lines of light with pulses running along them, floating room cards, rings of light at the entrances, soft contact shadows and a glow on everything lit (`@react-three/postprocessing`: N8AO, Bloom, Vignette).
+- `src/models.ts`: the furniture from `models/` (Kenney's Furniture Kit, CC0, see the licence file there) in the campus's own calm colours, and people as slim scale-model figures made in code. The `.glb` files are inlined in the bundle as data URLs (a web resource can't be a `.glb` file). While they load, or if they can't, everything is boxes. The doors, signposts, kiosks and overflow fixtures are simple shapes with a small lit part that shows what they are.
 
 Tables read: the same as the explorer (with live activity: `msdyn_agentstatus` and `msdyn_ocliveworkitem`). Written: nothing; `tests/floorplan.test.ts` includes the read-only check.
 
@@ -89,4 +89,4 @@ Tables read: the same as the explorer (with live activity: `msdyn_agentstatus` a
 - Demo with sample data: `npm run demo:contactcenter3d` → http://localhost:5449/index.html
 - Tests: `npx jest tools/contact-center-3d`
 - Deploy: `pwsh ./scripts/deploy.ps1 -Tool contactcenter3d` (add `-CreateIfMissing` the first time in an environment).
-- Web resources: `pct_/tools/contactcenter3d/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.15** (Site Map: **3D → 3D Contact Center**). For an environment on an older solution version, add a subarea of type Web Resource for `pct_/tools/contactcenter3d/index.html` by hand (see the [toolbox README](../../Readme.md#site-map-subareas)).
+- Web resources: `pct_/tools/contactcenter3d/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.15** (Site Map: **Visualization → 3D Contact Center** from 1.0.0.19; **3D** before). For an environment on an older solution version, add a subarea of type Web Resource for `pct_/tools/contactcenter3d/index.html` by hand (see the [toolbox README](../../Readme.md#site-map-subareas)).

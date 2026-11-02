@@ -6,6 +6,7 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import * as THREE from "three";
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Html, Line, OrbitControls } from "@react-three/drei";
+import { Bloom, EffectComposer, N8AO, Vignette } from "@react-three/postprocessing";
 import { Severity } from "../../environment-3d-explorer/src/health";
 import { hash } from "../../environment-3d-explorer/src/layout";
 import { CameraGoal, CameraRig, Mode, Ride, SceneHandle } from "../../environment-3d-explorer/src/Scene";
@@ -13,33 +14,46 @@ import { Area, Fixture, FixtureKind, Path, PathKind, Plan, Vec3, Wall, Wing, WIN
 import { isDisplay, lookOf, Model, Models, useModels } from "./models";
 import { inAny, lobbyPlants, obstacles, Rect } from "./walk";
 
-// The campus in 3D: open-roofed buildings seen from above, like a doll's house. Floors, walls, desks
-// and people are instanced boxes, so a large center stays smooth.
+// The campus in 3D: each customer center an open-roofed building on a floating platform, seen from
+// above like an architect's model, in deep blue with glowing edges and lines. Floors, walls and desks
+// are instanced, so a large center stays smooth.
 
-// Near black behind the buildings, so they stand out.
-export const SKY = "#05070b";
-const WALL = "#f8fafc";
-const WOOD = "#b98b5e";
-const SCREEN = "#1e293b";
-const PERSON = "#475569";
-const SKIN = "#f1c7a4";
+// Deep navy behind and below the campus; the fog fades far buildings into it.
+export const SKY = "#0d1838";
+// A narrow camera angle, close to isometric: little perspective, so nothing near the camera blows up.
+// Camera distances are this many times what they were at the old 50 degrees.
+export const FOV = 28;
+export const CAMERA_DISTANCE = Math.tan((50 / 2) * Math.PI / 180) / Math.tan((FOV / 2) * Math.PI / 180);
+const WALL = "#8fd3ff";
+const WOOD = "#dbe6f5";
+const SCREEN = "#1d4ed8";
+const PERSON = "#e6edf8";
+const SKIN = "#eef3fb";
+// What glows (edges, lines, lit screens) is drawn brighter than white, so only it blooms.
+const GLOW = 2.4;
+const EDGE = "#38bdf8";
+const glow = (color: string, k = GLOW) => new THREE.Color(color).multiplyScalar(k);
+// Floors by kind, in blues; an area's own colour (its center or wing) shows through a little.
+const FLOOR: Record<Area["kind"], string> = { building: "#163866", entrance: "#1f4a86", lobby: "#1d467f", corridor: "#183d70", wing: "#1a4176", room: "#21508f" };
+const AREA_MIX: Record<Area["kind"], number> = { building: 0.03, entrance: 0.05, lobby: 0.05, corridor: 0.03, wing: 0.07, room: 0.05 };
 
 export const SEVERITY_COLORS: Record<Severity, string> = { problem: "#ef4444", warning: "#f59e0b" };
 
-const AREA_TINT: Record<Area["kind"], number> = { building: 0.8, entrance: 0.6, lobby: 0.45, corridor: 0.72, wing: 0.72, room: 0.55 };
 // The lines' looks; the page's legend explains them from the same list.
 export const PATH_STYLE: Record<PathKind, { color: string; dashed: boolean; width: number; label: string }> = {
-  route: { color: "#f43f5e", dashed: false, width: 2, label: "Routing rule to its room" },
-  only: { color: "#f59e0b", dashed: false, width: 2, label: "Only route: workstream's default queue (no routing rules)" },
-  skybridge: { color: "#38bdf8", dashed: false, width: 2.2, label: "Routing rule to a room in another customer center (skybridge)" },
-  default: { color: "#facc15", dashed: true, width: 1.2, label: "Workstream's default queue" },
-  transfer: { color: "#fb7185", dashed: true, width: 1.6, label: "Overflow: transfer to another queue" }
+  route: { color: "#38bdf8", dashed: false, width: 2, label: "Routing rule to its room" },
+  only: { color: "#22d3ee", dashed: false, width: 2, label: "Only route: workstream's default queue (no routing rules)" },
+  skybridge: { color: "#7dd3fc", dashed: false, width: 2.2, label: "Routing rule to a room in another customer center (skybridge)" },
+  default: { color: "#60a5fa", dashed: true, width: 1, label: "Workstream's default queue (bright when the workstream is selected)" },
+  transfer: { color: "#e879f9", dashed: true, width: 1.4, label: "Overflow: transfer to another queue" }
 };
 // Labels keep one small size. Inside a building they only show when the camera is this close (metres),
 // so the campus from afar isn't a heap of labels and labels near you stay readable while exploring.
-const ROOM_LABEL_RANGE = 150;
+const ROOM_LABEL_RANGE = 280;
 const SIGN_LABEL_RANGE = 90;
 const SMALL_LABEL_RANGE = 60;
+// How high a room's card floats above its front edge.
+const CARD_Y = 6.5;
 const LABELLED: FixtureKind[] = ["signpost", "numbers", "hours", "mailbox", "booth", "exit", "transfer", "hold", "kiosk", "counter", "portal", "notice"];
 const PALETTE = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#2dd4bf", "#60a5fa", "#a78bfa", "#f472b6", "#94a3b8", "#c084fc"];
 export const colorFor = (name: string) => PALETTE[Math.floor(((hash(name, 21) + 1) / 2) * PALETTE.length) % PALETTE.length];
@@ -191,18 +205,17 @@ function ModelDesks({ desks, screens, showUnits, onPick }: DesksProps) {
       keyboards: desks.map((f) => at(f, 0, top, 0.2, { key: undefined })),
       chairs: desks.map((f) => at(f, 0, 0, 0.95, { key: undefined })),
       agents: models.people.sit.map((_, i) => desks.filter((f) => lookOf(f.key ?? "", hash) === i).map((f) => at(f, 0, SEATED_Y, 0.95))),
-      badges: desks.flatMap((f) => (f.skills ?? []).slice(0, 3).map((s, i) => box(f, -0.5 + i * 0.5, top - 0.25, 0.42, 0.3, 0.18, 0.04, { color: new THREE.Color(colorFor(s)) }))),
+      badges: desks.flatMap((f) => (f.skills ?? []).slice(0, 3).map((s, i) => box(f, -0.5 + i * 0.5, top - 0.25, 0.42, 0.3, 0.18, 0.04, { color: glow(colorFor(s), 1.3) }))),
       carpets: showUnits ? desks.filter((f) => f.unit).map((f) => box(f, 0, 0.03, 0.3, 3, 0.02, 3, { color: new THREE.Color(colorFor(f.unit!)), key: undefined })) : []
     };
   }, [desks, screens, showUnits, models]);
-  const display = useMemo<Tint>(() => ({ part: isDisplay, glow: !!screens, colors: desks.map((f) => new THREE.Color(screens?.get(f.key ?? "") ?? SCREEN)) }), [desks, screens]);
+  const display = useMemo<Tint>(() => ({ part: isDisplay, glow: true, colors: desks.map((f) => (screens?.get(f.key ?? "") ? glow(screens.get(f.key ?? "")!, 1.8) : new THREE.Color(SCREEN).multiplyScalar(0.9))) }), [desks, screens]);
   const pick = pickDesk(desks, onPick);
   return (
     <>
       <Boxes items={parts.carpets} />
       <ModelInstances model={models.desk} items={parts.desks} onPick={pick} />
       <ModelInstances model={models.screen} items={parts.screens} onPick={pick} tint={display} />
-      <ModelInstances model={models.keyboard} items={parts.keyboards} />
       <ModelInstances model={models.chair} items={parts.chairs} />
       {models.people.sit.map((m, i) => <ModelInstances key={i} model={m} items={parts.agents[i]} onPick={pick} />)}
       <Boxes items={parts.badges} emissive />
@@ -256,7 +269,7 @@ function ModelCallers({ callers }: { callers: Caller[] }) {
       sit: [0, 1].map((look) => pose(false, look)),
       stand: [0, 1].map((look) => pose(true, look)),
       chairs: callers.filter((c) => c.chair).map((c): ModelItem => ({ x: c.at[0], y: c.at[1], z: c.at[2], turn: c.turn, scale: Math.min(1, 0.78 / models.waitingChair.size.x) })),
-      mats: callers.map((c) => ({ x: c.at[0], y: c.at[1] + 0.03, z: c.at[2], w: 0.9, h: 0.02, d: 0.9, color: new THREE.Color(c.color) }))
+      mats: callers.map((c) => ({ x: c.at[0], y: c.at[1] + 0.03, z: c.at[2], w: 0.9, h: 0.02, d: 0.9, color: glow(c.color, 1.6) }))
     };
   }, [callers, models]);
   return (
@@ -410,31 +423,48 @@ function FixtureModel({ f, onPick }: { f: Fixture; onPick(key: string): void }) 
   const box = (pos: Vec3, size: Vec3, color: string, extra?: Partial<THREE.MeshStandardMaterialParameters>) => (
     <mesh position={pos} onClick={click}>
       <boxGeometry args={size} />
-      <meshStandardMaterial color={color} roughness={0.7} {...extra} />
+      <meshStandardMaterial color={color} roughness={0.55} metalness={0.15} {...extra} />
     </mesh>
   );
+  // A lit part: drawn brighter than white, so it glows.
+  const lit = (pos: Vec3, size: Vec3, color: string, k = GLOW) => (
+    <mesh position={pos} onClick={click}>
+      <boxGeometry args={size} />
+      <meshBasicMaterial color={glow(color, k)} toneMapped={false} />
+    </mesh>
+  );
+  const BODY = "#cfdbeb", DARK = "#3c5179";
   const kind: FixtureKind = f.kind;
   return (
     <group position={[f.x, f.y, f.z]}>
-      {kind === "door" && <>{box([-1.25, 1.3, 0], [0.18, 2.6, 0.35], "#64748b")}{box([1.25, 1.3, 0], [0.18, 2.6, 0.35], "#64748b")}{box([0, 2.65, 0], [2.7, 0.2, 0.35], "#64748b")}{box([0, 0.02, -0.8], [2.2, 0.04, 1.2], "#94a3b8")}</>}
-      {kind === "reception" && <>{box([0, 0.55, 0], [f.w ?? 4.2, 1.1, 1], "#e2e8f0")}{box([0, 1.12, 0.1], [(f.w ?? 4.2) + 0.2, 0.06, 1.2], WOOD)}</>}
+      {kind === "door" && <>{box([-1.25, 1.3, 0], [0.18, 2.6, 0.35], DARK)}{box([1.25, 1.3, 0], [0.18, 2.6, 0.35], DARK)}{box([0, 2.65, 0], [2.7, 0.2, 0.35], DARK)}{lit([0, 2.78, 0], [2.7, 0.05, 0.36], EDGE)}{lit([0, 0.03, -0.8], [2.2, 0.03, 1.2], "#1e6fb8", 1)}</>}
+      {kind === "reception" && <>{box([0, 0.55, 0], [f.w ?? 4.2, 1.1, 1], BODY)}{box([0, 1.12, 0.1], [(f.w ?? 4.2) + 0.2, 0.06, 1.2], WOOD)}{lit([0, 0.3, 0.51], [(f.w ?? 4.2) - 0.2, 0.04, 0.02], EDGE)}</>}
       {kind === "counter" && <>
-        {box([0, 1.18, 0.15], [f.w ?? 3, 0.08, 0.9], "#0ea5e9", { emissive: "#0ea5e9", emissiveIntensity: 0.25 })}
+        {box([0, 1.18, 0.15], [f.w ?? 3, 0.08, 0.9], BODY)}
+        {lit([0, 1.13, 0.61], [f.w ?? 3, 0.03, 0.02], EDGE)}
         {/* The context variables a call brings: a clipboard on the counter. */}
-        {(f.variables?.length ?? 0) > 0 && <>{box([0.9, 1.24, 0.35], [0.45, 0.04, 0.6], "#f8fafc")}{box([0.9, 1.27, 0.12], [0.2, 0.03, 0.08], "#475569")}</>}
+        {(f.variables?.length ?? 0) > 0 && <>{box([0.9, 1.24, 0.35], [0.45, 0.04, 0.6], "#f8fafc")}{lit([0.9, 1.27, 0.12], [0.2, 0.03, 0.08], "#fcd34d", 1.6)}</>}
       </>}
       {/* The digital channels' screen, just inside the front wall, lit side facing into the lobby. */}
-      {kind === "portal" && <>{box([0, 2, 0], [6, 2.6, 0.2], "#1e293b")}{box([0, 2, -0.12], [5.6, 2.2, 0.05], "#38bdf8", { emissive: "#38bdf8", emissiveIntensity: 0.5 })}</>}
-      {kind === "kiosk" && <>{box([0, 0.7, 0], [0.7, 1.4, 0.5], "#a855f7")}{box([0, 1.55, 0.1], [0.8, 0.55, 0.08], "#ede9fe", { emissive: "#c4b5fd", emissiveIntensity: 0.6 })}</>}
-      {kind === "signpost" && <>{box([0, 1, 0], [0.12, 2, 0.12], "#475569")}{box([0, 1.85, 0], [1.6, 0.5, 0.08], "#be123c")}</>}
-      {kind === "hours" && box([0, 2.1, 0.05], [0.9, 0.6, 0.06], "#0f172a")}
-      {kind === "mailbox" && <>{box([0, 0.55, 0], [0.1, 1.1, 0.1], "#475569")}{box([0, 1.2, 0], [0.55, 0.4, 0.4], "#dc2626")}</>}
-      {kind === "booth" && box([0, 1.2, 0], [1, 2.4, 1], "#38bdf8", { transparent: true, opacity: 0.55 })}
-      {kind === "exit" && <>{box([0, 2.3, 0], [1, 0.35, 0.08], "#16a34a", { emissive: "#22c55e", emissiveIntensity: 0.4 })}{box([0, 1.1, 0], [0.1, 2.2, 0.1], "#475569")}</>}
-      {kind === "transfer" && <>{box([-1.2, 1.15, 0], [0.16, 2.3, 0.3], "#7c3aed")}{box([1.2, 1.15, 0], [0.16, 2.3, 0.3], "#7c3aed")}{box([0, 2.35, 0], [2.56, 0.18, 0.3], "#7c3aed")}{box([0, 0.02, 0], [2.2, 0.04, 1], "#c4b5fd")}</>}
+      {kind === "portal" && <>
+        {box([0, 2, 0], [6, 2.6, 0.2], "#16233f")}
+        {box([0, 2, -0.11], [5.6, 2.2, 0.04], "#0b2350", { emissive: "#0b3a7a", emissiveIntensity: 0.6 })}
+        {/* A display: a thin lit border and a faint grid of light. */}
+        {lit([0, 3.1, -0.14], [5.6, 0.03, 0.02], EDGE, 1.6)}{lit([0, 0.9, -0.14], [5.6, 0.03, 0.02], EDGE, 1.6)}
+        {lit([-2.8, 2, -0.14], [0.03, 2.2, 0.02], EDGE, 1.6)}{lit([2.8, 2, -0.14], [0.03, 2.2, 0.02], EDGE, 1.6)}
+        {[1.45, 2, 2.55].map((y) => <React.Fragment key={y}>{lit([0, y, -0.14], [5.4, 0.015, 0.02], "#38bdf8", 0.9)}</React.Fragment>)}
+        {[-1.4, 0, 1.4].map((x) => <React.Fragment key={x}>{lit([x, 2, -0.14], [0.015, 2, 0.02], "#38bdf8", 0.9)}</React.Fragment>)}
+      </>}
+      {kind === "kiosk" && <>{box([0, 0.7, 0], [0.7, 1.4, 0.5], BODY)}{lit([0, 1.55, 0.1], [0.8, 0.55, 0.08], "#a78bfa", 1.6)}</>}
+      {kind === "signpost" && <>{box([0, 1, 0], [0.12, 2, 0.12], DARK)}{box([0, 1.85, 0], [1.6, 0.5, 0.08], DARK)}{lit([0, 1.85, 0.05], [1.5, 0.08, 0.02], PATH_STYLE.route.color)}</>}
+      {kind === "hours" && <>{box([0, 2.1, 0.05], [0.9, 0.6, 0.06], DARK)}{lit([0, 2.1, 0.09], [0.7, 0.04, 0.02], "#e2e8f0", 1.4)}</>}
+      {kind === "mailbox" && <>{box([0, 0.55, 0], [0.1, 1.1, 0.1], DARK)}{box([0, 1.2, 0], [0.55, 0.4, 0.4], BODY)}{lit([0, 1.42, 0], [0.56, 0.04, 0.41], "#f97316")}</>}
+      {kind === "booth" && <>{box([0, 1.2, 0], [1, 2.4, 1], "#8fd3ff", { transparent: true, opacity: 0.25 })}{lit([0, 2.42, 0], [1.02, 0.04, 1.02], EDGE)}</>}
+      {kind === "exit" && <>{lit([0, 2.3, 0], [1, 0.35, 0.08], "#22c55e", 1.6)}{box([0, 1.1, 0], [0.1, 2.2, 0.1], DARK)}</>}
+      {kind === "transfer" && <>{box([-1.2, 1.15, 0], [0.16, 2.3, 0.3], DARK)}{box([1.2, 1.15, 0], [0.16, 2.3, 0.3], DARK)}{box([0, 2.35, 0], [2.56, 0.18, 0.3], DARK)}{lit([0, 2.47, 0], [2.56, 0.05, 0.31], PATH_STYLE.transfer.color)}{lit([0, 0.03, 0], [2.2, 0.03, 1], "#9d3a78", 1)}</>}
       {/* A standing sign behind the front desk: no routing rules, so one way only. */}
-      {kind === "notice" && <>{box([0, 0.8, 0], [0.08, 1.6, 0.08], "#475569")}{box([0, 1.6, 0], [1.2, 0.6, 0.06], "#f59e0b", { emissive: "#f59e0b", emissiveIntensity: 0.3 })}</>}
-      {kind === "hold" && box([0, 0.5, 0], [0.8, 1, 0.8], "#f59e0b")}
+      {kind === "notice" && <>{box([0, 0.8, 0], [0.08, 1.6, 0.08], DARK)}{box([0, 1.6, 0], [1.2, 0.6, 0.06], DARK)}{lit([0, 1.6, 0.04], [1.1, 0.06, 0.02], PATH_STYLE.only.color)}</>}
+      {kind === "hold" && <>{box([0, 0.5, 0], [0.8, 1, 0.8], BODY)}{lit([0, 1.02, 0], [0.82, 0.04, 0.82], "#fbbf24")}</>}
     </group>
   );
 }
@@ -462,7 +492,7 @@ export function alongLine(points: Vec3[], t: number): { at: Vec3; direction: Vec
 
 // The labels inside buildings, near the camera only. They're all placed once; a few times a second
 // each is shown or hidden by its distance to the camera, without redrawing anything.
-interface NearLabel { key: string; at: Vec3; range: number; className: string; style?: React.CSSProperties; text: React.ReactNode }
+interface NearLabel { key: string; at: Vec3; range: number; className: string; style?: React.CSSProperties; text: React.ReactNode; from?: number }
 
 function NearbyLabels({ plan, shown, labelSuffix }: { plan: Plan; shown(item: { wing?: Wing }): boolean; labelSuffix?: Map<string, string> }) {
   const camera = useThree((st) => st.camera);
@@ -471,12 +501,12 @@ function NearbyLabels({ plan, shown, labelSuffix }: { plan: Plan; shown(item: { 
   const heightOf = (kind: FixtureKind) => (kind === "numbers" ? 3.4 : kind === "signpost" ? 2.5 : kind === "counter" ? 1.9 : kind === "portal" ? 3.8 : kind === "notice" ? 2.3 : 2.6);
   const labels = useMemo((): NearLabel[] => [
     ...plan.areas.filter((a) => a.kind === "wing" && shown(a)).map((a) => ({
-      key: `wing:${a.centerId}:${a.wing}`, at: [a.x, 0.3, a.z + a.d / 2 - 1.2] as Vec3, range: ROOM_LABEL_RANGE,
-      className: "wing-label", style: { background: WING_COLORS[a.wing!] }, text: a.name
+      key: `wing:${a.centerId}:${a.wing}`, at: [a.x, 0.3, a.z + a.d / 2 - 1.2] as Vec3, range: ROOM_LABEL_RANGE * 3, from: ROOM_LABEL_RANGE,
+      className: "wing-label", style: { borderLeftColor: WING_COLORS[a.wing!] }, text: a.name
     })),
     ...plan.areas.filter((a) => a.kind === "room" && shown(a)).map((a) => ({
-      key: `room:${a.key}`, at: [a.x, 0.2, a.z + a.d / 2 - 0.8] as Vec3, range: ROOM_LABEL_RANGE, className: "area-label room",
-      text: <>{a.name}{a.tag && <span className="tag"> · {a.tag}</span>}{labelSuffix?.get(a.key ?? "") && <span className="suffix"> · {labelSuffix.get(a.key ?? "")}</span>}</>
+      key: `room:${a.key}`, at: [a.x, CARD_Y, a.z + a.d / 2 - 1.2] as Vec3, range: ROOM_LABEL_RANGE, className: "holo-card",
+      text: <><span className="holo-name">{a.name}</span>{(a.tag || labelSuffix?.get(a.key ?? "")) && <span className="holo-sub">{[a.tag, labelSuffix?.get(a.key ?? "")].filter(Boolean).join(" · ")}</span>}</>
     })),
     ...plan.fixtures.filter((f) => LABELLED.includes(f.kind) && f.label && shown(f)).map((f, i) => ({
       key: `label:${f.kind}:${f.key ?? i}:${f.x}:${f.z}`, at: [f.x, f.y + heightOf(f.kind), f.z] as Vec3,
@@ -490,7 +520,8 @@ function NearbyLabels({ plan, shown, labelSuffix }: { plan: Plan; shown(item: { 
     const p = camera.position;
     labels.forEach((l) => {
       const node = nodes.current.get(l.key);
-      if (node) node.style.display = Math.hypot(l.at[0] - p.x, l.at[1] - p.y, l.at[2] - p.z) < l.range ? "" : "none";
+      const d = Math.hypot(l.at[0] - p.x, l.at[1] - p.y, l.at[2] - p.z);
+      if (node) node.style.display = d < l.range && d >= (l.from ?? 0) ? "" : "none";
     });
   });
   return (
@@ -504,7 +535,7 @@ function NearbyLabels({ plan, shown, labelSuffix }: { plan: Plan; shown(item: { 
   );
 }
 
-function PathLine({ path }: { path: Path }) {
+function PathLine({ path, highlight }: { path: Path; highlight?: boolean }) {
   const style = PATH_STYLE[path.kind];
   // A line that leaves the floor (between buildings) gets arrowheads in its own colour.
   const curved = path.points.some((q) => q[1] > 1.5);
@@ -512,15 +543,239 @@ function PathLine({ path }: { path: Path }) {
     const { at, direction } = alongLine(path.points, t);
     return { at, turn: new THREE.Quaternion().setFromUnitVectors(UP, new THREE.Vector3(...direction)) };
   }) : []), [path.points, curved]);
+  void arrows;
+  // The default queue's line stays faint, unless its workstream is selected.
+  const faint = path.kind === "default" && !highlight;
+  const core = useMemo(() => (faint ? new THREE.Color(style.color) : glow(style.color, path.kind === "default" ? 1.6 : 2)), [style.color, path.kind, faint]);
   return (
     <>
-      <Line points={path.points} color={style.color} lineWidth={style.width} dashed={style.dashed} dashSize={1} gapSize={0.6} transparent opacity={path.kind === "default" ? 0.6 : 1} />
-      {arrows.map((a, i) => (
-        <mesh key={i} position={a.at} quaternion={a.turn} raycast={() => null}>
-          <coneGeometry args={[path.kind === "default" ? 0.5 : 0.7, path.kind === "default" ? 1.4 : 1.8, 12]} />
-          <meshBasicMaterial color={style.color} transparent opacity={path.kind === "default" ? 0.7 : 1} />
+      {!style.dashed ? (
+        <>
+          <Line points={path.points} color={core} lineWidth={curved ? 2.4 : 2} toneMapped={false} />
+          <Line points={path.points} color={style.color} lineWidth={curved ? 7 : 6} transparent opacity={0.1} depthWrite={false} />
+        </>
+      ) : (
+        <Line points={path.points} color={core} lineWidth={faint ? 0.8 : style.width} dashed={style.dashed} dashSize={0.8} gapSize={0.8} toneMapped={false} transparent opacity={faint ? 0.28 : 1} />
+      )}
+    </>
+  );
+}
+
+// Light pulses running along the lines, the way a call goes: a few per line, by its length.
+function FlowPulses({ paths }: { paths: Path[] }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const runs = useMemo(() => paths.filter((p) => p.kind !== "default" && p.points.length > 1).map((p) => {
+    const lengths = p.points.slice(1).map((q, i) => Math.hypot(q[0] - p.points[i][0], q[1] - p.points[i][1], q[2] - p.points[i][2]));
+    const total = lengths.reduce((a, b) => a + b, 0);
+    return { points: p.points, lengths, total, count: Math.max(1, Math.min(4, Math.round(total / 28))), color: glow(PATH_STYLE[p.kind].color, 3), seed: (hash(p.points.map((x) => x.join(",")).join(";"), 3) + 1) / 2 };
+  }).filter((r) => r.total > 1), [paths]);
+  const pulses = useMemo(() => runs.flatMap((r) => Array.from({ length: r.count }, (_, i) => ({ run: r, offset: (r.seed + i / r.count) % 1 }))), [runs]);
+  const geometry = useMemo(() => new THREE.SphereGeometry(0.16, 12, 10), []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    pulses.forEach((p, i) => mesh.setColorAt(i, p.run.color));
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  }, [pulses]);
+  const m = useMemo(() => new THREE.Matrix4(), []);
+  useFrame(({ clock }) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const t = clock.getElapsedTime();
+    pulses.forEach((p, i) => {
+      const { run } = p;
+      // About 9 metres a second, whatever the line's length.
+      let rest = (((t * 9) / run.total + p.offset) % 1) * run.total;
+      let at = run.points[run.points.length - 1];
+      for (let s = 0; s < run.lengths.length; s++) {
+        if (rest <= run.lengths[s]) {
+          const f = run.lengths[s] ? rest / run.lengths[s] : 0;
+          const [a, b] = [run.points[s], run.points[s + 1]];
+          at = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+          break;
+        }
+        rest -= run.lengths[s];
+      }
+      m.makeTranslation(at[0], at[1], at[2]);
+      mesh.setMatrixAt(i, m);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+  if (!pulses.length) return null;
+  return (
+    <instancedMesh key={pulses.length} ref={ref} args={[geometry, undefined, pulses.length]} raycast={() => null} frustumCulled={false}>
+      <meshBasicMaterial toneMapped={false} />
+    </instancedMesh>
+  );
+}
+
+// A glowing ring on the floor at each building's way in, slowly breathing.
+function EntranceRings({ doors }: { doors: Fixture[] }) {
+  const group = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    const k = 1 + 0.08 * Math.sin(clock.getElapsedTime() * 2);
+    group.current?.children.forEach((c) => c.scale.set(k, k, 1));
+  });
+  const color = useMemo(() => glow("#38bdf8", 2.2), []);
+  return (
+    <group ref={group}>
+      {doors.map((d, i) => (
+        <mesh key={i} position={[d.x, 0.12, d.z - 0.8]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+          <ringGeometry args={[1.25, 1.4, 48]} />
+          <meshBasicMaterial color={color} toneMapped={false} transparent opacity={0.9} />
         </mesh>
       ))}
+    </group>
+  );
+}
+
+// The sky: a vertical gradient, deep violet-navy at the top to navy at the horizon, behind everything.
+function GradientSky() {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 4; canvas.height = 256;
+    const ctx = canvas.getContext("2d")!;
+    const g = ctx.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, "#1c1a4a");
+    g.addColorStop(0.55, "#0f1d45");
+    g.addColorStop(1, "#0a1632");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 4, 256);
+    const t = new THREE.CanvasTexture(canvas);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }, []);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return <primitive attach="background" object={texture} />;
+}
+
+// Circuit traces on the platforms' floors: thin lines and pads, faint, like the examples' boards.
+function circuitTexture(): THREE.CanvasTexture {
+  const size = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  ctx.strokeStyle = "rgba(125, 211, 252, 0.5)";
+  ctx.fillStyle = "rgba(125, 211, 252, 0.7)";
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < 46; i++) {
+    let x = Math.round(rnd() * 16) * 32, y = Math.round(rnd() * 16) * 32;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (let s = 0; s < 3; s++) {
+      const len = (1 + Math.floor(rnd() * 3)) * 32;
+      if (rnd() > 0.5) x += rnd() > 0.5 ? len : -len; else y += rnd() > 0.5 ? len : -len;
+      // A 45-degree bend now and then.
+      if (rnd() > 0.7) { x += 16; y += 16; }
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 2.6, 0, Math.PI * 2); ctx.fill();
+  }
+  const t = new THREE.CanvasTexture(canvas);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 8;
+  return t;
+}
+
+function CircuitFloors({ buildings }: { buildings: Area[] }) {
+  const texture = useMemo(() => circuitTexture(), []);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return (
+    <>
+      {buildings.map((b) => {
+        const map = texture.clone();
+        map.needsUpdate = true;
+        map.repeat.set(b.w / 40, b.d / 40);
+        return (
+          <mesh key={b.key ?? b.centerId} position={[b.x, 0.11, b.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+            <planeGeometry args={[b.w, b.d]} />
+            <meshBasicMaterial map={map} transparent opacity={0.32} depthWrite={false} />
+          </mesh>
+        );
+      })}
+    </>
+  );
+}
+
+// A room without desks (its agents aren't drawn, or it has none) shows faint desk places on its floor.
+function DeskPlaces({ rooms, desks }: { rooms: Area[]; desks: Fixture[] }) {
+  const items = useMemo(() => rooms
+    .filter((a) => !desks.some((f) => Math.abs(f.x - a.x) <= a.w / 2 && Math.abs(f.z - a.z) <= a.d / 2))
+    .flatMap((a) => {
+      const cols = Math.max(1, Math.min(4, Math.floor((a.w - 3) / 3.2)));
+      const rows = Math.max(1, Math.min(3, Math.floor((a.d - 5) / 3.4)));
+      return Array.from({ length: cols * rows }, (_, i) => {
+        const c = i % cols, r = Math.floor(i / cols);
+        return { x: a.x + (c - (cols - 1) / 2) * 3.2, y: 0.09, z: a.z - 0.6 + (r - (rows - 1) / 2) * 3.4, w: 1.8, h: 0.02, d: 0.9, color: new THREE.Color("#3b6fb6") };
+      });
+    }), [rooms, desks]);
+  return <Boxes items={items} opacity={0.5} />;
+}
+
+// Thin lit stems from a room's front edge up to its floating card.
+function CardStems({ rooms }: { rooms: Area[] }) {
+  const items = useMemo(() => rooms.map((a) => ({ x: a.x, y: 0.1, z: a.z + a.d / 2 - 1.2, w: 0.05, h: CARD_Y - 0.6, d: 0.05, color: glow("#7dd3fc", 1.3) })), [rooms]);
+  return <Boxes items={items} emissive />;
+}
+
+// The floor under the campus: a faint blue grid with dots, like a circuit board, fading into the fog.
+function GridFloor({ plan }: { plan: Plan }) {
+  const texture = useMemo(() => {
+    const size = 256;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    ctx.clearRect(0, 0, size, size);
+    ctx.strokeStyle = "rgba(96, 165, 250, 0.22)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, size - 1, size - 1);
+    ctx.strokeStyle = "rgba(96, 165, 250, 0.08)";
+    for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(i * size / 4, 0); ctx.lineTo(i * size / 4, size); ctx.moveTo(0, i * size / 4); ctx.lineTo(size, i * size / 4); ctx.stroke(); }
+    ctx.fillStyle = "rgba(125, 211, 252, 0.35)";
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { ctx.beginPath(); ctx.arc(i * size / 4 + 1, j * size / 4 + 1, 1.6, 0, Math.PI * 2); ctx.fill(); }
+    const t = new THREE.CanvasTexture(canvas);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    return t;
+  }, []);
+  useEffect(() => () => texture.dispose(), [texture]);
+  const extent = Math.max(plan.bounds.w ?? 400, plan.bounds.d ?? 400, 400) * 4;
+  texture.repeat.set(extent / 16, extent / 16);
+  return (
+    <mesh position={[plan.bounds.x, -3.2, plan.bounds.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+      <planeGeometry args={[extent, extent]} />
+      <meshBasicMaterial map={texture} transparent depthWrite={false} />
+    </mesh>
+  );
+}
+
+// Each customer center stands on a platform: a thick slab under its floor, its top edge lit.
+function Platforms({ buildings, onPick }: { buildings: Area[]; onPick(key: string): void }) {
+  return (
+    <>
+      {buildings.map((b) => {
+        const [x0, x1, z0, z1] = [b.x - b.w / 2, b.x + b.w / 2, b.z - b.d / 2, b.z + b.d / 2];
+        const rim = (y: number): Vec3[] => [[x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], [x0, y, z0]];
+        return (
+          <group key={b.key ?? b.centerId}>
+            <mesh position={[b.x, -0.7, b.z]} onClick={(e) => { if (e.delta > 4) return; e.stopPropagation(); onPick(`center:${b.centerId}`); }}>
+              <boxGeometry args={[b.w + 1.2, 1.4, b.d + 1.2]} />
+              <meshStandardMaterial color="#163a6e" roughness={0.35} metalness={0.35} />
+            </mesh>
+            <mesh position={[b.x, -2.2, b.z]} raycast={() => null}>
+              <boxGeometry args={[b.w + 4, 1.6, b.d + 4]} />
+              <meshStandardMaterial color="#0c2148" roughness={0.4} metalness={0.3} />
+            </mesh>
+            <Line points={rim(0.12).map(([x, y, z]) => [x + Math.sign(x - b.x) * 0.6, y, z + Math.sign(z - b.z) * 0.6] as Vec3)} color={glow(EDGE)} lineWidth={2} toneMapped={false} />
+            <Line points={rim(-1.4).map(([x, y, z]) => [x + Math.sign(x - b.x) * 2, y, z + Math.sign(z - b.z) * 2] as Vec3)} color={glow("#3b82f6", 1.5)} lineWidth={1.4} toneMapped={false} />
+            <Line points={rim(-3).map(([x, y, z]) => [x + Math.sign(x - b.x) * 2, y, z + Math.sign(z - b.z) * 2] as Vec3)} color={glow("#1e3a8a", 1.2)} lineWidth={1} toneMapped={false} />
+          </group>
+        );
+      })}
     </>
   );
 }
@@ -529,10 +784,24 @@ export function CampusScene({ drift, plan, mode, goal, selected, selectedSpot, w
   const shown = useMemo(() => (item: { wing?: Wing }) => !wing || !item.wing || item.wing === wing, [wing]);
   const floors = useMemo(() => plan.areas.filter(shown).map((a) => ({
     x: a.x, y: a.y + (a.kind === "building" ? 0 : a.kind === "wing" ? 0.015 : 0.03), z: a.z, w: a.w, h: a.kind === "building" ? 0.08 : 0.04, d: a.d,
-    color: a.kind === "wing" && a.wing ? tint(WING_COLORS[a.wing], 0.82) : tint(a.color, AREA_TINT[a.kind]),
+    color: new THREE.Color(FLOOR[a.kind]).lerp(new THREE.Color(a.kind === "wing" && a.wing ? WING_COLORS[a.wing] : a.color), AREA_MIX[a.kind]),
     key: a.kind === "building" ? `center:${a.centerId}` : a.key
   })), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
-  const walls = useMemo(() => plan.walls.filter(shown).map((w: Wall) => ({ x: w.x, y: w.y, z: w.z, w: w.w, h: w.h, d: w.d })), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
+  const buildings = useMemo(() => plan.areas.filter((a) => a.kind === "building"), [plan]);
+  // A building's outer walls stand lower, so you can look into its rooms from the side.
+  const walls = useMemo(() => {
+    const onEdge = (w: Wall) => buildings.some((b) => {
+      const alongX = w.w >= w.d;
+      return alongX
+        ? Math.abs(Math.abs(w.z - b.z) - b.d / 2) < 0.8 && Math.abs(w.x - b.x) <= b.w / 2 + 0.5
+        : Math.abs(Math.abs(w.x - b.x) - b.w / 2) < 0.8 && Math.abs(w.z - b.z) <= b.d / 2 + 0.5;
+    });
+    return plan.walls.filter(shown).map((w: Wall) => ({ x: w.x, y: w.y, z: w.z, w: w.w, h: onEdge(w) ? w.h * 0.45 : w.h, d: w.d }));
+  }, [plan, wing, buildings]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Glass walls with a lit top edge.
+  const wallTops = useMemo(() => walls.map((w) => ({ x: w.x, y: w.y + w.h, z: w.z, w: w.w + 0.02, h: 0.06, d: w.d + 0.02, color: new THREE.Color("#7dd3fc").multiplyScalar(0.8) })), [walls]);
+  const rooms = useMemo(() => plan.areas.filter((a) => a.kind === "room" && shown(a)), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
+  const doors = useMemo(() => plan.fixtures.filter((f) => f.kind === "door" && shown(f)), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
   const desks = useMemo(() => plan.fixtures.filter((f) => f.kind === "desk" && shown(f)), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
   const others = useMemo(() => plan.fixtures.filter((f) => f.kind !== "desk" && f.kind !== "numbers" && shown(f)), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
   const paths = useMemo(() => plan.paths.filter(shown), [plan, wing]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -544,18 +813,27 @@ export function CampusScene({ drift, plan, mode, goal, selected, selectedSpot, w
   const pick = (key: string | undefined) => { if (key) onSelect(key); };
 
   return (
-    <Canvas dpr={[1, 2]} gl={{ antialias: true }} camera={{ position: [plan.bounds.x, 120, plan.bounds.z + 160], fov: 50, near: 0.3, far: 5000 }}>
-      <color attach="background" args={[SKY]} />
-      <hemisphereLight args={["#ffffff", "#94a3b8", 0.9]} />
-      <directionalLight position={[80, 160, 120]} intensity={1.4} />
-      <directionalLight position={[-120, 80, -60]} intensity={0.4} />
+    <Canvas dpr={[1, 2]} gl={{ antialias: true, preserveDrawingBuffer: true }} camera={{ position: [plan.bounds.x, 120 * CAMERA_DISTANCE, plan.bounds.z + 160 * CAMERA_DISTANCE], fov: FOV, near: 1, far: 9000 }}>
+      <GradientSky />
+      <fog attach="fog" args={[SKY, 800, 3600]} />
+      <hemisphereLight args={["#cfe3ff", "#0a1532", 0.85]} />
+      <directionalLight position={[80, 160, 120]} intensity={1.25} />
+      <directionalLight position={[-120, 80, -60]} intensity={0.45} color="#7dd3fc" />
 
+      <GridFloor plan={plan} />
+      <Platforms buildings={buildings} onPick={onSelect} />
       <Boxes items={floors} onPick={pick} />
-      <Boxes items={walls} color={WALL} opacity={0.92} />
+      <Boxes items={walls} color={WALL} opacity={0.12} />
+      <Boxes items={wallTops} emissive />
+      <CircuitFloors buildings={buildings} />
+      <CardStems rooms={rooms} />
+      <DeskPlaces rooms={rooms} desks={desks} />
+      <EntranceRings doors={doors} />
       <Desks desks={desks} screens={screens} showUnits={showUnits} onPick={onSelect} />
       {others.filter((f) => f.kind !== "bench").map((f, i) => <FixtureModel key={`${f.kind}:${f.key ?? i}:${i}`} f={f} onPick={onSelect} />)}
       <Furnishings plan={plan} fixtures={others} onPick={onSelect} />
-      {paths.map((p, i) => <PathLine key={i} path={p} />)}
+      {paths.map((p, i) => <PathLine key={i} path={p} highlight={!!selected && p.key === selected} />)}
+      <FlowPulses paths={paths} />
       {callers && <Callers callers={callers.filter((c) => shown({ wing: wingOfRoom.get(c.key) }))} />}
       {walkers?.map((w) => <WalkerFigure key={w.id} walker={w} blocks={blocks} />)}
 
@@ -568,20 +846,27 @@ export function CampusScene({ drift, plan, mode, goal, selected, selectedSpot, w
       <NearbyLabels plan={plan} shown={shown} labelSuffix={labelSuffix} />
 
       {markers.map((m) => (
-        <mesh key={m.key} position={[m.at[0], m.at[1] + 2.6, m.at[2]]} raycast={() => null} rotation={[Math.PI, 0, 0]}>
-          <coneGeometry args={[0.6, 1.2, 3]} />
-          <meshBasicMaterial color={SEVERITY_COLORS[m.severity]} />
+        <mesh key={m.key} position={[m.at[0], m.at[1] + 2.8, m.at[2]]} raycast={() => null}>
+          <octahedronGeometry args={[0.6, 0]} />
+          <meshBasicMaterial color={glow(SEVERITY_COLORS[m.severity], 2)} toneMapped={false} />
         </mesh>
       ))}
       {selectedAt && (
         <mesh position={[selectedAt[0], 0.1, selectedAt[2]]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
-          <ringGeometry args={[1.6, 2, 48]} />
-          <meshBasicMaterial color="#0ea5e9" />
+          <ringGeometry args={[1.7, 1.95, 64]} />
+          <meshBasicMaterial color={glow("#67e8f9", 2.6)} toneMapped={false} />
         </mesh>
       )}
 
-      {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI / 2.05} maxDistance={2500} />}
-      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} depth={1} rideScale={0.3} drift={drift} />
+      {/* Light that's brighter than white (edges, lines, lit screens) glows; the corners darken a little. */}
+      <EffectComposer multisampling={4}>
+        <N8AO aoRadius={3} distanceFalloff={1.2} intensity={2.4} color="#020617" halfRes />
+        <Bloom mipmapBlur luminanceThreshold={1} luminanceSmoothing={0.25} intensity={0.9} radius={0.7} />
+        <Vignette offset={0.3} darkness={0.55} />
+      </EffectComposer>
+
+      {mode === "orbit" && !ride && <OrbitControls makeDefault enableDamping dampingFactor={0.12} maxPolarAngle={Math.PI / 2.05} maxDistance={2500 * CAMERA_DISTANCE} />}
+      <CameraRig mode={ride ? "walk" : mode} goal={goal} handle={handle} ride={ride} depth={1} rideScale={0.3 * CAMERA_DISTANCE} drift={drift} />
     </Canvas>
   );
 }

@@ -5,7 +5,7 @@
 First version: the campus, a building per customer center, combine / split / move / rename / recolour (kept in the browser), and inside each building the entrance, bot kiosk, lobbies, signposts, rooms with desks, opening hours and overflow at the doors. Health overlay from the explorer.
 
 - Checked on the sample environment in headless Edge (campus, a building, a room). Not yet tried hands-on or on live data.
-- Included in the packaged solution from **1.0.0.15** onward, with the guided tour from **1.0.0.16** (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_18.zip`): **3D → 3D Contact Center**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/contactcenter3d/index.html`.
+- Included in the packaged solution from **1.0.0.15** onward, with the guided tour from **1.0.0.16** (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_19.zip`): **Visualization → 3D Contact Center** (the group was called **3D** before 1.0.0.19). The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/contactcenter3d/index.html`.
 
 ## Decisions
 
@@ -75,3 +75,13 @@ First version: the campus, a building per customer center, combine / split / mov
 - Shared customer centers in Dataverse (needs a table in the solution; the store interface is ready).
 - More recognisable 3D objects beyond the desks (see above), and fewer overlapping labels in a big center.
 - Teams as zones.
+
+## The professional look (2026-11-02)
+
+The user found the campus "childish" and pointed at two isometric illustrations (deep navy, glowing platforms, thin lines of light). Built in three rounds, each reviewed live:
+
+- **Round 1:** navy background with a grid floor, buildings on platforms with lit edges, glass walls with lit tops, lines as tubes of light, fixtures in one body colour with a small lit part, labels as dark glass chips, a glow on what's brighter than white (`@react-three/postprocessing` 2.19.1, Bloom with luminance threshold 1, so only HDR colours glow). People: Kenney's Mini Characters replaced by slim figures made in code (`figure()` in models.ts: a tapered body and a head; sitting with thighs forward). Furniture recoloured (`restyle()`), keyboards dropped. Bundle 1.6 → 1.4 MB.
+- **Round 2:** a narrow 28° camera (`FOV`; every camera distance in App.tsx multiplied by `CAMERA_DISTANCE`, about 1.87, the ride by the same), no cone arrowheads but light pulses running along the lines (`FlowPulses`), default-queue lines faint until their workstream is selected, cyan and magenta only, soft contact shadows (N8AO), two-tier platforms, circuit traces on the floors, a gradient sky, floating room cards on lit stems (`CARD_Y`), breathing rings at the entrances, fewer small labels.
+- **Round 3:** calmer walls (more see-through, top edge no longer glowing), lines drawn at a constant width on screen (`Line`, so nothing near the camera becomes a beam), stronger circuit traces, wing names only from a distance (`from` on a label) with the cards higher, faint desk places in rooms without desks; then a framed portal display and outer walls at 45% height so you can look into the rooms.
+- Headless screenshots only show the overview: the camera can't be moved to a close-up under virtual time (the start flight and the close-up hook fight). Close-ups were checked by the user live.
+- Deployed to `academyexperiment`; in solution **1.0.0.19**.

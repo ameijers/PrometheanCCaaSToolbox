@@ -23,11 +23,13 @@
     "demo:contactcenter3d": "npm run build && node -e \"fs=require('fs');fs.copyFileSync('tools/contact-center-3d/webresource/contactcenter3d.html','dist/webresource/contactcenter3d/index.html');fs.copyFileSync('tools/contact-center-3d/css/contactCenter3d.css','dist/webresource/contactcenter3d/style.css')\" && npx serve dist/webresource/contactcenter3d -l 5449",
     "demo:numberchanger": "npm run build && node -e \"fs=require('fs');fs.copyFileSync('tools/phone-number-changer/webresource/numberchanger.html','dist/webresource/numberchanger/index.html');fs.copyFileSync('tools/phone-number-changer/css/phoneNumberChanger.css','dist/webresource/numberchanger/style.css')\" && npx serve dist/webresource/numberchanger -l 5450",
     "demo:capacityassignment": "npm run build && node -e \"fs=require('fs');fs.copyFileSync('tools/capacity-profile-assignment/webresource/capacityassignment.html','dist/webresource/capacityassignment/index.html');fs.copyFileSync('tools/shared/css/provisioning.css','dist/webresource/capacityassignment/style.css')\" && npx serve dist/webresource/capacityassignment -l 5451",
-    "demo:home": "npm run build && node -e \"fs=require('fs');fs.copyFileSync('tools/toolbox-home/webresource/home.html','dist/webresource/home/index.html');fs.copyFileSync('tools/toolbox-home/css/toolboxHome.css','dist/webresource/home/style.css');fs.writeFileSync('dist/webresource/serve.json',JSON.stringify({cleanUrls:false}))\" && npx serve dist/webresource -l 5452"
+    "demo:home": "npm run build && node -e \"fs=require('fs');fs.copyFileSync('tools/toolbox-home/webresource/home.html','dist/webresource/home/index.html');fs.copyFileSync('tools/toolbox-home/css/toolboxHome.css','dist/webresource/home/style.css');fs.writeFileSync('dist/webresource/serve.json',JSON.stringify({cleanUrls:false}))\" && npx serve dist/webresource -l 5452",
+    "demo:diagram2d": "npm run build && node -e \"fs=require('fs');fs.copyFileSync('tools/environment-diagram/webresource/diagram2d.html','dist/webresource/diagram2d/index.html');fs.copyFileSync('tools/environment-diagram/css/environmentDiagram.css','dist/webresource/diagram2d/style.css')\" && npx serve dist/webresource/diagram2d -l 5453"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
+    "@react-three/postprocessing": "2.19.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "^0.169.0",

@@ -7,7 +7,7 @@ A toolbox for administrators of **Dynamics 365 Contact Center** (unified routing
 - **Diagnostic tools** are read-only: they never write to your configuration or call data.
 - **Creation and provisioning tools** write configuration in bulk: they create new records from a CSV file, or apply one setting to many records at once. Each one writes only to a small, fixed set of tables and columns, shows a preview first, and writes nothing until you confirm.
 
-<p align="center"><img src="images/infographic.png" alt="Promethean CCaaS Toolbox infographic: 20 tools in four groups — Diagnose, See it in 3D, Build and change in bulk, and Onboard agents" width="540"></p>
+<p align="center"><img src="images/infographic.png" alt="Promethean CCaaS Toolbox infographic: 21 tools in four groups — Diagnose, See it in 2D and 3D, Build and change in bulk, and Onboard agents" width="540"></p>
 
 ## Testing, bugs and feedback
 
@@ -33,8 +33,9 @@ The app opens best on **[Toolbox Home](tools/toolbox-home/README.md)**: a landin
 | [Context Variable Monitor](tools/context-variable-monitor/README.md) | Watches the actual context-variable values a real call captures, live, as it moves through the IVR and unified routing — for debugging against real traffic rather than simulated configuration. |
 | [Agent Readiness Checker](tools/agent-readiness-checker/README.md) | Answers "why isn't this agent receiving calls?" — checks one agent or the whole roster against every prerequisite for receiving voice work (account, roles, channel, queue membership, workstream reachability, capacity, skills, presence) with plain-language evidence and suggested fixes. |
 | [Environment Artifact Finder](tools/environment-artifact-finder/README.md) | Finds configuration you could clean up: records nothing active uses any more, records that are wired in but can never do anything (e.g. a voice workstream with no phone number, a queue no route reaches), broken references, and housekeeping items (old bulk-delete jobs, stale saved views). Recommends only. Every finding is a candidate for review, with its evidence and a confidence level. |
-| [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. A health overlay marks problems (an empty queue that is routed to, a rule to a deleted queue, a workstream that routes nowhere) in the picture. Also: a health overlay for structural problems, follow-the-call rides, live presence and queue load, bots, overflow and operating hours, tabs, a layer distance slider, full screen and a guided tour. In the Site Map as **3D → 3D Explorer**; current version in solution 1.0.0.17 and later. ▶ [Video of the guided tour](tools/environment-3d-explorer/video/environment-3d-explorer-tour.mp4). **Tried live in `academyexperiment`; live activity still to be seen with real traffic.** |
-| [3D Contact Center](tools/contact-center-3d/README.md) | The same environment from a business perspective: each customer center is an open-roofed building on a campus, with entrance doors (voice channels and their numbers), an automated reception (bot), lobbies (workstreams), signposts (routing rules), rooms (queues) with a desk per agent, and overflow at the room doors. Create customer centers and move workstreams into them (remembered); one front desk per center and a wing per kind of work (phone, chat, email). Live callers, follow a call, health, skills, sample data inside the app, and a guided tour. In the Site Map as **3D → 3D Contact Center**, from solution 1.0.0.15. **Tried live in `academyexperiment`.** |
+| [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. A health overlay marks problems (an empty queue that is routed to, a rule to a deleted queue, a workstream that routes nowhere) in the picture. Also: a health overlay for structural problems, follow-the-call rides, live presence and queue load, bots, overflow and operating hours, tabs, a layer distance slider, full screen and a guided tour. In the Site Map as **Visualization → 3D Explorer** (**3D** before 1.0.0.19); current version in solution 1.0.0.17 and later. ▶ [Video of the guided tour](tools/environment-3d-explorer/video/environment-3d-explorer-tour.mp4). **Tried live in `academyexperiment`; live activity still to be seen with real traffic.** |
+| [3D Contact Center](tools/contact-center-3d/README.md) | The same environment from a business perspective: each customer center is an open-roofed building on a floating platform, drawn like an architect's model in deep blue with lines of light, with entrance doors (voice channels and their numbers), an automated reception (bot), lobbies (workstreams), signposts (routing rules), rooms (queues) with a desk per agent, and overflow at the room doors. Create customer centers and move workstreams into them (remembered); one front desk per center and a wing per kind of work (phone, chat, email). Live callers, follow a call, health, skills, sample data inside the app, and a guided tour. In the Site Map as **Visualization → 3D Contact Center** (**3D** before 1.0.0.19), from solution 1.0.0.15. **Tried live in `academyexperiment`.** |
+| [Environment Diagram](tools/environment-diagram/README.md) | The same environment as a **Visio-style diagram**, left to right the way a call travels: swimlanes for numbers, channels, workstreams, queues and overflow; workstreams as containers with their bot and routing rules in order, queues as containers with their agents (skills, capacity profiles, teams and business units as tags); customer centers (shared with 3D Contact Center) as containers around their workstreams. Select to light up a chain, follow the call, live activity, health, saved views, a guided tour, and **download as SVG (opens in Visio) or PNG**. In the Site Map as **Visualization → Environment Diagram**, from solution 1.0.0.19. **Tried live in `academyexperiment`.** |
 
 ### Creation and provisioning tools
 
@@ -116,9 +117,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_18.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_18.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_19.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_19.zip)
 >
-> **Version 1.0.0.18 contains all twenty tools and Toolbox Home**, already in the app's Site Map in six groups: **Home** (Toolbox Home, the landing page with every tool as a card), **3D** (3D Contact Center, 3D Explorer), **Tools** (the four diagnostic tools), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment, Phone Number Changer, Capacity Profile Assignment), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.19 contains all twenty-one tools and Toolbox Home**, already in the app's Site Map in six groups: **Home** (Toolbox Home, the landing page with every tool as a card), **Visualization** (3D Contact Center, 3D Explorer, Environment Diagram), **Tools** (the four diagnostic tools), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment, Phone Number Changer, Capacity Profile Assignment), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -128,7 +129,7 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_18.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_19.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
@@ -147,7 +148,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.18 already has all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.19 already has all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
@@ -156,8 +157,9 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Tools | Context Variable Monitor | `pct_/tools/contextvariablemonitor/index.html` |
 | Tools | Agent Readiness Checker | `pct_/tools/agentreadiness/index.html` |
 | Tools | Environment Artifact Finder | `pct_/tools/artifactfinder/index.html` |
-| 3D | 3D Contact Center | `pct_/tools/contactcenter3d/index.html` |
-| 3D | 3D Explorer | `pct_/tools/explorer3d/index.html` |
+| Visualization | 3D Contact Center | `pct_/tools/contactcenter3d/index.html` |
+| Visualization | 3D Explorer | `pct_/tools/explorer3d/index.html` |
+| Visualization | Environment Diagram | `pct_/tools/diagram2d/index.html` |
 | Creation | Voice Workstream Builder | `pct_/tools/voicebuilder/index.html` |
 | Creation | Queue Builder | `pct_/tools/queuebuilder/index.html` |
 | Creation | Profile Builder | `pct_/tools/profilebuilder/index.html` |
@@ -184,7 +186,7 @@ Every tool in this toolbox is a plain HTML/CSS/React (TypeScript) app, deployed 
 All tools:
 - Talk to Dataverse with the signed-in user's existing session — mostly through `Xrm.WebApi`, and through the same-origin Web API where `Xrm.WebApi` has no helper (metadata reads, adding queue members) — so no separate Microsoft Entra ID app registration or manual OAuth setup is required, and Dataverse applies the user's own privileges.
 - Live in one Dataverse solution and one model-driven app/Site Map, rather than one solution per tool.
-- Use no libraries beyond React, except the Environment 3D Explorer: it also bundles Three.js, through React Three Fiber and drei, for its WebGL scene. That makes its bundle about 1 MB; the others are about 200 KB.
+- Use no libraries beyond React, except the 3D tools: the Environment 3D Explorer and 3D Contact Center bundle Three.js, through React Three Fiber and drei, for their WebGL scenes, and 3D Contact Center also `@react-three/postprocessing` for its glow and soft shadows. That makes their bundles about 1–1.5 MB; the others (the Environment Diagram included, which is plain SVG) are about 200 KB.
 - Include a fully working **offline demo mode** with bundled sample data, so you can try them out locally without a Dataverse connection. In the writing tools, demo mode simulates the writes in memory.
 - Keep every Dataverse write in one `dataverse.ts` per tool. Profile Builder has none of its own: it uses Voice Workstream Builder's. The onboarding tools share read helpers from `tools/shared/`, which never writes.
 
@@ -260,6 +262,7 @@ Each tool can be run locally in its offline demo mode:
 | Phone Number Changer | `numberchanger` | `npm run demo:numberchanger` → http://localhost:5450/index.html |
 | Capacity Profile Assignment | `capacityassignment` | `npm run demo:capacityassignment` → http://localhost:5451/index.html |
 | Toolbox Home | `home` | `npm run demo:home` → http://localhost:5452/home/index.html |
+| Environment Diagram | `diagram2d` | `npm run demo:diagram2d` → http://localhost:5453/index.html |
 
 ## Deployment
 
