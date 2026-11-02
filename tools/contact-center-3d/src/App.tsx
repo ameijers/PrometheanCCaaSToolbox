@@ -16,7 +16,7 @@ import { defaultRideStart, extendRide, RideOption } from "../../environment-3d-e
 import { CameraGoal, Mode, Ride, SceneHandle } from "../../environment-3d-explorer/src/Scene";
 import { plannedRide, tourAsked, TourBar, TourStep, useTour } from "../../environment-3d-explorer/src/tour";
 import { readUrlOptions } from "../../environment-3d-explorer/src/urlOptions";
-import { Caller, CampusScene, colorFor, PATH_STYLE, SEVERITY_COLORS, Walker } from "./CampusScene";
+import { CAMERA_DISTANCE as Z, Caller, CampusScene, colorFor, PATH_STYLE, SEVERITY_COLORS, Walker } from "./CampusScene";
 import { Center, CENTER_COLORS, createCenter, deleteCenter, Grouping, moveWorkstream, recolor, reconcile, rename, setHidden } from "./centers";
 import { buildPlan, UNROUTED_CENTER, Vec3, Wing, WING_COLORS, WING_LABELS, WING_ORDER } from "./floorplan";
 import { browserStore } from "./store";
@@ -210,7 +210,8 @@ export function App(): React.ReactElement {
   const overview = useCallback(() => {
     if (!plan) return;
     const size = Math.max(plan.bounds.w, plan.bounds.d, 60);
-    setGoal((g) => ({ position: [plan.bounds.x, size * 0.75, plan.bounds.z + size * 0.85], target: [plan.bounds.x, 0, plan.bounds.z], serial: (g?.serial ?? 0) + 1 }));
+    // From a fixed diagonal, as in an isometric drawing.
+    setGoal((g) => ({ position: [plan.bounds.x + size * 0.45 * Z, size * 0.75 * Z, plan.bounds.z + size * 0.7 * Z], target: [plan.bounds.x, 0, plan.bounds.z], serial: (g?.serial ?? 0) + 1 }));
   }, [plan]);
   const centerOfKey = (key: string): string | undefined => {
     if (key.startsWith("center:")) return key.slice(7);
@@ -226,9 +227,9 @@ export function App(): React.ReactElement {
     if (key.startsWith("center:")) {
       const b = plan.buildings.find((x) => `center:${x.centerId}` === key)!;
       const size = Math.max(b.w, b.d);
-      flyTo([at[0], size * 0.95, at[2] + size * 0.9], [at[0], 0, at[2]]);
+      flyTo([at[0] + size * 0.45 * Z, size * 0.95 * Z, at[2] + size * 0.75 * Z], [at[0], 0, at[2]]);
     } else {
-      flyTo([at[0] + 7, at[1] + 13, at[2] + 15], at);
+      flyTo([at[0] + 7 * Z, at[1] + 13 * Z, at[2] + 15 * Z], at);
     }
   }, [plan]);
 
@@ -251,7 +252,7 @@ export function App(): React.ReactElement {
   };
   const go = (kind: string, name: string) => { const k = keyOf(kind, name); if (k) select(k); };
   // Closer views than a click gives, so the tour keeps moving: look at target from target + offset.
-  const look = (target: Vec3, offset: Vec3) => flyTo([target[0] + offset[0], target[1] + offset[1], target[2] + offset[2]], target);
+  const look = (target: Vec3, offset: Vec3) => flyTo([target[0] + offset[0] * Z, target[1] + offset[1] * Z, target[2] + offset[2] * Z], target);
   const goClose = (kind: string, name: string, offset: Vec3) => { const k = keyOf(kind, name); const at = k ? plan?.anchors.get(k) : undefined; if (!k) return; select(k); if (at) look(at, offset); };
   // Something to do once the plan is redrawn (after the tour changes the customer centers).
   const afterPlan = useRef<((p: NonNullable<typeof plan>) => void) | undefined>(undefined);
@@ -635,7 +636,7 @@ export function App(): React.ReactElement {
                 {PATH_STYLE[k].label}
               </li>
             ))}
-            <li className="muted">Arrowheads on the curved lines point the way they go.</li>
+            <li className="muted">Light pulses run along the lines the way a call goes.</li>
           </ul>
         )}
       </div>

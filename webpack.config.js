@@ -28,7 +28,8 @@ module.exports = {
     contactcenter3d: "./tools/contact-center-3d/webresource/index.tsx",
     numberchanger: "./tools/phone-number-changer/webresource/index.tsx",
     capacityassignment: "./tools/capacity-profile-assignment/webresource/index.tsx",
-    home: "./tools/toolbox-home/webresource/index.tsx"
+    home: "./tools/toolbox-home/webresource/index.tsx",
+    diagram2d: "./tools/environment-diagram/webresource/index.tsx"
   },
   output: {
     path: path.resolve(__dirname, "dist/webresource"),

@@ -20,7 +20,7 @@ export interface ToolCard {
 
 export const GROUPS: Group[] = [
   { id: "tools", name: "Diagnose", summary: "Read-only tools to understand routing and find problems." },
-  { id: "3d", name: "See it in 3D", summary: "Your whole contact center as a 3D picture you can walk through." },
+  { id: "3d", name: "Visualization", summary: "Your whole contact center as a diagram or a 3D picture you can walk through." },
   { id: "creation", name: "Create in bulk", summary: "Create workstreams, queues, profiles, rules and voicemail from a CSV." },
   { id: "provisioning", name: "Change and assign in bulk", summary: "Change settings and assign queues, skills and profiles to many records at once." },
   { id: "security", name: "Onboard agents", summary: "Business units, teams and users: from synced user to bookable resource." }
@@ -33,6 +33,7 @@ export const TOOLS: ToolCard[] = [
   { key: "artifactfinder", name: "Environment Artifact Finder", group: "tools", writes: false, description: "Find configuration you can clean up: unused records, broken references and things that can never work." },
 
   { key: "contactcenter3d", name: "3D Contact Center", group: "3d", writes: false, description: "Your environment as a campus of buildings: doors, lobbies, rooms and desks, with live callers and a guided tour." },
+  { key: "diagram2d", name: "Environment Diagram", group: "3d", writes: false, isNew: true, description: "Your whole contact center as a Visio-style diagram: containers, routing rules and agents, with live activity. Download it for Visio." },
   { key: "explorer3d", name: "3D Explorer", group: "3d", writes: false, description: "Every record as a 3D cloud, from phone numbers to skills. Click one to light up what's in front and behind." },
 
   { key: "voicebuilder", name: "Voice Workstream Builder", group: "creation", writes: true, description: "Create voice workstreams and their voice channels from a CSV, with or without a phone number." },
@@ -45,7 +46,7 @@ export const TOOLS: ToolCard[] = [
   { key: "recordingprovisioner", name: "Recording & Transcription", group: "provisioning", writes: true, description: "Set transcript and recording on many voice channels at once, with a preview and a revert." },
   { key: "queuemembership", name: "Queue Membership", group: "provisioning", writes: true, description: "Add users who are bookable resources to one or more queues, from a CSV." },
   { key: "skillassignment", name: "Skill Assignment", group: "provisioning", writes: true, description: "Give users skills with a rating, by selecting users and skills or from a CSV." },
-  { key: "capacityassignment", name: "Capacity Profile Assignment", group: "provisioning", writes: true, isNew: true, description: "Give many users one or more capacity profiles at once, by selecting users and profiles or from a CSV." },
+  { key: "capacityassignment", name: "Capacity Profile Assignment", group: "provisioning", writes: true, description: "Give many users one or more capacity profiles at once, by selecting users and profiles or from a CSV." },
   { key: "numberchanger", name: "Phone Number Changer", group: "provisioning", writes: true, description: "Move, swap or replace the phone numbers of voice channels and outbound profiles, with a revert." },
 
   { key: "businessunitbuilder", name: "Business Units Builder", group: "security", writes: true, description: "Create whole business unit hierarchies from a CSV, shown as a tree before anything is created." },
