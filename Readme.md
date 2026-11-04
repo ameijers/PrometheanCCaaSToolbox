@@ -42,7 +42,7 @@ The app opens best on **[Toolbox Home](tools/toolbox-home/README.md)**: a landin
 | Tool | What it does | Writes |
 | --- | --- | --- |
 | [Voice Workstream Builder](tools/voice-workstream-builder/README.md) | Creates voice workstreams and their voice channels in bulk from a CSV file (one row per channel, so a workstream can have several). A channel can be created without a phone number, to be assigned later. | Creates only: `msdyn_liveworkstream`, `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoice`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes. |
-| [Voice Channel Builder](tools/voice-channel-builder/README.md) | Adds voice channels to **existing** inbound voice workstreams in bulk from a CSV file (one row per channel, so a workstream can get several). A channel can be created without a phone number, to be assigned later. Same channel columns and checks as Voice Workstream Builder. Not in solution 1.0.0.20 yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_ocvoicechannelsetting`, `msdyn_ocvoice`, `msdyn_ocvoicechannellanguagesetting`. Never creates workstreams, never updates or deletes. |
+| [Voice Channel Builder](tools/voice-channel-builder/README.md) | Adds voice channels to **existing** inbound voice workstreams in bulk from a CSV file (one row per channel, so a workstream can get several). A channel can be created without a phone number, to be assigned later. Same channel columns and checks as Voice Workstream Builder. In the Site Map as **Creation → Voice Channel Builder**, from solution 1.0.0.21. | Creates only, through Voice Workstream Builder's data layer: `msdyn_ocvoicechannelsetting`, `msdyn_ocvoice`, `msdyn_ocvoicechannellanguagesetting`. Never creates workstreams, never updates or deletes. |
 | [Queue Builder](tools/queue-builder/README.md) | Creates advanced (unified routing) queues in bulk from a CSV file: type, assignment method, priority, visibility, operating hours and members. | Creates only: `queue` (advanced queues), and adds members through `queuemembership_association`. Never updates or deletes. |
 | [Profile Builder](tools/profile-builder/README.md) | Creates **outbound** profiles in bulk from a CSV file: name, phone number (required), outbound queue, caller ID and behaviors. Inbound profiles aren't supported yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_liveworkstream` (outbound), `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes, and never changes the default profile. |
 | [Route-to-Queue Builder](tools/route-to-queue-builder/README.md) | Adds route-to-queue rules to workstreams in bulk from a CSV file: each rule routes to a queue when a context variable (e.g. the IVR menu choice, name entered on the page) equals a value. Creates the context variable, ruleset and routing where missing; adds after existing rules. | Creates `msdyn_ocliveworkstreamcontextvariable`, `msdyn_routingconfiguration`, `msdyn_decisionruleset` and `msdyn_routingconfigurationstep`; updates only `msdyn_rulesetdefinition` to add rules. Never deletes or changes existing rules. |
@@ -118,9 +118,9 @@ The toolbox is packaged as a single **unmanaged Dataverse solution** that bundle
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_20.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_20.zip)
+> 📦 Solution zip: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_21.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_21.zip)
 >
-> **Version 1.0.0.20 contains all twenty-one tools and Toolbox Home**, already in the app's Site Map in six groups: **Home** (Toolbox Home, the landing page with every tool as a card), **Visualization** (3D Contact Center, 3D Explorer, Environment Diagram), **Tools** (the four diagnostic tools), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment, Phone Number Changer, Capacity Profile Assignment), **Creation** (Voice Workstream Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
+> **Version 1.0.0.21 contains all twenty-two tools and Toolbox Home**, already in the app's Site Map in six groups: **Home** (Toolbox Home, the landing page with every tool as a card), **Visualization** (3D Contact Center, 3D Explorer, Environment Diagram), **Tools** (the four diagnostic tools), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment, Phone Number Changer, Capacity Profile Assignment), **Creation** (Voice Workstream Builder, Voice Channel Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -130,7 +130,7 @@ Via the Power Platform maker portal:
 Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_20.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_21.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). This is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into that environment later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below.
@@ -149,7 +149,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.20 already has all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Solution zip 1.0.0.21 already has all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
@@ -162,6 +162,7 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Visualization | 3D Explorer | `pct_/tools/explorer3d/index.html` |
 | Visualization | Environment Diagram | `pct_/tools/diagram2d/index.html` |
 | Creation | Voice Workstream Builder | `pct_/tools/voicebuilder/index.html` |
+| Creation | Voice Channel Builder | `pct_/tools/channelbuilder/index.html` |
 | Creation | Queue Builder | `pct_/tools/queuebuilder/index.html` |
 | Creation | Profile Builder | `pct_/tools/profilebuilder/index.html` |
 | Creation | Queue Assignment Method Copier | `pct_/tools/assignmentmethodcopier/index.html` |
@@ -175,12 +176,6 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Security | Business Units Builder | `pct_/tools/businessunitbuilder/index.html` |
 | Security | Team Builder | `pct_/tools/teambuilder/index.html` |
 | Security | User Setup | `pct_/tools/usersetup/index.html` |
-
-Not in solution 1.0.0.20 yet, so add it by hand until the next version:
-
-| Group | Subarea title | Web resource |
-| --- | --- | --- |
-| Creation | Voice Channel Builder | `pct_/tools/channelbuilder/index.html` |
 
 When you add a tool to an environment yourself, add a subarea the same way. Until it exists, a deployed tool can be opened inside the app with `https://<org>.crm.dynamics.com/main.aspx?appid=<app id>&pagetype=webresource&webresourceName=<web resource>`. Open it inside the app, not as a bare web resource URL: outside the app the tool can't reach Dataverse and shows its sample data instead (the topbar says which one you're looking at).
 
