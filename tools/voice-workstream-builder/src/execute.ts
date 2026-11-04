@@ -39,11 +39,12 @@ function plannedSteps(ws: ResolvedWorkstream, source: BuilderSource): PlannedSte
     if (!id) throw new Error(`Internal: ${key} wasn't created.`);
     return id;
   };
-  const steps: PlannedStep[] = [
+  // An existing workstream (Voice Channel Builder) gets only its new channels: no workstream, no capacity link.
+  const steps: PlannedStep[] = ws.existingId ? [] : [
     { table: "workstream", label: STEP_LABELS.workstream, name: ws.name, key: "ws", run: () => source.create("workstream", workstreamPayload(ws)) }
   ];
   const profile = ws.refs.capacityProfile;
-  if (ws.capacityFormat === "Profile" && profile) {
+  if (!ws.existingId && ws.capacityFormat === "Profile" && profile) {
     steps.push({ table: "capacityLink", label: STEP_LABELS.capacityLink, name: profile.name, key: "cap", run: (ids) => source.create("capacityLink", capacityLinkPayload(need(ids, "ws"), profile)) });
   }
   ws.channels.forEach((ch, i) => {
@@ -69,7 +70,7 @@ export async function executePlan(plan: ResolvedPlan, source: BuilderSource, onP
   const results: WorkstreamResult[] = [];
 
   for (const { ws, steps } of all) {
-    const ids = new Map<string, string>();
+    const ids = new Map<string, string>(ws.existingId ? [["ws", ws.existingId]] : []);
     const stepResults: StepResult[] = [];
     let failed = false;
     for (const step of steps) {
@@ -93,9 +94,12 @@ export async function executePlan(plan: ResolvedPlan, source: BuilderSource, onP
     const created = stepResults.filter((s) => s.status === "created").length;
     const outcome: WorkstreamOutcome = !failed ? "created" : created ? "partial" : "failed";
     const notes: string[] = [];
-    if (failed && created) notes.push("Stopped at the failed record. The records marked Created exist in the environment: fix the cause, then finish this workstream in the admin center or delete them and run the row again.");
+    if (failed && created) notes.push(ws.existingId
+      ? "Stopped at the failed record. The records marked Created exist in the environment: fix the cause, then finish the channel in the admin center or delete it and run the rows that weren't created again."
+      : "Stopped at the failed record. The records marked Created exist in the environment: fix the cause, then finish this workstream in the admin center or delete them and run the row again.");
     const workstreamId = ids.get("ws");
-    if (workstreamId && ws.direction === "Inbound") {
+    // Only a new workstream is checked for routing rules: an existing one already has whatever it has.
+    if (workstreamId && !ws.existingId && ws.direction === "Inbound") {
       // The platform completes a new workstream (routing contract, templates, record identification)
       // but doesn't give it a routing configuration: the admin center only creates one when routing
       // rules are set up (confirmed live, 2026-10-01). Say so for inbound workstreams, since they can't

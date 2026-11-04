@@ -86,7 +86,9 @@ export interface Catalog {
   phoneNumbers: PhoneNumberRecord[];
   languages: (NamedRecord & { localeCode: string })[];
   music: NamedRecord[];
-  workstreams: NamedRecord[];
+  // direction (msdyn_direction), voice (msdyn_streamsource is voice) and active: Voice Channel Builder
+  // adds channels only to active inbound voice workstreams.
+  workstreams: (NamedRecord & { direction?: number; voice?: boolean; active?: boolean })[];
   channels: (NamedRecord & { phoneNumberId?: string; workstreamName?: string })[];
 }
 
@@ -102,6 +104,8 @@ export interface ResolvedChannel extends ChannelSpec {
 }
 
 export interface ResolvedWorkstream extends Omit<WorkstreamSpec, "channels"> {
+  // Set when the workstream already exists (Voice Channel Builder): only its new channels are created.
+  existingId?: string;
   refs: {
     defaultQueue?: string;
     outboundQueue?: string;

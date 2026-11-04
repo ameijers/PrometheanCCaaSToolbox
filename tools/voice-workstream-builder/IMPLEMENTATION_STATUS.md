@@ -78,6 +78,8 @@ The Artifact Finder treats `msdyn_ocvoice` as the voice channel (`referenceMap.t
 
 **Shared with Profile Builder (2026-10-01).** [Profile Builder](../profile-builder/README.md) creates outbound profiles through this tool's resolution, payloads, create engine and data layer. For it, channels gained optional outbound settings: caller ID number (`msdyn_calleridphonenumberid`, resolved like the phone number), caller ID name and anonymous caller ID. They're written only when set, so this tool's own channels are unchanged. The "set up routing rules" note is now only given for inbound workstreams, because outbound ones (profiles) don't use routing rules.
 
+**Shared with Voice Channel Builder (2026-11-04).** [Voice Channel Builder](../voice-channel-builder/README.md) adds channels to existing workstreams with this tool's channel columns, row reader, resolution, payloads, create engine and data layer. For it: the catalog read also returns each workstream's `msdyn_direction`, `msdyn_streamsource` and `statecode`; the channel checks are exported as `resolveChannels`; and a workstream with `existingId` gets only its channel steps. This tool's own behaviour is unchanged.
+
 ## Complete
 
 - CSV reader (delimiter detection, quotes, BOM), template with examples, column reference from one definition list.

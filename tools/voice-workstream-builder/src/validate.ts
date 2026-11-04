@@ -11,7 +11,7 @@ import { CapacityFormat, Direction, Notification, Presence, WorkDistribution } f
 // environment. Names that point at existing records (queues, numbers, languages, …) are checked
 // afterwards by resolve.ts against what the environment actually holds.
 
-type Row = { line: number; values: Map<string, string> };
+export type Row = { line: number; values: Map<string, string> };
 
 // "+31 (0)20-123 45 67" → "+310201234567" is wrong, so "(0)" is dropped first: it's the trunk prefix
 // people write for domestic dialling and never part of an E.164 number.
@@ -113,7 +113,7 @@ function readWorkstream(row: Row, issues: Issue[], name: string): Omit<Workstrea
   };
 }
 
-function readChannel(row: Row, issues: Issue[], workstream: string, direction: Direction): ChannelSpec | undefined {
+export function readChannel(row: Row, issues: Issue[], workstream: string, direction: Direction): ChannelSpec | undefined {
   const r = new RowReader(row, issues, workstream);
   const push = (severity: Issue["severity"], column: string | undefined, message: string) => issues.push({ severity, line: row.line, column, workstream, message });
 
