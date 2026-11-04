@@ -24,6 +24,7 @@ Five swimlanes, left to right:
 
 - A solid line is what a call travels; a dashed line is a workstream's default queue. Percentages on a line are a rule's distribution.
 - An agent who is in three queues is drawn in all three.
+- An **outbound profile** is drawn as a workstream marked "Outbound profile", with a **Places calls in: outbound queue** row and a dashed line to that queue. Its number and channel are joined to it with dashed lines too: calls go out that way, not in.
 - Numbers and channels that lead to no workstream are grouped at the bottom left, in **Not connected to a workstream**.
 - The **Help** tab has a key to the shapes.
 

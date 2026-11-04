@@ -144,6 +144,13 @@ function defaultQueueId(ctx: RuleContext, workstream: RecordRow): string | undef
   return ctx.lookup(workstream, "msdyn_defaultqueue");
 }
 
+// An outbound profile (msdyn_direction 1 Outbound, 3 Direct Outbound, 4 Proactive outbound) places calls and
+// takes none in, so it has no routing on purpose (Profile Builder, read live 2026-10-01).
+function isOutbound(workstream: RecordRow): boolean {
+  const direction = workstream.raw.msdyn_direction;
+  return direction === 1 || direction === 3 || direction === 4;
+}
+
 // --- Queue reachability ----------------------------------------------------------------------
 
 export interface Reachability {
@@ -166,6 +173,7 @@ export function computeQueueReachability(snapshot: Snapshot, graph: ReferenceGra
 
   ctx.rows("msdyn_liveworkstream").filter((ws) => ws.active).forEach((ws) => {
     add(defaultQueueId(ctx, ws), `Fallback queue of workstream “${ws.name}”`);
+    if (isOutbound(ws)) add(ctx.lookup(ws, "msdyn_outboundqueueid"), `Outbound queue of outbound profile “${ws.name}”`);
     activeConfigs(ctx, ws).forEach((config) => stepsOf(ctx, config).forEach((step) => {
       const ruleset = ctx.row("msdyn_decisionruleset", ctx.lookup(step, "msdyn_rulesetid"));
       if (!ruleset || !ruleset.active) return;
@@ -273,7 +281,7 @@ function workstreamRule(ctx: RuleContext, result: RuleResult): void {
     const steps = configs.flatMap((c) => stepsOf(ctx, c));
     const legacy = legacyRulesOf(ctx, ws);
     const fallback = defaultQueueId(ctx, ws);
-    if (routingReadable && !steps.length && !legacy.length && !fallback) {
+    if (routingReadable && !isOutbound(ws) && !steps.length && !legacy.length && !fallback) {
       result.findings.push(ctx.finding(ws, "workstream.noRouting", "medium",
         "Inferred from routing logic: with no routing step, legacy rule or fallback queue, incoming work has nowhere to go.",
         `“${ws.name}” is active but has no routing configuration steps, no legacy routing rules and no fallback queue.`,

@@ -30,7 +30,7 @@ export const WING_LABELS: Record<Wing, string> = { voice: "Phone", messaging: "C
 export const WING_COLORS: Record<Wing, string> = { voice: "#0ea5e9", messaging: "#10b981", records: "#f59e0b" };
 
 export type AreaKind = "building" | "entrance" | "lobby" | "corridor" | "wing" | "room";
-// tag: a word after a room's name ("default" for a shown workstream's default queue).
+// tag: a word after a room's name ("default" for a shown workstream's default queue, "outbound" for a profile's outbound queue).
 export interface Area { kind: AreaKind; key?: string; centerId: string; wing?: Wing; x: number; y: number; z: number; w: number; d: number; name?: string; color: string; tag?: string }
 
 // A wall piece, centred on (x, z), standing on the floor.
@@ -121,7 +121,8 @@ export function buildPlan(graph: Graph, grouping: Grouping, options: PlanOptions
   // Queue rooms go where most routes to them come from; queues only hidden workstreams reach aren't drawn.
   const votes = new Map<string, Map<string, number>>();
   const reachedByHidden = new Set<string>();
-  const routedQueues = (wsKey: string) => [...rulesOf(wsKey).flatMap((rule) => out(rule.key, "routes").map((e) => e.to)), ...out(wsKey, "default").map((e) => e.to)];
+  // An outbound profile's outbound queue counts too: it sits in the profile's building.
+  const routedQueues = (wsKey: string) => [...rulesOf(wsKey).flatMap((rule) => out(rule.key, "routes").map((e) => e.to)), ...out(wsKey, "default").map((e) => e.to), ...out(wsKey, "outbound").map((e) => e.to)];
   graph.nodes.filter((n) => n.kind === "workstream").forEach((ws) => {
     const centerId = centerOfWorkstream.get(ws.key);
     routedQueues(ws.key).forEach((queueKey) => {
@@ -145,6 +146,7 @@ export function buildPlan(graph: Graph, grouping: Grouping, options: PlanOptions
   }
   queues.forEach((q) => { if (!ownerOf.has(q.key) && !reachedByHidden.has(q.key)) ownerOf.set(q.key, UNROUTED_CENTER); });
   const defaultQueues = new Set([...centerOfWorkstream.keys()].flatMap((k) => out(k, "default").map((e) => e.to)));
+  const outboundQueues = new Set([...centerOfWorkstream.keys()].flatMap((k) => out(k, "outbound").map((e) => e.to)));
   const wingOfQueue = (q: GraphNode): Wing => q.facts?.stream ?? (into(q.key).map((e) => e.from).filter((k) => centerOfWorkstream.has(k)).map(streamOf)[0] ?? "voice");
 
 
@@ -278,6 +280,7 @@ export function buildPlan(graph: Graph, grouping: Grouping, options: PlanOptions
         const rx = box.x + r.x - 2, front = r.dz, doorX = rx + r.w / 2;
         area("room", rx + r.w / 2, wz(front + r.d / 2), r.w, r.d, r.key, r.name, wing.kind);
         if (defaultQueues.has(r.key)) plan.areas[plan.areas.length - 1].tag = "default";
+        else if (outboundQueues.has(r.key)) plan.areas[plan.areas.length - 1].tag = "outbound";
         plan.anchors.set(r.key, [rx + r.w / 2, 0, wz(front + r.d / 2)]);
         doorOf.set(r.key, { at: [doorX, PATH_Y, wz(front)], building: center.id, wing: wing.kind, aisles: [rx - ROOM_GAP / 2, rx + r.colW + ROOM_GAP / 2], walkZ: wz(front - ROOM_GAP / 2), corridorZ: wz(ENTRANCE_D + LOBBY_D + CORRIDOR_D / 2), frontRow: r.row === 0 });
         // An overflow transfer is a way through to another queue: a door in the back wall, opposite the entrance.

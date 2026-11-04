@@ -46,6 +46,19 @@ export function findIssues(graph: Graph): Issue[] {
   graph.nodes.forEach((n) => {
     switch (n.kind) {
       case "workstream": {
+        // An outbound profile places calls and takes none in: no routing, no default queue, only its outbound queue.
+        if (n.facts?.outbound) {
+          if (n.facts.missingQueues) {
+            add(n, "problem", "missing-outbound-queue", "Outbound queue not found",
+              "The outbound profile's outbound queue isn't an active omnichannel queue: it was deleted, deactivated or isn't an omnichannel queue.",
+              "Pick an active voice queue as the profile's outbound queue.");
+          } else if (!out(n, "queue").length) {
+            add(n, "warning", "no-outbound-queue", "No outbound queue",
+              "The outbound profile has no outbound queue, the queue that calls placed with this profile go to.",
+              "Pick a voice queue as the profile's outbound queue.");
+          }
+          break;
+        }
         const rules = out(n, "rule");
         const defaultQueue = out(n, "queue");
         if (n.facts?.missingQueues) {
@@ -74,18 +87,32 @@ export function findIssues(graph: Graph): Issue[] {
       }
       case "channel":
         if (read("phoneNumbers") && !into(n, "phone").length) {
-          add(n, "warning", "no-number", "No phone number",
-            "The voice channel has no phone number, so calls can't reach it yet.",
-            "Assign a phone number to the channel (in the admin center, on the workstream's voice channel).");
+          if (out(n, "workstream").some((w) => nodeByKey.get(w)?.facts?.outbound)) {
+            add(n, "warning", "no-number", "No phone number",
+              "The outbound profile has no phone number, so agents can't place calls with it yet.",
+              "Assign a phone number that's enabled for outbound calls to the profile (Phone Number Changer does this in bulk).");
+          } else {
+            add(n, "warning", "no-number", "No phone number",
+              "The voice channel has no phone number, so calls can't reach it yet.",
+              "Assign a phone number to the channel (in the admin center, on the workstream's voice channel).");
+          }
         }
         break;
-      case "phone":
+      case "phone": {
         if (read("channels") && !out(n, "channel").length) {
           add(n, "warning", "unused-number", "Not used",
             "No voice channel uses this phone number, so calls to it don't reach the contact center. An unused number may still be billed.",
             "Assign it to a voice workstream, or release it if it's not needed.");
         }
+        // A number on an outbound profile has to be enabled for outbound calls.
+        const onProfile = out(n, "channel").some((c) => out(nodeByKey.get(c)!, "workstream").some((w) => nodeByKey.get(w)?.facts?.outbound));
+        if (onProfile && n.details.some(([label, value]) => label === "Outbound" && value === "No")) {
+          add(n, "warning", "number-not-outbound", "Can't place calls",
+            "This number is on an outbound profile, but it isn't enabled for outbound calls, so agents can't place calls with it.",
+            "Enable outbound calling on the number, or give the profile a number that has it (Phone Number Changer does this in bulk).");
+        }
         break;
+      }
       case "rule":
         if (n.facts?.missingQueues) {
           add(n, "problem", "missing-queue", "Routes to a queue that's gone",
@@ -109,7 +136,8 @@ export function findIssues(graph: Graph): Issue[] {
             "Every member of this queue is a disabled user, so nobody can pick up its conversations.",
             "Add active agents to the queue.");
         }
-        if (!reached) {
+        // An outbound profile's queue is in use: calls placed with the profile go to it.
+        if (!reached && !(incomingKinds.get(n.key) ?? []).includes("outbound")) {
           add(n, "warning", "unreachable", "Nothing routes here",
             "No route-to-queue rule and no workstream's default queue points at this queue, so no conversation reaches it through routing.",
             "Route to it from a workstream, or deactivate it if it's no longer used.");

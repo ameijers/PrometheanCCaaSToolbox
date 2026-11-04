@@ -196,7 +196,7 @@ export function App(): React.ReactElement {
       });
     });
     if (!showUnrouted) {
-      graph.nodes.filter((n) => n.kind === "queue" && !graph.edges.some((e) => e.to === n.key && (e.kind === "routes" || e.kind === "default" || e.kind === "transfer"))).forEach((q) => out.add(q.key));
+      graph.nodes.filter((n) => n.kind === "queue" && !graph.edges.some((e) => e.to === n.key && (e.kind === "routes" || e.kind === "default" || e.kind === "transfer" || e.kind === "outbound"))).forEach((q) => out.add(q.key));
     }
     return out;
   }, [graph, grouping, showUnrouted]);

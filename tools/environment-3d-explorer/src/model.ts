@@ -58,6 +58,8 @@ export interface GraphNode {
 
 export interface NodeFacts {
   voice?: boolean;
+  // An outbound profile: a voice workstream that places calls (msdyn_direction 1, 3 or 4) and takes none in.
+  outbound?: boolean;
   // A workstream's channel, or a queue's type: what kind of work it carries.
   stream?: Stream;
   disabled?: boolean;
@@ -73,7 +75,7 @@ export type Unread = "phoneNumbers" | "channels" | "resources" | "skills" | "bot
 
 export type EdgeKind =
   | "number" | "channel" | "bot" | "handoff" | "routes" | "default" | "member" | "skill"
-  | "variable" | "hours" | "overflow" | "transfer" | "capacity" | "team" | "businessunit";
+  | "variable" | "hours" | "overflow" | "transfer" | "capacity" | "team" | "businessunit" | "outbound";
 
 export interface GraphEdge {
   from: string;
@@ -105,5 +107,6 @@ export const EDGE_LABELS: Record<EdgeKind, string> = {
   transfer: "transfers to",
   capacity: "capacity profile",
   team: "team member",
-  businessunit: "business unit"
+  businessunit: "business unit",
+  outbound: "places calls in"
 };

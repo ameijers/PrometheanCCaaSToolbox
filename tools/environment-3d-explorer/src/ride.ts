@@ -20,8 +20,11 @@ const orderOf = (n: GraphNode) => Number(n.details.find(([label]) => label === "
 
 export function rideOptions(graph: Graph, from: string, exclude: Set<string> = new Set()): RideOption[] {
   const nodeByKey = new Map(graph.nodes.map((n) => [n.key, n]));
+  // A call doesn't come in through an outbound profile (it only places calls), even on a number it shares.
+  const outbound = (key: string) => nodeByKey.get(key)?.facts?.outbound === true;
+  const intoProfile = (key: string) => outbound(key) || (nodeByKey.get(key)?.kind === "channel" && graph.edges.some((e) => e.from === key && e.kind === "channel" && outbound(e.to)));
   return graph.edges
-    .filter((e) => e.from === from && FLOW.includes(e.kind) && nodeByKey.has(e.to) && !exclude.has(e.to))
+    .filter((e) => e.from === from && FLOW.includes(e.kind) && nodeByKey.has(e.to) && !exclude.has(e.to) && !intoProfile(e.to))
     .map((e) => ({ edge: e, node: nodeByKey.get(e.to)! }))
     // Rules in their order, the default queue after them, everything else by name.
     .sort((a, b) => (a.edge.kind === "default" ? 1 : 0) - (b.edge.kind === "default" ? 1 : 0) || orderOf(a.node) - orderOf(b.node) || a.node.name.localeCompare(b.node.name))

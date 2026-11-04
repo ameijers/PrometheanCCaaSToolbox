@@ -66,11 +66,16 @@ The left panel keeps the search box, the camera buttons (**Orbit**, **Walk**, **
 | Workstream | No route-to-queue rules and no default queue ("routes nowhere") | Problem |
 | Workstream | No route-to-queue rules, so everything goes to the default queue | Warning |
 | Workstream | Voice workstream without a voice channel | Warning |
+| Outbound profile | Outbound queue isn't an active omnichannel queue | Problem |
+| Outbound profile | No outbound queue | Warning |
 | Voice channel | No phone number | Warning |
 | Phone number | Not used by any voice channel | Warning |
+| Phone number | On an outbound profile, but not enabled for outbound calls | Warning |
 | Routing rule | Routes to a queue that isn't an active omnichannel queue | Problem |
 | Queue | No members (or only disabled members): a problem when something routes to it, a warning otherwise | Problem / Warning |
-| Queue | Nothing routes to it (no rule, not a default queue) | Warning |
+| Queue | Nothing routes to it (no rule, not a default queue, not an outbound profile's queue) | Warning |
+
+An **outbound profile** is stored as a voice workstream with `msdyn_direction` 1 (Outbound), 3 or 4. It places calls and takes none in, so it has no routing and none of the workstream checks above apply to it, only the outbound profile checks. It's linked to its outbound queue ("places calls in"), and following a call never goes into it, even from a number it shares with an inbound line.
 | Agent | Disabled user still in a queue | Warning |
 | Agent | Queue member without a bookable resource | Warning |
 

@@ -66,6 +66,11 @@ const QUEUE_TYPE_LABELS: Record<number, string> = { 192350002: "Voice", 19235000
 // msdyn_streamsource 192440000 is voice and 192350000 record (both confirmed); every other channel is messaging.
 const workstreamStream = (source: unknown): Stream => (source === VOICE_STREAM ? "voice" : source === 192350000 ? "records" : "messaging");
 const QUEUE_STREAMS: Record<number, Stream> = { 192350002: "voice", 192350000: "messaging", 192350001: "records" };
+// msdyn_direction: 0 Inbound, 1 Outbound, 2 Direct Inbound, 3 Direct Outbound, 4 Proactive outbound (confirmed
+// live, as Visual Routing Tester and Phone Number Changer read it). The outbound ones place calls and take none
+// in, so they have no routing: an outbound profile is direction 1 with an outbound queue (Profile Builder, 2026-10-01).
+export const OUTBOUND_DIRECTIONS = new Set([1, 3, 4]);
+const DIRECTION_LABELS: Record<number, string> = { 0: "Inbound", 1: "Outbound", 2: "Direct inbound", 3: "Direct outbound", 4: "Proactive outbound" };
 
 const str = (value: unknown): string => (typeof value === "string" ? value : "");
 const id = (value: unknown): string | undefined => (typeof value === "string" && value ? value.replace(/[{}]/g, "").toLowerCase() : undefined);
@@ -102,13 +107,24 @@ export function buildGraph(raw: RawEnvironment): Graph {
   raw.workstreams.forEach((w) => {
     const wsId = id(w.msdyn_liveworkstreamid);
     if (!wsId) return;
-    const defaultQueue = id(w._msdyn_defaultqueue_value);
+    const outbound = OUTBOUND_DIRECTIONS.has(w.msdyn_direction);
+    // An outbound profile's only queue is its outbound queue; it has no default queue to route to.
+    const defaultQueue = outbound ? undefined : id(w._msdyn_defaultqueue_value);
+    const outboundQueue = outbound ? id(w._msdyn_outboundqueueid_value) : undefined;
+    const queue = outbound ? outboundQueue : defaultQueue;
     add({
       key: key("workstream", wsId), kind: "workstream", name: str(w.msdyn_name) || "(unnamed workstream)", recordId: wsId,
-      details: [["Channel", STREAM_LABELS[w.msdyn_streamsource] ?? `Other (${w.msdyn_streamsource ?? "unknown"})`]],
-      facts: { voice: w.msdyn_streamsource === VOICE_STREAM, stream: workstreamStream(w.msdyn_streamsource), missingQueues: defaultQueue && !queueIds.has(defaultQueue) ? 1 : 0 }
+      details: [
+        ["Channel", STREAM_LABELS[w.msdyn_streamsource] ?? `Other (${w.msdyn_streamsource ?? "unknown"})`],
+        ...(typeof w.msdyn_direction === "number" ? [["Direction", DIRECTION_LABELS[w.msdyn_direction] ?? `Other (${w.msdyn_direction})`] as [string, string]] : [])
+      ],
+      facts: {
+        voice: w.msdyn_streamsource === VOICE_STREAM, stream: workstreamStream(w.msdyn_streamsource), outbound,
+        missingQueues: queue && !queueIds.has(queue) ? 1 : 0
+      }
     });
     if (defaultQueue) link(key("workstream", wsId), key("queue", defaultQueue), "default");
+    if (outboundQueue) link(key("workstream", wsId), key("queue", outboundQueue), "outbound");
 
     // A workstream's bot (a Copilot Studio agent, as a user) answers before routing. One node per
     // workstream, so a bot shared by two workstreams doesn't join their routes.
