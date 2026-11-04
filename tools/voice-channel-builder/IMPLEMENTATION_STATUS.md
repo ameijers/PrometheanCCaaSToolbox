@@ -44,3 +44,7 @@ The builder's and Profile Builder's tests pass unchanged.
 ## Testing
 
 Run against the sample environment only. Still needed: a live run in `academyexperiment` (with and without a number).
+
+## Site Map subarea
+
+Included in the packaged solution from **1.0.0.21** onward: importing `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_21.zip` brings the **Voice Channel Builder** subarea in the app's **Creation** group, after Voice Workstream Builder. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/channelbuilder/index.html` (stored as `$webresource:pct_/tools/channelbuilder/index.html`). See the [toolbox README](../../Readme.md#site-map-subareas).
