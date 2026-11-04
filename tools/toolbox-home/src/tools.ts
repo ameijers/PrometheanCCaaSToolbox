@@ -37,6 +37,7 @@ export const TOOLS: ToolCard[] = [
   { key: "explorer3d", name: "3D Explorer", group: "3d", writes: false, description: "Every record as a 3D cloud, from phone numbers to skills. Click one to light up what's in front and behind." },
 
   { key: "voicebuilder", name: "Voice Workstream Builder", group: "creation", writes: true, description: "Create voice workstreams and their voice channels from a CSV, with or without a phone number." },
+  { key: "channelbuilder", name: "Voice Channel Builder", group: "creation", writes: true, isNew: true, description: "Add voice channels to existing workstreams from a CSV, with or without a phone number." },
   { key: "queuebuilder", name: "Queue Builder", group: "creation", writes: true, description: "Create advanced queues from a CSV: type, assignment method, priority, operating hours and members." },
   { key: "profilebuilder", name: "Profile Builder", group: "creation", writes: true, description: "Create outbound profiles from a CSV: phone number, outbound queue, caller ID and behaviors." },
   { key: "assignmentmethodcopier", name: "Queue Assignment Method Copier", group: "creation", writes: true, description: "Copy one queue's custom assignment method to other queues, with a preview and a switch back." },

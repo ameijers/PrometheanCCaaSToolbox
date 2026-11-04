@@ -127,6 +127,18 @@
         { "name": "pct_/tools/profilebuilder/bundle.js", "path": "dist/webresource/profilebuilder/bundle.js", "type": 3, "displayName": "Profile Builder - bundle.js" }
       ]
     },
+    "channelbuilder": {
+      "displayName": "Voice Channel Builder",
+      "stage": [
+        { "from": "tools/voice-channel-builder/webresource/channelbuilder.html", "to": "dist/webresource/channelbuilder/index.html" },
+        { "from": "tools/voice-channel-builder/css/voiceChannelBuilder.css", "to": "dist/webresource/channelbuilder/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/channelbuilder/index.html", "path": "dist/webresource/channelbuilder/index.html", "type": 1, "displayName": "Voice Channel Builder - index.html", "cacheBust": true },
+        { "name": "pct_/tools/channelbuilder/style.css", "path": "dist/webresource/channelbuilder/style.css", "type": 2, "displayName": "Voice Channel Builder - style.css" },
+        { "name": "pct_/tools/channelbuilder/bundle.js", "path": "dist/webresource/channelbuilder/bundle.js", "type": 3, "displayName": "Voice Channel Builder - bundle.js" }
+      ]
+    },
     "businessunitbuilder": {
       "displayName": "Business Unit Builder",
       "stage": [

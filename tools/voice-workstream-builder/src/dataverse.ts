@@ -4,7 +4,7 @@
 import { BuilderSource, CREATABLE_TABLES, CreatableTable } from "./dataSource";
 import { normalizePhoneNumber } from "./validate";
 import { Catalog } from "./model";
-import { TABLES, TableKey } from "./voiceSchema";
+import { STREAM_SOURCE_VOICE, TABLES, TableKey } from "./voiceSchema";
 
 declare const Xrm: any;
 
@@ -62,7 +62,7 @@ async function loadCatalog(): Promise<Catalog> {
     readAll("msdyn_oclanguage", "?$select=msdyn_oclanguageid,msdyn_languagename,msdyn_localecode"),
     readAll("msdyn_ocphonemusic", "?$select=msdyn_ocphonemusicid,msdyn_name"),
     // Every workstream, any channel or state: a new name must not collide with any of them.
-    readAll("msdyn_liveworkstream", "?$select=msdyn_liveworkstreamid,msdyn_name"),
+    readAll("msdyn_liveworkstream", "?$select=msdyn_liveworkstreamid,msdyn_name,msdyn_direction,msdyn_streamsource,statecode"),
     readAll("msdyn_ocvoicechannelsetting", "?$select=msdyn_ocvoicechannelsettingid,msdyn_name,_msdyn_phonenumberid_value,_msdyn_liveworkstreamid_value")
   ]);
   const workstreamNames = new Map(workstreams.map((w) => [str(w.msdyn_liveworkstreamid), str(w.msdyn_name)]));
@@ -79,7 +79,11 @@ async function loadCatalog(): Promise<Catalog> {
     })),
     languages: languages.map((l) => ({ id: str(l.msdyn_oclanguageid), name: str(l.msdyn_languagename), localeCode: str(l.msdyn_localecode) })),
     music: music.map((m) => ({ id: str(m.msdyn_ocphonemusicid), name: str(m.msdyn_name) })),
-    workstreams: workstreams.map((w) => ({ id: str(w.msdyn_liveworkstreamid), name: str(w.msdyn_name) })),
+    workstreams: workstreams.map((w) => ({
+      id: str(w.msdyn_liveworkstreamid), name: str(w.msdyn_name),
+      direction: typeof w.msdyn_direction === "number" ? w.msdyn_direction : undefined,
+      voice: w.msdyn_streamsource === STREAM_SOURCE_VOICE, active: w.statecode === 0
+    })),
     channels: channels.map((c) => ({
       id: str(c.msdyn_ocvoicechannelsettingid),
       name: str(c.msdyn_name),

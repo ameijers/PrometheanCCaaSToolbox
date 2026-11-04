@@ -42,6 +42,7 @@ The app opens best on **[Toolbox Home](tools/toolbox-home/README.md)**: a landin
 | Tool | What it does | Writes |
 | --- | --- | --- |
 | [Voice Workstream Builder](tools/voice-workstream-builder/README.md) | Creates voice workstreams and their voice channels in bulk from a CSV file (one row per channel, so a workstream can have several). A channel can be created without a phone number, to be assigned later. | Creates only: `msdyn_liveworkstream`, `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoice`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes. |
+| [Voice Channel Builder](tools/voice-channel-builder/README.md) | Adds voice channels to **existing** inbound voice workstreams in bulk from a CSV file (one row per channel, so a workstream can get several). A channel can be created without a phone number, to be assigned later. Same channel columns and checks as Voice Workstream Builder. Not in solution 1.0.0.20 yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_ocvoicechannelsetting`, `msdyn_ocvoice`, `msdyn_ocvoicechannellanguagesetting`. Never creates workstreams, never updates or deletes. |
 | [Queue Builder](tools/queue-builder/README.md) | Creates advanced (unified routing) queues in bulk from a CSV file: type, assignment method, priority, visibility, operating hours and members. | Creates only: `queue` (advanced queues), and adds members through `queuemembership_association`. Never updates or deletes. |
 | [Profile Builder](tools/profile-builder/README.md) | Creates **outbound** profiles in bulk from a CSV file: name, phone number (required), outbound queue, caller ID and behaviors. Inbound profiles aren't supported yet. | Creates only, through Voice Workstream Builder's data layer: `msdyn_liveworkstream` (outbound), `msdyn_liveworkstreamcapacityprofile`, `msdyn_ocvoicechannelsetting`, `msdyn_ocvoicechannellanguagesetting`. Never updates or deletes, and never changes the default profile. |
 | [Route-to-Queue Builder](tools/route-to-queue-builder/README.md) | Adds route-to-queue rules to workstreams in bulk from a CSV file: each rule routes to a queue when a context variable (e.g. the IVR menu choice, name entered on the page) equals a value. Creates the context variable, ruleset and routing where missing; adds after existing rules. | Creates `msdyn_ocliveworkstreamcontextvariable`, `msdyn_routingconfiguration`, `msdyn_decisionruleset` and `msdyn_routingconfigurationstep`; updates only `msdyn_rulesetdefinition` to add rules. Never deletes or changes existing rules. |
@@ -88,7 +89,7 @@ Users themselves come from Microsoft Entra ID: a user is in the environment once
 </tr>
 </table>
 
-Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Skill Assignment](tools/skill-assignment/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md), [Assignment Method Copier](tools/assignment-method-copier/manual.md), [Route-to-Queue Builder](tools/route-to-queue-builder/manual.md), [Voicemail Builder](tools/voicemail-builder/manual.md), [Environment 3D Explorer](tools/environment-3d-explorer/manual.md), [3D Contact Center](tools/contact-center-3d/manual.md), [Environment Diagram](tools/environment-diagram/manual.md).
+Each tool has its own README (what it does, how it works, tables read and written, build/run/deploy), an `IMPLEMENTATION_STATUS.md` (how its schema was verified, decisions, open questions, live findings), and a step-by-step manual with screenshots: [Visual Routing Tester](tools/visual-routing-tester/manual.md), [Context Variable Monitor](tools/context-variable-monitor/manual.md), [Agent Readiness Checker](tools/agent-readiness-checker/manual.md), [Environment Artifact Finder](tools/environment-artifact-finder/manual.md), [Voice Workstream Builder](tools/voice-workstream-builder/manual.md), [Voice Channel Builder](tools/voice-channel-builder/manual.md), [Queue Builder](tools/queue-builder/manual.md), [Profile Builder](tools/profile-builder/manual.md), [Business Unit Builder](tools/business-unit-builder/manual.md), [Team Builder](tools/team-builder/manual.md), [User Setup](tools/user-setup/manual.md), [Queue Membership](tools/queue-membership/manual.md), [Skill Assignment](tools/skill-assignment/manual.md), [Recording & Transcription Provisioner](tools/voice-recording-provisioner/manual.md), [Assignment Method Copier](tools/assignment-method-copier/manual.md), [Route-to-Queue Builder](tools/route-to-queue-builder/manual.md), [Voicemail Builder](tools/voicemail-builder/manual.md), [Environment 3D Explorer](tools/environment-3d-explorer/manual.md), [3D Contact Center](tools/contact-center-3d/manual.md), [Environment Diagram](tools/environment-diagram/manual.md).
 
 ### How the creation tools work
 
@@ -175,6 +176,12 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Security | Team Builder | `pct_/tools/teambuilder/index.html` |
 | Security | User Setup | `pct_/tools/usersetup/index.html` |
 
+Not in solution 1.0.0.20 yet, so add it by hand until the next version:
+
+| Group | Subarea title | Web resource |
+| --- | --- | --- |
+| Creation | Voice Channel Builder | `pct_/tools/channelbuilder/index.html` |
+
 When you add a tool to an environment yourself, add a subarea the same way. Until it exists, a deployed tool can be opened inside the app with `https://<org>.crm.dynamics.com/main.aspx?appid=<app id>&pagetype=webresource&webresourceName=<web resource>`. Open it inside the app, not as a bare web resource URL: outside the app the tool can't reach Dataverse and shows its sample data instead (the topbar says which one you're looking at).
 
 ## Architecture
@@ -188,7 +195,7 @@ All tools:
 - Live in one Dataverse solution and one model-driven app/Site Map, rather than one solution per tool.
 - Use no libraries beyond React, except the 3D tools: the Environment 3D Explorer and 3D Contact Center bundle Three.js, through React Three Fiber and drei, for their WebGL scenes, and 3D Contact Center also `@react-three/postprocessing` for its glow and soft shadows. That makes their bundles about 1–1.5 MB; the others (the Environment Diagram included, which is plain SVG) are about 200 KB.
 - Include a fully working **offline demo mode** with bundled sample data, so you can try them out locally without a Dataverse connection. In the writing tools, demo mode simulates the writes in memory.
-- Keep every Dataverse write in one `dataverse.ts` per tool. Profile Builder has none of its own: it uses Voice Workstream Builder's. The onboarding tools share read helpers from `tools/shared/`, which never writes.
+- Keep every Dataverse write in one `dataverse.ts` per tool. Profile Builder and Voice Channel Builder have none of their own: they use Voice Workstream Builder's. The onboarding tools share read helpers from `tools/shared/`, which never writes.
 
 **Read-only vs. writing.** The diagnostic tools are **read-only**: none of them ever creates, updates or deletes a record, and each has a `readOnly.test.ts` that enforces it. The creation and provisioning tools write, but each within a fixed scope (the [Writes](#creation-and-provisioning-tools) column): their `dataverse.ts` refuses anything outside it at runtime (tables, and for the provisioner columns), and each has a `writeScope.test.ts` that fails the build if the code could write outside it. No tool deletes anything. Writes happen only after a preview and an explicit confirmation that names the target environment, and every run can be downloaded as a log.
 
@@ -207,6 +214,7 @@ tools/
   environment-3d-explorer/     # Diagnostic (3D view, Three.js)
   contact-center-3d/           # Diagnostic (3D business view, built on the explorer)
   voice-workstream-builder/    # Creation — also holds the shared CSV, log and recording code
+  voice-channel-builder/       # Creation (voice channels on existing workstreams)
   queue-builder/               # Creation
   profile-builder/             # Creation (outbound profiles)
   route-to-queue-builder/      # Creation (route-to-queue rules by context variable)
@@ -263,6 +271,7 @@ Each tool can be run locally in its offline demo mode:
 | Capacity Profile Assignment | `capacityassignment` | `npm run demo:capacityassignment` → http://localhost:5451/index.html |
 | Toolbox Home | `home` | `npm run demo:home` → http://localhost:5452/home/index.html |
 | Environment Diagram | `diagram2d` | `npm run demo:diagram2d` → http://localhost:5453/index.html |
+| Voice Channel Builder | `channelbuilder` | `npm run demo:channelbuilder` → http://localhost:5454/index.html |
 
 ## Deployment
 

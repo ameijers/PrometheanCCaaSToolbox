@@ -16,6 +16,7 @@ module.exports = {
     recordingprovisioner: "./tools/voice-recording-provisioner/webresource/index.tsx",
     queuebuilder: "./tools/queue-builder/webresource/index.tsx",
     profilebuilder: "./tools/profile-builder/webresource/index.tsx",
+    channelbuilder: "./tools/voice-channel-builder/webresource/index.tsx",
     businessunitbuilder: "./tools/business-unit-builder/webresource/index.tsx",
     teambuilder: "./tools/team-builder/webresource/index.tsx",
     usersetup: "./tools/user-setup/webresource/index.tsx",

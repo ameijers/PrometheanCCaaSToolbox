@@ -47,8 +47,12 @@ const CATALOG: Catalog = {
   ],
   music: ["Anthem", "Beep", "Transform", "Compose", "Parallel", "Personalize", "Deep Vision", "Tree Line", "Rising Sun"].map((name, i) => ({ id: id(60 + i), name })),
   workstreams: [
-    { id: id(80), name: "Contoso Voice" },
-    { id: id(81), name: "Contoso Voice Sales" }
+    { id: id(80), name: "Contoso Voice", direction: 0, voice: true, active: true },
+    { id: id(81), name: "Contoso Voice Sales", direction: 0, voice: true, active: true },
+    // For Voice Channel Builder's checks: an outbound profile, a chat workstream and a deactivated one.
+    { id: id(82), name: "Contoso Default Outbound Profile", direction: 1, voice: true, active: true },
+    { id: id(83), name: "Contoso Chat", direction: 0, voice: false, active: true },
+    { id: id(84), name: "Contoso Voice (old)", direction: 0, voice: true, active: false }
   ],
   channels: [
     { id: id(90), name: "Contoso Voice Channel", phoneNumberId: id(42), workstreamName: "Contoso Voice" },
@@ -78,7 +82,7 @@ export const demoSource: BuilderSource = {
     await new Promise((resolve) => setTimeout(resolve, 60));
     const newId = id(counter++);
     const name = String(payload.msdyn_name ?? "");
-    if (table === "workstream") catalog.workstreams.push({ id: newId, name });
+    if (table === "workstream") catalog.workstreams.push({ id: newId, name, direction: typeof payload.msdyn_direction === "number" ? payload.msdyn_direction : 0, voice: true, active: true });
     if (table === "channel") {
       const workstreamId = boundId(payload, NAV.channel.workstream);
       catalog.channels.push({ id: newId, name, phoneNumberId: boundId(payload, NAV.channel.phoneNumber), workstreamName: catalog.workstreams.find((w) => w.id === workstreamId)?.name });
