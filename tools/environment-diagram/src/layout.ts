@@ -192,7 +192,7 @@ export function computeDiagram(graph: Graph, options: LayoutOptions = {}): Diagr
   groups.push(...loose.map((b) => ({ items: [b] })));
 
   const rowSources: { key: string; from: string; shape: string; y: number; kind: GraphEdge["kind"]; to: string; label?: string; dashed?: boolean }[] = [];
-  const entryLinks: { from: string; to: string; kind: GraphEdge["kind"]; fromShape: string; y: number; target: Shape; targetY: number }[] = [];
+  const entryLinks: { from: string; to: string; kind: GraphEdge["kind"]; fromShape: string; y: number; target: Shape; targetY: number; dashed?: boolean }[] = [];
   let y = PAD + LANE_HEAD;
   const entryLeft = showPhones ? xPhone : showChannels ? xChannel : xWs;
 
@@ -200,8 +200,9 @@ export function computeDiagram(graph: Graph, options: LayoutOptions = {}): Diagr
     const { ws } = block;
     const container = add({
       id: `ws|${ws.key}`, nodeKey: ws.key, kind: "workstream", role: "container", x: xWs, y: top, w: COL.workstream, h: 0, header: HEAD,
-      label: ws.name, sub: STREAM_LABEL[ws.facts?.stream ?? ""] ?? detail(ws, "Channel")
+      label: ws.name, sub: ws.facts?.outbound ? "Outbound profile" : STREAM_LABEL[ws.facts?.stream ?? ""] ?? detail(ws, "Channel")
     });
+    const outbound = ws.facts?.outbound === true;
     let cy = top + HEAD + 6;
     const bot = intoOf(ws.key, "handoff").map((e) => e.from).find((k) => shown(k));
     let botShape: Shape | undefined;
@@ -230,8 +231,15 @@ export function computeDiagram(graph: Graph, options: LayoutOptions = {}): Diagr
       rowSources.push({ key: `${ws.key}>default>${defaultQueue}`, from: ws.key, shape: row.id, y: cy + ROW / 2, kind: "default", to: defaultQueue, dashed: true });
       cy += ROW + 4;
     }
-    if (!bot && !rules.length && !defaultQueue) {
-      add({ id: `empty|${ws.key}`, kind: "group", role: "row", x: xWs + 8, y: cy, w: COL.workstream - 16, h: ROW, label: "Routes nowhere", parent: container.id });
+    // An outbound profile takes no calls in; it places them, in its outbound queue (dashed: not a call coming in).
+    const outboundQueue = outbound ? outOf(ws.key, "outbound").map((e) => e.to).find((q) => shown(q)) : undefined;
+    if (outboundQueue) {
+      const row = add({ id: `outbound|${ws.key}`, nodeKey: ws.key, kind: "default", role: "row", x: xWs + 8, y: cy, w: COL.workstream - 16, h: ROW, label: "Places calls in: outbound queue", parent: container.id });
+      rowSources.push({ key: `${ws.key}>outbound>${outboundQueue}`, from: ws.key, shape: row.id, y: cy + ROW / 2, kind: "outbound", to: outboundQueue, dashed: true });
+      cy += ROW + 4;
+    }
+    if (!bot && !rules.length && !defaultQueue && !outboundQueue) {
+      add({ id: `empty|${ws.key}`, kind: "group", role: "row", x: xWs + 8, y: cy, w: COL.workstream - 16, h: ROW, label: outbound ? "No outbound queue" : "Routes nowhere", parent: container.id });
       cy += ROW + 4;
     }
     const variables = outOf(ws.key, "variable").map((e) => e.to).filter((k) => shown(k));
@@ -251,13 +259,13 @@ export function computeDiagram(graph: Graph, options: LayoutOptions = {}): Diagr
       if (entry.channel) {
         const c = nodeByKey.get(entry.channel)!;
         channelShape = add({ id: `ch|${c.key}`, nodeKey: c.key, kind: "channel", role: "node", x: xChannel, y: rowY, w: COL.channel, h: 34, label: c.name });
-        entryLinks.push({ from: c.key, to: bot ?? ws.key, kind: bot ? "bot" : "channel", fromShape: channelShape.id, y: rowY + 17, target, targetY });
+        entryLinks.push({ from: c.key, to: bot ?? ws.key, kind: bot ? "bot" : "channel", fromShape: channelShape.id, y: rowY + 17, target, targetY, dashed: outbound || undefined });
       }
       if (entry.phone) {
         const p = nodeByKey.get(entry.phone)!;
         const phoneShape = add({ id: `ph|${entry.channel ?? ws.key}|${p.key}`, nodeKey: p.key, kind: "phone", role: "node", x: xPhone, y: rowY + 4, w: COL.phone, h: 26, label: p.name });
-        if (channelShape) connectors.push({ id: `c|${p.key}>${channelShape.id}`, from: p.key, to: channelShape.nodeKey!, kind: "number", fromShape: phoneShape.id, toShape: channelShape.id, points: [[phoneShape.x + phoneShape.w, rowY + 17], [channelShape.x, rowY + 17]] });
-        else entryLinks.push({ from: p.key, to: bot ?? ws.key, kind: "number", fromShape: phoneShape.id, y: rowY + 17, target, targetY });
+        if (channelShape) connectors.push({ id: `c|${p.key}>${channelShape.id}`, from: p.key, to: channelShape.nodeKey!, kind: "number", fromShape: phoneShape.id, toShape: channelShape.id, points: [[phoneShape.x + phoneShape.w, rowY + 17], [channelShape.x, rowY + 17]], dashed: outbound || undefined });
+        else entryLinks.push({ from: p.key, to: bot ?? ws.key, kind: "number", fromShape: phoneShape.id, y: rowY + 17, target, targetY, dashed: outbound || undefined });
       }
       ey += 34 + 8;
     });
@@ -303,7 +311,7 @@ export function computeDiagram(graph: Graph, options: LayoutOptions = {}): Diagr
   entryLinks.sort((a, b) => a.targetY - b.targetY || a.y - b.y).forEach((l, i, all) => {
     const mid = entryGapLeft + (xWs - entryGapLeft) * (0.25 + 0.5 * (all.length > 1 ? i / (all.length - 1) : 0.5));
     const fromX = shapes.find((s) => s.id === l.fromShape)!;
-    connectors.push({ id: `c|${l.fromShape}>${l.target.id}`, from: l.from, to: l.to, kind: l.kind, fromShape: l.fromShape, toShape: l.target.id, points: orthogonal([fromX.x + fromX.w, l.y], [l.target.x, l.targetY], mid) });
+    connectors.push({ id: `c|${l.fromShape}>${l.target.id}`, from: l.from, to: l.to, kind: l.kind, fromShape: l.fromShape, toShape: l.target.id, points: orthogonal([fromX.x + fromX.w, l.y], [l.target.x, l.targetY], mid), dashed: l.dashed });
   });
 
   // --- Queues, each placed near the rules that route to it. ---

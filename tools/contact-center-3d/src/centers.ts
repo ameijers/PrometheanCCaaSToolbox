@@ -44,7 +44,7 @@ function ownCenter(id: string, name: string, centers: Center[]): Center {
 export function isUnlinked(graph: Graph, workstreamId: string): boolean {
   const key = `workstream:${workstreamId}`;
   const into = graph.edges.some((e) => e.to === key && (e.kind === "channel" || e.kind === "handoff"));
-  const out = graph.edges.some((e) => e.from === key && (e.kind === "routes" || e.kind === "default"));
+  const out = graph.edges.some((e) => e.from === key && (e.kind === "routes" || e.kind === "default" || e.kind === "outbound"));
   return !into && !out;
 }
 

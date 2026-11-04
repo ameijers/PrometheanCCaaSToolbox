@@ -120,6 +120,20 @@ describe("workstream rule", () => {
     expect(findings.find((f) => f.recordId === WS_OFF)?.checkId).toBe("workstream.noRouting");
   });
 
+  test("an outbound profile has no routing on purpose, and its outbound queue is in use", () => {
+    const { findings, snapshot, graph } = run(world({
+      msdyn_liveworkstream: { rows: [
+        ...world().msdyn_liveworkstream.rows!,
+        { msdyn_liveworkstreamid: WS_OFF, name: "Sales outbound", statecode: 0, msdyn_direction: 1, _msdyn_outboundqueueid_value: Q_STAFFED }
+      ] },
+      queue: { partial: true, rows: [...world().queue.rows!, { queueid: Q_STAFFED, name: "Outbound Sales", statecode: 0, msdyn_isomnichannelqueue: true }] },
+      queuemembership: { rows: [{ queuemembershipid: id(70), queueid: Q_MAIN, systemuserid: USER }, { queuemembershipid: id(71), queueid: Q_STAFFED, systemuserid: USER }] }
+    }));
+    expect(findings.find((f) => f.recordId === WS_OFF)).toBeUndefined();
+    expect(findings.find((f) => f.recordId === Q_STAFFED)).toBeUndefined();
+    expect(computeQueueReachability(snapshot, graph).reasons.get(Q_STAFFED)?.[0]).toContain("Outbound queue of outbound profile");
+  });
+
   test("an active legacy routing rule counts as routing", () => {
     const { findings } = run(world({
       msdyn_liveworkstream: { rows: [{ msdyn_liveworkstreamid: WS_OFF, name: "Legacy chat", statecode: 0 }] },

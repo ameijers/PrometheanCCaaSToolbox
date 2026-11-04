@@ -36,7 +36,8 @@ export async function loadRaw(): Promise<RawEnvironment> {
     variables, operatingHours, overflowActions, capacityProfiles, workstreamCapacity, businessUnits, teams] = await Promise.all([
     optional("phone numbers", "phoneNumbers", () => readAll("msdyn_ocphonenumber", "?$select=msdyn_ocphonenumberid,msdyn_phonenumber,statecode,msdyn_phoneinboundenabled,msdyn_phoneoutboundenabled")),
     optional("voice channels", "channels", () => readAll("msdyn_ocvoicechannelsetting", "?$select=msdyn_ocvoicechannelsettingid,msdyn_name,_msdyn_phonenumberid_value,_msdyn_liveworkstreamid_value")),
-    readAll("msdyn_liveworkstream", "?$select=msdyn_liveworkstreamid,msdyn_name,msdyn_streamsource,_msdyn_defaultqueue_value,_msdyn_bot_user_value&$filter=statecode eq 0"),
+    // msdyn_direction and _msdyn_outboundqueueid_value (an outbound profile's queue): confirmed live (academyexperiment, 2026-11-04).
+    readAll("msdyn_liveworkstream", "?$select=msdyn_liveworkstreamid,msdyn_name,msdyn_streamsource,_msdyn_defaultqueue_value,_msdyn_bot_user_value,msdyn_direction,_msdyn_outboundqueueid_value&$filter=statecode eq 0"),
     readAll("msdyn_routingconfiguration", "?$select=msdyn_routingconfigurationid,msdyn_isactiveconfiguration,_msdyn_liveworkstreamid_value"),
     readAll("msdyn_routingconfigurationstep", "?$select=msdyn_type,_msdyn_routingconfigurationid_value,_msdyn_rulesetid_value"),
     readAll("queue", "?$select=queueid,name,msdyn_queuetype,_msdyn_prequeueoverflowrulesetid_value,_msdyn_inqueueoverflowrulesetid_value,_msdyn_operatinghourid_value&$filter=msdyn_isomnichannelqueue eq true and statecode eq 0"),

@@ -93,7 +93,20 @@ export function demoRaw(): RawEnvironment {
 
   addProblems(raw, queueId);
   addMoreConfiguration(raw, queueId);
+  addOutboundProfile(raw);
   return raw;
+}
+
+// An outbound profile, stored as Profile Builder found one live: a voice workstream with msdyn_direction 1,
+// an outbound queue and no routing, and one voice channel on a number shared with an inbound line.
+function addOutboundProfile(raw: RawEnvironment): void {
+  const queueId = guid("a1", 80), wsId = guid("b1", 80);
+  raw.queues.push({ queueid: queueId, name: "Outbound Sales", msdyn_queuetype: VOICE_QUEUE });
+  const sales = raw.queues.find((q) => q.name === "Sales")!.queueid;
+  raw.memberships.filter((m) => m.queueid === sales).slice(1, 4).forEach((m) => raw.memberships.push({ queueid: queueId, systemuserid: m.systemuserid }));
+  raw.workstreams.push({ msdyn_liveworkstreamid: wsId, msdyn_name: "Sales – Outbound Profile", msdyn_streamsource: VOICE, msdyn_direction: 1, _msdyn_outboundqueueid_value: queueId, _msdyn_defaultqueue_value: null });
+  // The first number is the sales line's, and enabled for outbound calls.
+  raw.channels.push({ msdyn_ocvoicechannelsettingid: guid("c1", 80), msdyn_name: "Sales outbound", _msdyn_liveworkstreamid_value: wsId, _msdyn_phonenumberid_value: guid("d1", 1) });
 }
 
 // The configuration around the call path: a bot, overflow, operating hours, context variables,
