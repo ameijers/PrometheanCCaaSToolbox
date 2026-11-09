@@ -35,6 +35,7 @@ One row per outbound profile. The **phone number is optional**: a profile can be
 | `agent_transcription_controls`, `agent_recording_controls` | Yes | Agents can pause/resume. |
 | `request_recording_consent`, `stop_recording_on_hold`, `play_recording_notifications`, `show_transcript_by_default` | No | |
 | `pstn_transfer_controls`, `teams_transfer_controls` | Yes | |
+| `bridged_transfer_pstn`, `bridged_transfer_teams` | No | Bridged transfer to an external phone number (PSTN) or Teams user: the original call stays up and the external party sees your number. Yes only has an effect when the matching transfer controls are Yes (a warning otherwise). |
 
 Defaults follow the outbound profile the admin center created in the reference environment. Not set by this tool: the **default profile** flag (a bulk tool shouldn't change which profile is the default) and the **outbound call region allow-list** (its format couldn't be verified: it's empty everywhere).
 

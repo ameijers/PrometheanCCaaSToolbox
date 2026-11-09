@@ -152,6 +152,12 @@ export function readChannel(row: Row, issues: Issue[], workstream: string, direc
     push("warning", "tts_voice", `The voice "${ttsVoice}" doesn't look like a ${language} voice. Check it speaks the channel's language.`);
   }
 
+  const pstnTransferControls = r.yesNo("pstn_transfer_controls");
+  const teamsTransferControls = r.yesNo("teams_transfer_controls");
+  const bridgedTransferPstn = r.yesNo("bridged_transfer_pstn");
+  const bridgedTransferTeams = r.yesNo("bridged_transfer_teams");
+  bridgedTransferWarnings({ pstnTransferControls, teamsTransferControls, bridgedTransferPstn, bridgedTransferTeams }, (column, message) => push("warning", column, message));
+
   return {
     line: row.line,
     name: r.raw("channel_name"),
@@ -165,8 +171,10 @@ export function readChannel(row: Row, issues: Issue[], workstream: string, direc
     waitMusic: r.text("wait_music"),
     operatingHours: r.text("operating_hours"),
     recording,
-    pstnTransferControls: r.yesNo("pstn_transfer_controls"),
-    teamsTransferControls: r.yesNo("teams_transfer_controls")
+    pstnTransferControls,
+    teamsTransferControls,
+    bridgedTransferPstn,
+    bridgedTransferTeams
   };
 }
 
@@ -280,4 +288,14 @@ function display(value: unknown): string {
   if (Array.isArray(value)) return value.join("|");
   if (typeof value === "boolean") return value ? "Yes" : "No";
   return value === undefined ? "" : String(value);
+}
+
+// Bridged transfer is a checkbox under the admin center's transfer toggles: it only applies when agents can
+// transfer to that kind of external party. Shared with Profile Builder.
+export function bridgedTransferWarnings(
+  ch: { pstnTransferControls: boolean; teamsTransferControls: boolean; bridgedTransferPstn: boolean; bridgedTransferTeams: boolean },
+  warn: (column: string, message: string) => void
+): void {
+  if (ch.bridgedTransferPstn && !ch.pstnTransferControls) warn("bridged_transfer_pstn", "bridged_transfer_pstn is Yes, but pstn_transfer_controls is No, so agents can't transfer to an external phone number and bridged transfer isn't used.");
+  if (ch.bridgedTransferTeams && !ch.teamsTransferControls) warn("bridged_transfer_teams", "bridged_transfer_teams is Yes, but teams_transfer_controls is No, so agents can't transfer to an external Teams user and bridged transfer isn't used.");
 }

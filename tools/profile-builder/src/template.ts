@@ -45,7 +45,9 @@ export const COLUMNS: ColumnDef[] = [
   { header: "play_recording_notifications", choices: YES_NO, defaultValue: "No", description: "Play a notification to the customer when recording or transcription starts." },
   { header: "show_transcript_by_default", choices: YES_NO, defaultValue: "No", description: "Show the live transcript to the agent by default." },
   { header: "pstn_transfer_controls", choices: YES_NO, defaultValue: "Yes", description: "Agents get transfer controls for external phone-number participants." },
-  { header: "teams_transfer_controls", choices: YES_NO, defaultValue: "Yes", description: "Agents get transfer controls for Teams participants." }
+  { header: "teams_transfer_controls", choices: YES_NO, defaultValue: "Yes", description: "Agents get transfer controls for Teams participants." },
+  { header: "bridged_transfer_pstn", choices: YES_NO, defaultValue: "No", description: "Enable bridged transfer for public switched telephone network (PSTN): a transfer to an external phone number keeps the original call, and the external party sees your number as caller ID. Needs pstn_transfer_controls Yes." },
+  { header: "bridged_transfer_teams", choices: YES_NO, defaultValue: "No", description: "Enable bridged transfer for Microsoft Teams: a transfer to an external Teams user keeps the original call. Needs teams_transfer_controls Yes." }
 ];
 
 export const COLUMN_BY_HEADER = new Map(COLUMNS.map((c) => [c.header, c]));
@@ -56,7 +58,7 @@ export function normalizeHeader(header: string): string {
 
 // Every name in the example exists in the sample environment.
 const EXAMPLE_ROWS: Record<string, string>[] = [
-  { profile_name: "Sales – Outbound", profile_type: "Outbound", phone_number: "+31201234567", outbound_queue: "Sales Fallback", caller_id_name: "Contoso Sales", language: "nl-NL", hold_music: "Transform", wait_music: "Transform", transcript_recording: "Transcript and Recording", transcript_recording_start: "Automatic", request_recording_consent: "Yes" },
+  { profile_name: "Sales – Outbound", profile_type: "Outbound", phone_number: "+31201234567", outbound_queue: "Sales Fallback", caller_id_name: "Contoso Sales", language: "nl-NL", hold_music: "Transform", wait_music: "Transform", transcript_recording: "Transcript and Recording", transcript_recording_start: "Automatic", request_recording_consent: "Yes", bridged_transfer_pstn: "Yes", bridged_transfer_teams: "Yes" },
   { profile_name: "Callbacks – Outbound", profile_type: "Outbound", phone_number: "+18005550100", outbound_queue: "Callbacks", language: "en-US", transcript_recording: "Transcript" },
   { profile_name: "Support – Outbound", phone_number: "+31201234568", outbound_queue: "Support Fallback", caller_id_number: "+31201234567", language: "en-GB", hold_music: "Anthem", wait_music: "Anthem", transcript_recording: "Transcript and Recording", transcript_recording_start: "Manual", stop_recording_on_hold: "Yes" },
   { profile_name: "Escalations – Outbound (hidden number)", phone_number: "+31201234568", outbound_queue: "Escalations", anonymous_caller_id: "Yes", capacity_profile: "Escalation profile", allowed_presences: "Available|Busy|Busy - DND" }

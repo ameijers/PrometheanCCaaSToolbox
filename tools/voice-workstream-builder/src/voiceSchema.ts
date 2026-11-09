@@ -78,7 +78,9 @@ export const DEFAULT_CAPACITY_PROFILE: Record<Direction, string> = {
 // CSV columns. Every channel in the reference environment had these false.
 export const CHANNEL_FIXED_FIELDS = {
   msdyn_stoptranscriptionandrecordingafterpstntransfer: false,
-  msdyn_stoptranscriptionandrecordingafterteamstransfer: false,
-  msdyn_usebridgetransferforpstntransfer: false,
-  msdyn_usebridgetransferforteamstransfer: false
+  msdyn_stoptranscriptionandrecordingafterteamstransfer: false
 } as const;
+
+// "Use bridged transfers" under Consult and Transfer in the admin center, per kind of external party. Also
+// required booleans: false on every channel read; now CSV columns (bridged_transfer_pstn, _teams).
+export const BRIDGED_TRANSFER_COLUMNS = { pstn: "msdyn_usebridgetransferforpstntransfer", teams: "msdyn_usebridgetransferforteamstransfer" } as const;

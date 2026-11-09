@@ -33,6 +33,7 @@ To create new workstreams with their channels, use [Voice Workstream Builder](..
 | `transcript_recording` | None |
 | `transcript_recording_start` | Automatic |
 | `agent_transcription_controls`, `agent_recording_controls`, `pstn_transfer_controls`, `teams_transfer_controls` | Yes |
+| `bridged_transfer_pstn`, `bridged_transfer_teams` | No |
 | `request_recording_consent`, `stop_recording_on_hold`, `play_recording_notifications`, `show_transcript_by_default` | No |
 | `voice_speed`, `voice_pitch` | 0 (normal) |
 

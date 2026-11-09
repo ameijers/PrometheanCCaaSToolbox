@@ -4,7 +4,7 @@
 import { NamedRecord, ResolvedChannel, ResolvedWorkstream } from "./model";
 import { recordingColumns } from "./recordingSettings";
 import {
-  CAPACITY_FORMAT, CHANNEL_FIXED_FIELDS, DIRECTIONS, NAV, NOTIFICATION, PRESENCES, STREAM_SOURCE_VOICE,
+  BRIDGED_TRANSFER_COLUMNS, CAPACITY_FORMAT, CHANNEL_FIXED_FIELDS, DIRECTIONS, NAV, NOTIFICATION, PRESENCES, STREAM_SOURCE_VOICE,
   VOICE_AUTO_CLOSE_AFTER_INACTIVITY, WORKSTREAM_MODE_SIMPLIFIED, WORK_DISTRIBUTION, bind
 } from "./voiceSchema";
 
@@ -51,6 +51,8 @@ export function channelPayload(workstreamId: string, ch: ResolvedChannel): Paylo
     ...recordingColumns(ch.recording),
     msdyn_agentexternalparticipanttransfercontrolenabled: ch.pstnTransferControls,
     msdyn_agentexternalteamsparticipanttransfercontrolenabled: ch.teamsTransferControls,
+    [BRIDGED_TRANSFER_COLUMNS.pstn]: ch.bridgedTransferPstn ?? false,
+    [BRIDGED_TRANSFER_COLUMNS.teams]: ch.bridgedTransferTeams ?? false,
     ...CHANNEL_FIXED_FIELDS
   };
   // No number is a supported state: the channel is created now and a number is assigned later.

@@ -50,6 +50,9 @@ export interface ChannelSpec {
   recording: WritableSettings;
   pstnTransferControls: boolean;
   teamsTransferControls: boolean;
+  // Bridged transfer to an external phone number / Teams user (default false, as the admin center).
+  bridgedTransferPstn?: boolean;
+  bridgedTransferTeams?: boolean;
   // Outbound calling: the number customers see and how it's shown. Set by Profile Builder; Voice
   // Workstream Builder's CSV doesn't use it, so its channels leave these columns empty.
   outbound?: OutboundSettings;

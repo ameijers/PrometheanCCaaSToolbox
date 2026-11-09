@@ -64,7 +64,9 @@ export const COLUMNS: ColumnDef[] = [
   { header: "play_recording_notifications", level: "channel", kind: "yesno", choices: YES_NO, defaultValue: "No", description: "Play a notification to the caller when recording or transcription starts." },
   { header: "show_transcript_by_default", level: "channel", kind: "yesno", choices: YES_NO, defaultValue: "No", description: "Show the live transcript to the agent by default." },
   { header: "pstn_transfer_controls", level: "channel", kind: "yesno", choices: YES_NO, defaultValue: "Yes", description: "Agents get transfer controls for external phone-number participants." },
-  { header: "teams_transfer_controls", level: "channel", kind: "yesno", choices: YES_NO, defaultValue: "Yes", description: "Agents get transfer controls for Teams participants." }
+  { header: "teams_transfer_controls", level: "channel", kind: "yesno", choices: YES_NO, defaultValue: "Yes", description: "Agents get transfer controls for Teams participants." },
+  { header: "bridged_transfer_pstn", level: "channel", kind: "yesno", choices: YES_NO, defaultValue: "No", description: "Enable bridged transfer for public switched telephone network (PSTN): a transfer to an external phone number keeps the original call, and the external party sees your number as caller ID. Needs pstn_transfer_controls Yes." },
+  { header: "bridged_transfer_teams", level: "channel", kind: "yesno", choices: YES_NO, defaultValue: "No", description: "Enable bridged transfer for Microsoft Teams: a transfer to an external Teams user keeps the original call. Needs teams_transfer_controls Yes." }
 ];
 
 export const COLUMN_BY_HEADER = new Map(COLUMNS.map((c) => [c.header, c]));
@@ -88,7 +90,7 @@ const EXAMPLE_ROWS: Record<string, string>[] = [
   { workstream_name: "Sales – Voice", channel_name: "Sales – BE", language: "nl-BE", tts_voice: "nl-BE-DenaNeural", hold_music: "Transform", wait_music: "Transform", operating_hours: "Workdays", transcript_recording: "Transcript" },
   { workstream_name: "Support – Voice", direction: "Inbound", default_queue: "Support Fallback", agent_affinity: "Yes",
     channel_name: "Support line", phone_number: "+31201234568", language: "en-GB", tts_voice: "en-GB-SoniaNeural", hold_music: "Anthem", wait_music: "Parallel", operating_hours: "24/7",
-    transcript_recording: "Transcript and Recording", transcript_recording_start: "Manual", stop_recording_on_hold: "Yes", agent_recording_controls: "Yes", agent_transcription_controls: "Yes" },
+    transcript_recording: "Transcript and Recording", transcript_recording_start: "Manual", stop_recording_on_hold: "Yes", agent_recording_controls: "Yes", agent_transcription_controls: "Yes", bridged_transfer_pstn: "Yes" },
   { workstream_name: "Claims – Voice", direction: "Inbound", capacity_format: "Unit", capacity_units: "50", default_queue: "Claims Fallback", restrict_recording_download: "Yes",
     channel_name: "Claims hotline", language: "de-DE", tts_voice: "de-DE-KatjaNeural", transcript_recording: "None" },
   { workstream_name: "Callbacks – Outbound", direction: "Outbound", outbound_queue: "Callbacks",
