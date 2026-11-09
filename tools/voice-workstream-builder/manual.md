@@ -46,6 +46,7 @@ An empty cell has one of four effects, depending on the column.
 | `agent_transcription_controls`, `agent_recording_controls` | Yes | Yes |
 | `request_recording_consent`, `stop_recording_on_hold`, `play_recording_notifications`, `show_transcript_by_default` | No | Yes |
 | `pstn_transfer_controls`, `teams_transfer_controls` | Yes | Yes |
+| `bridged_transfer_pstn`, `bridged_transfer_teams` | No | No |
 
 **2. Nothing is set.** The field stays empty in Dataverse. You can fill it in later in the admin center.
 

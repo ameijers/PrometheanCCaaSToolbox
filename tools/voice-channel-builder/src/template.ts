@@ -29,7 +29,7 @@ export { normalizeHeader } from "../../voice-workstream-builder/src/template";
 // a number, one without), and one on another workstream, without a number.
 const EXAMPLE_ROWS: Record<string, string>[] = [
   { workstream_name: "Contoso Voice", channel_name: "Contoso Voice – NL", phone_number: "+31201234568", language: "nl-NL", tts_voice: "nl-NL-FennaNeural",
-    hold_music: "Transform", wait_music: "Transform", operating_hours: "Workdays", transcript_recording: "Transcript and Recording", transcript_recording_start: "Automatic", request_recording_consent: "Yes" },
+    hold_music: "Transform", wait_music: "Transform", operating_hours: "Workdays", transcript_recording: "Transcript and Recording", transcript_recording_start: "Automatic", request_recording_consent: "Yes", bridged_transfer_pstn: "Yes" },
   { workstream_name: "Contoso Voice", channel_name: "Contoso Voice – EN", language: "en-US", tts_voice: "en-US-AvaMultilingualNeural",
     hold_music: "Transform", wait_music: "Transform", operating_hours: "Workdays", transcript_recording: "Transcript" },
   { workstream_name: "Contoso Voice Sales", channel_name: "Contoso Voice Sales – BE", language: "nl-BE", tts_voice: "nl-BE-DenaNeural", operating_hours: "24/7", transcript_recording: "None" }

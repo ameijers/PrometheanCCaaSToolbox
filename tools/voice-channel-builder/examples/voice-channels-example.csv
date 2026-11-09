@@ -1,4 +1,4 @@
-workstream_name,channel_name,phone_number,language,tts_voice,voice_style,voice_speed,voice_pitch,hold_music,wait_music,operating_hours,transcript_recording,transcript_recording_start,agent_transcription_controls,agent_recording_controls,request_recording_consent,stop_recording_on_hold,play_recording_notifications,show_transcript_by_default,pstn_transfer_controls,teams_transfer_controls
-Contoso Voice,Contoso Voice – NL,+31201234568,nl-NL,nl-NL-FennaNeural,,,,Transform,Transform,Workdays,Transcript and Recording,Automatic,,,Yes,,,,,
-Contoso Voice,Contoso Voice – EN,,en-US,en-US-AvaMultilingualNeural,,,,Transform,Transform,Workdays,Transcript,,,,,,,,,
-Contoso Voice Sales,Contoso Voice Sales – BE,,nl-BE,nl-BE-DenaNeural,,,,,,24/7,None,,,,,,,,,
+workstream_name,channel_name,phone_number,language,tts_voice,voice_style,voice_speed,voice_pitch,hold_music,wait_music,operating_hours,transcript_recording,transcript_recording_start,agent_transcription_controls,agent_recording_controls,request_recording_consent,stop_recording_on_hold,play_recording_notifications,show_transcript_by_default,pstn_transfer_controls,teams_transfer_controls,bridged_transfer_pstn,bridged_transfer_teams
+Contoso Voice,Contoso Voice – NL,+31201234568,nl-NL,nl-NL-FennaNeural,,,,Transform,Transform,Workdays,Transcript and Recording,Automatic,,,Yes,,,,,,Yes,
+Contoso Voice,Contoso Voice – EN,,en-US,en-US-AvaMultilingualNeural,,,,Transform,Transform,Workdays,Transcript,,,,,,,,,,,
+Contoso Voice Sales,Contoso Voice Sales – BE,,nl-BE,nl-BE-DenaNeural,,,,,,24/7,None,,,,,,,,,,,

@@ -5,7 +5,7 @@ import { ParsedCsv } from "../../voice-workstream-builder/src/csv";
 import { Catalog, ChannelSpec, Issue, ParsedPlan, ResolvedPlan, WorkstreamSpec } from "../../voice-workstream-builder/src/model";
 import { Capture, StartMode } from "../../voice-workstream-builder/src/recordingSettings";
 import { resolvePlan } from "../../voice-workstream-builder/src/resolve";
-import { normalizePhoneNumber } from "../../voice-workstream-builder/src/validate";
+import { bridgedTransferWarnings, normalizePhoneNumber } from "../../voice-workstream-builder/src/validate";
 import { Presence } from "../../voice-workstream-builder/src/voiceSchema";
 import { COLUMN_BY_HEADER, normalizeHeader } from "./template";
 
@@ -87,6 +87,12 @@ export function validateProfiles(csv: ParsedCsv): ParsedPlan {
     const start = choice("transcript_recording_start").toLowerCase() as StartMode;
     if (capture === "none" && cell("transcript_recording_start").toLowerCase() === "manual") warning("transcript_recording_start", "transcript_recording is None, so the start setting isn’t used.");
 
+    const transfer = {
+      pstnTransferControls: yes("pstn_transfer_controls"), teamsTransferControls: yes("teams_transfer_controls"),
+      bridgedTransferPstn: yes("bridged_transfer_pstn"), bridgedTransferTeams: yes("bridged_transfer_teams")
+    };
+    bridgedTransferWarnings(transfer, warning);
+
     const channel: ChannelSpec = {
       line,
       name,
@@ -105,8 +111,10 @@ export function validateProfiles(csv: ParsedCsv): ParsedPlan {
         playNotifications: yes("play_recording_notifications"),
         showTranscriptByDefault: yes("show_transcript_by_default")
       },
-      pstnTransferControls: yes("pstn_transfer_controls"),
-      teamsTransferControls: yes("teams_transfer_controls"),
+      pstnTransferControls: transfer.pstnTransferControls,
+      teamsTransferControls: transfer.teamsTransferControls,
+      bridgedTransferPstn: transfer.bridgedTransferPstn,
+      bridgedTransferTeams: transfer.bridgedTransferTeams,
       outbound: { callerIdNumber, callerIdName, anonymousCallerId: anonymous }
     };
 

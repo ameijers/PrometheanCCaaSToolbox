@@ -40,6 +40,7 @@ A column you leave out of the file entirely counts as empty in every row. Only `
 | `agent_transcription_controls`, `agent_recording_controls` | Yes |
 | `request_recording_consent`, `stop_recording_on_hold`, `play_recording_notifications`, `show_transcript_by_default` | No |
 | `pstn_transfer_controls`, `teams_transfer_controls` | Yes |
+| `bridged_transfer_pstn`, `bridged_transfer_teams` | No |
 
 **Nothing is set** (you can fill it in later in the admin center):
 
