@@ -38,4 +38,4 @@ Run end to end in a browser against the sample data, and checked by the user in 
 
 ## Packaging
 
-Deployed to `academyexperiment` on 2026-10-30. Included in the packaged solution from **1.0.0.18** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_21.zip`): **Provisioning → Capacity Profile Assignment**. Deploy key `capacityassignment`. For an environment on an older solution version, add it by hand: Type Web Resource, `pct_/tools/capacityassignment/index.html`.
+Deployed to `academyexperiment` on 2026-10-30. Included in the packaged solution from **1.0.0.18** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_23.zip`): **Provisioning → Capacity Profile Assignment**. Deploy key `capacityassignment`. For an environment on an older solution version, add it by hand: Type Web Resource, `pct_/tools/capacityassignment/index.html`.
