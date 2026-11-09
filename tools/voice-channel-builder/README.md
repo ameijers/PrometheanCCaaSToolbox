@@ -70,6 +70,6 @@ npm run demo:channelbuilder   # http://localhost:5454/index.html — sample envi
 pwsh ./scripts/deploy.ps1 -Tool channelbuilder
 ```
 
-Site Map subarea: Type Web Resource, `pct_/tools/channelbuilder/index.html`, in the **Creation** group. Included in solution 1.0.0.21 onward (`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_21.zip`); the deploy script doesn't change the Site Map.
+Site Map subarea: Type Web Resource, `pct_/tools/channelbuilder/index.html`, in the **Creation** group. Included in solution 1.0.0.21 onward (`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_23.zip`); the deploy script doesn't change the Site Map.
 
 See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for decisions and what's been tested.
