@@ -52,13 +52,18 @@ export function canAppend(definition: string | undefined): boolean {
 
 // Adds the rules after the existing ones, keeping everything else as it was.
 export function appendRules(definition: string | undefined, rules: RuleToWrite[]): string {
+  return appendRuleXml(definition, rules.map(ruleXml));
+}
+
+// The same for rules already written as XML (<rule> elements), such as visual-routing-tester's writeRuleXml.
+export function appendRuleXml(definition: string | undefined, rules: string[]): string {
   if (!canAppend(definition)) throw new Error("The ruleset's rules can't be read, so no rules can be added to it.");
   let base = definition && definition.trim() ? definition : emptyDefinition();
   if (!/<\/rules>/.test(base)) base = base.replace(/<rules\s*\/>/, "<rules>\n  </rules>");
   const at = base.lastIndexOf("</rules>");
   const before = base.slice(0, at).replace(/[ \t]*$/, "");
   const newline = before.endsWith("\n") ? "" : "\n";
-  return `${before}${newline}${rules.map(ruleXml).join("\n")}\n  ${base.slice(at)}`;
+  return `${before}${newline}${rules.join("\n")}\n  ${base.slice(at)}`;
 }
 
 export interface ExistingRule {
