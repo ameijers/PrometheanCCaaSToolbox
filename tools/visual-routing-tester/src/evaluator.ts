@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Alexander Meijers
 // SPDX-License-Identifier: MIT
 
-import { Condition, ContextVariable, EnrichmentRule, Outcome, OverflowRule, Queue, QueueRoutingRule, QueueRoutingTarget, RoutingModel, SimulationResult, TraceStep, Workstream } from "./model";
+import { Condition, ConditionGroup, ContextVariable, EnrichmentRule, Outcome, OverflowRule, Queue, QueueRoutingRule, QueueRoutingTarget, RoutingModel, SimulationResult, TraceStep, Workstream, isGroup } from "./model";
 
 const MAX_QUEUE_TRANSFERS = 5;
 
@@ -64,6 +64,22 @@ function evaluateConditions(conditions: Condition[], logic: "AND" | "OR", values
   return logic === "OR" ? conditions.some((condition) => matches(condition, values)) : conditions.every((condition) => matches(condition, values));
 }
 
+// A rule's conditions with their groups: "A AND (B OR C)".
+export function groupSummary(group: ConditionGroup, variableNames: Record<string, string>): string {
+  const text = (g: ConditionGroup): string => g.items.map((item) => (isGroup(item) ? `(${text(item)})` : conditionSummary(item, variableNames))).join(` ${g.logic} `);
+  return group.items.length ? text(group) : "Always";
+}
+
+function evaluateGroup(group: ConditionGroup, values: Record<string, unknown>): boolean {
+  if (!group.items.length) return true;
+  const holds = (item: Condition | ConditionGroup) => (isGroup(item) ? evaluateGroup(item, values) : matches(item, values));
+  return group.logic === "OR" ? group.items.some(holds) : group.items.every(holds);
+}
+
+type WithConditions = { conditions: Condition[]; conditionLogic: "AND" | "OR"; conditionGroup?: ConditionGroup };
+const ruleHolds = (rule: WithConditions, values: Record<string, unknown>) => (rule.conditionGroup ? evaluateGroup(rule.conditionGroup, values) : evaluateConditions(rule.conditions, rule.conditionLogic, values));
+const describeRule = (rule: WithConditions, variableNames: Record<string, string>) => (rule.conditionGroup ? groupSummary(rule.conditionGroup, variableNames) : ruleSummary(rule.conditions, variableNames, rule.conditionLogic));
+
 function push(steps: TraceStep[], step: TraceStep): void { steps.push(step); }
 
 // Real classification/overflow/queue-routing rulesets carry their own hit-policy, which differs per
@@ -80,9 +96,9 @@ function evaluateEnrichment(rules: EnrichmentRule[], values: Record<string, unkn
   for (const rule of [...rules].sort((a, b) => a.order - b.order)) {
     const ruleset = rule.rulesetId ?? "";
     if (done.has(ruleset)) continue;
-    const matched = rule.enabled && evaluateConditions(rule.conditions, rule.conditionLogic, enriched);
+    const matched = rule.enabled && ruleHolds(rule, enriched);
     const setsSummary = rule.sets.length ? rule.sets.map((s) => `${variableNames[s.attribute] ?? s.attribute} = ${JSON.stringify(s.value)}`).join(", ") : "no attributes";
-    push(steps, { id: rule.id, kind: "enrichment", label: rule.name, detail: `${ruleSummary(rule.conditions, variableNames, rule.conditionLogic)}${matched ? ` — matched, sets ${setsSummary}` : " — not matched"}`, status: matched ? "matched" : "skipped" });
+    push(steps, { id: rule.id, kind: "enrichment", label: rule.name, detail: `${describeRule(rule, variableNames)}${matched ? ` — matched, sets ${setsSummary}` : " — not matched"}`, status: matched ? "matched" : "skipped" });
     if (matched) {
       rule.sets.forEach((set) => { enriched[set.attribute] = set.value; });
       if (rule.hitPolicy === "first") done.add(ruleset);
@@ -97,8 +113,8 @@ function evaluateEnrichment(rules: EnrichmentRule[], values: Record<string, unkn
 function evaluateQueueRouting(rules: QueueRoutingRule[], values: Record<string, unknown>, variableNames: Record<string, string>, steps: TraceStep[]): QueueRoutingRule[] {
   const matches: QueueRoutingRule[] = [];
   for (const rule of [...rules].sort((a, b) => a.order - b.order)) {
-    const matched = rule.enabled && evaluateConditions(rule.conditions, rule.conditionLogic, values);
-    push(steps, { id: rule.id, kind: "queueRouting", label: rule.name, detail: `${ruleSummary(rule.conditions, variableNames, rule.conditionLogic)}${matched ? " — matched" : " — not matched"}`, status: matched ? "matched" : "skipped" });
+    const matched = rule.enabled && ruleHolds(rule, values);
+    push(steps, { id: rule.id, kind: "queueRouting", label: rule.name, detail: `${describeRule(rule, variableNames)}${matched ? " — matched" : " — not matched"}`, status: matched ? "matched" : "skipped" });
     if (matched) {
       matches.push(rule);
       if (rule.hitPolicy === "first") break;
@@ -231,5 +247,5 @@ export function simulate(workstream: Workstream, model: RoutingModel, values: Re
   }
 
   push(steps, { id: `${currentQueue.id}-outcome`, kind: "outcome", label: outcome, detail: outcome === "Agent" ? `${currentQueue.assignmentMethod} assignment from ${currentQueue.name}` : `Terminal outcome from ${currentQueue.name}`, status: "matched" });
-  return { steps, outcome, queue: currentQueue, warnings };
+  return { steps, outcome, queue: currentQueue, rule: chosen?.rule, warnings };
 }

@@ -23,6 +23,16 @@ export interface Condition {
   value: string | number | boolean;
 }
 
+// Conditions as the admin center builds them: a group of rows and groups, joined by And or Or. Rules
+// also keep their conditions as one flat list with one logic (conditions and conditionLogic) for code
+// that only shows them; the evaluator uses the group when there is one.
+export interface ConditionGroup {
+  logic: "AND" | "OR";
+  items: (Condition | ConditionGroup)[];
+}
+
+export const isGroup = (item: Condition | ConditionGroup): item is ConditionGroup => "items" in item;
+
 // The real "Work classification" stage: enriches/sets attributes on the work item (e.g. a
 // priority score). It does not pick a queue — that's a separate, later stage (QueueRoutingRule).
 export interface EnrichmentRule {
@@ -35,6 +45,7 @@ export interface EnrichmentRule {
   hitPolicy: HitPolicy;
   conditionLogic: "AND" | "OR";
   conditions: Condition[];
+  conditionGroup?: ConditionGroup;
   enabled: boolean;
   sets: { attribute: string; value: string | number | boolean }[];
 }
@@ -56,6 +67,7 @@ export interface QueueRoutingRule {
   hitPolicy: HitPolicy;
   conditionLogic: "AND" | "OR";
   conditions: Condition[];
+  conditionGroup?: ConditionGroup;
   targets: QueueRoutingTarget[];
   targetLabel?: string;
   enabled: boolean;
@@ -126,5 +138,7 @@ export interface SimulationResult {
   steps: TraceStep[];
   outcome?: Outcome;
   queue?: Queue;
+  // The route-to-queue rule whose queue the call was sent to; none when it went to the fallback queue.
+  rule?: QueueRoutingRule;
   warnings: string[];
 }

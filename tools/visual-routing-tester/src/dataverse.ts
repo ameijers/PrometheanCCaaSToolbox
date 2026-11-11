@@ -1,8 +1,8 @@
 // Copyright (c) 2026 Alexander Meijers
 // SPDX-License-Identifier: MIT
 
-import { Condition, ContextVariable, EnrichmentRule, OperatingHoursRule, Outcome, OverflowRule, Queue, QueueRoutingRule, QueueRoutingTarget, RoutingModel, Workstream } from "./model";
-import { ParsedCondition, ParsedDecision, ParsedRule, parseDecisionXml } from "./ruleXml";
+import { Condition, ConditionGroup, ContextVariable, EnrichmentRule, OperatingHoursRule, Outcome, OverflowRule, Queue, QueueRoutingRule, QueueRoutingTarget, RoutingModel, Workstream } from "./model";
+import { isParsedGroup, ParsedCondition, ParsedDecision, ParsedGroup, ParsedRule, parseDecisionXml } from "./ruleXml";
 
 declare const Xrm: any;
 
@@ -186,7 +186,8 @@ export function queueStateVariables(queue: Queue): ContextVariable[] {
 // use "msdyn_ocliveworkitem.<name>" — both confirmed against real condition XML.
 const WORKITEM_PREFIXES = ["msdyn_ocliveworkitem.", "liveworkitemcontext."];
 
-const OPERATOR_MAP: Record<string, Condition["operator"]> = {
+// The condition operators this tool understands, as they appear in the XML.
+export const OPERATOR_MAP: Record<string, Condition["operator"]> = {
   "==": "equals", "=": "equals", "!=": "notEquals", "<>": "notEquals",
   ">": "greaterThan", "<": "lessThan", ">=": "greaterOrEqual", "<=": "lessOrEqual",
   "not-null": "notNull", "notnull": "notNull", "contains": "contains"
@@ -211,6 +212,14 @@ function buildConditions(parsed: ParsedCondition[], warnings: string[], ruleLabe
     if (!operator) { warnings.push(`Rule “${ruleLabel}” uses an unsupported condition operator “${condition.operator}”; treated as equals.`); operator = "equals"; }
     return { variableId: normalizeVariableId(condition.lhs), operator, value: coerceValue(condition.rhs) };
   });
+}
+
+// The rule's nested groups. Warnings about operators come from buildConditions, which sees every condition.
+function buildGroup(group: ParsedGroup, ruleLabel: string, normalizeVariableId: (lhs: string) => string): ConditionGroup {
+  return {
+    logic: group.operator,
+    items: group.items.map((item) => (isParsedGroup(item) ? buildGroup(item, ruleLabel, normalizeVariableId) : buildConditions([item], [], ruleLabel, normalizeVariableId)[0]))
+  };
 }
 
 function parseDisabledRuleIds(raw: unknown): Set<string> {
@@ -241,6 +250,7 @@ function parseEnrichmentRuleset(ruleset: any, orderOffset: number, warnings: str
     hitPolicy: decision.hitPolicy,
     conditionLogic: rule.conditionLogic,
     conditions: buildConditions(rule.conditions, warnings, rule.name, stripWorkItemPrefix),
+    conditionGroup: buildGroup(rule.group, rule.name, stripWorkItemPrefix),
     enabled: !disabled.has(rule.id),
     sets: rule.setAttributes.map((sa) => ({ attribute: stripWorkItemPrefix(sa.lhs), value: coerceValue(sa.rhs) }))
   }));
@@ -282,6 +292,7 @@ function parseQueueRoutingRuleset(ruleset: any, orderOffset: number, warnings: s
     hitPolicy: decision.hitPolicy,
     conditionLogic: rule.conditionLogic,
     conditions: buildConditions(rule.conditions, warnings, rule.name, stripWorkItemPrefix),
+    conditionGroup: buildGroup(rule.group, rule.name, stripWorkItemPrefix),
     enabled: !disabled.has(rule.id),
     targets: parseTargets(rule, warnings)
   }));
