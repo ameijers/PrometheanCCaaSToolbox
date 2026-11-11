@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{52c282c7-cbb5-f111-aaae-6045bd015ffc}</WebResourceId>
+  <Name>pct_/tools/agentreadiness/index.html</Name>
+  <DisplayName>Agent Readiness Checker - index.html</DisplayName>
+  <WebResourceType>1</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsagentreadinessindexhtml52C282C7-CBB5-F111-AAAE-6045BD015FFC</FileName>
+</WebResource>

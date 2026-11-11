@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{7933af9f-61bd-f111-a05b-6045bd0153e8}</WebResourceId>
+  <Name>pct_/tools/profilebuilder/index.html</Name>
+  <DisplayName>Profile Builder - index.html</DisplayName>
+  <WebResourceType>1</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsprofilebuilderindexhtml7933AF9F-61BD-F111-A05B-6045BD0153E8</FileName>
+</WebResource>

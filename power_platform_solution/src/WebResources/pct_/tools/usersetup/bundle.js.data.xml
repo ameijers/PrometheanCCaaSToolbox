@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{a56f1cc0-2ebe-f111-a05b-6045bd015ffc}</WebResourceId>
+  <Name>pct_/tools/usersetup/bundle.js</Name>
+  <DisplayName>User Setup - bundle.js</DisplayName>
+  <WebResourceType>3</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsusersetupbundlejsA56F1CC0-2EBE-F111-A05B-6045BD015FFC</FileName>
+</WebResource>

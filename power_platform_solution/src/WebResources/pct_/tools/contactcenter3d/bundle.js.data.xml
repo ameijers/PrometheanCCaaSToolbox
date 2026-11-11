@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{c7b69642-7dcf-f111-a05d-6045bd0151a5}</WebResourceId>
+  <Name>pct_/tools/contactcenter3d/bundle.js</Name>
+  <DisplayName>3D Contact Center - bundle.js</DisplayName>
+  <WebResourceType>3</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolscontactcenter3dbundlejsC7B69642-7DCF-F111-A05D-6045BD0151A5</FileName>
+</WebResource>

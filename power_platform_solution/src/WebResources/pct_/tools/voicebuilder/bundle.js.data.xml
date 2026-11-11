@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{db8ae4cf-98bc-f111-aaaf-6045bd0153e8}</WebResourceId>
+  <Name>pct_/tools/voicebuilder/bundle.js</Name>
+  <DisplayName>Voice Workstream Builder - bundle.js</DisplayName>
+  <WebResourceType>3</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsvoicebuilderbundlejsDB8AE4CF-98BC-F111-AAAF-6045BD0153E8</FileName>
+</WebResource>

@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{80d142c4-adc7-f111-a05c-70a8a5b10059}</WebResourceId>
+  <Name>pct_/tools/voicemailbuilder/index.html</Name>
+  <DisplayName>Voicemail Builder - index.html</DisplayName>
+  <WebResourceType>1</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsvoicemailbuilderindexhtml80D142C4-ADC7-F111-A05C-70A8A5B10059</FileName>
+</WebResource>

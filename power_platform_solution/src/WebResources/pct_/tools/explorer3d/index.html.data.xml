@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{5b9a9e8f-d8ce-f111-a05d-6045bd0151a5}</WebResourceId>
+  <Name>pct_/tools/explorer3d/index.html</Name>
+  <DisplayName>Environment 3D Explorer - index.html</DisplayName>
+  <WebResourceType>1</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsexplorer3dindexhtml5B9A9E8F-D8CE-F111-A05D-6045BD0151A5</FileName>
+</WebResource>

@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{4dc4efcf-98bc-f111-aaaf-6045bd0151a5}</WebResourceId>
+  <Name>pct_/tools/voicebuilder/style.css</Name>
+  <DisplayName>Voice Workstream Builder - style.css</DisplayName>
+  <WebResourceType>2</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsvoicebuilderstylecss4DC4EFCF-98BC-F111-AAAF-6045BD0151A5</FileName>
+</WebResource>

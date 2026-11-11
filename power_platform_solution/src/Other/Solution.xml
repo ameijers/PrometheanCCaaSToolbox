@@ -1,0 +1,168 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml version="9.2.26111.129" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26111.129" OrganizationSchemaType="Full" CRMServerServiceabilityVersion="9.2.26111.00129">
+  <SolutionManifest>
+    <UniqueName>PrometheanCCaaSToolbox</UniqueName>
+    <LocalizedNames>
+      <LocalizedName description="Promethean CCaaS Toolbox" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions />
+    <Version>1.0.0.24</Version>
+    <Managed>0</Managed>
+    <Publisher>
+      <UniqueName>PrometheanCCaaSToolboxProvider</UniqueName>
+      <LocalizedNames>
+        <LocalizedName description="Promethean CCaaS Toolbox Provider" languagecode="1033" />
+      </LocalizedNames>
+      <Descriptions />
+      <EMailAddress xsi:nil="true"></EMailAddress>
+      <SupportingWebsiteUrl xsi:nil="true"></SupportingWebsiteUrl>
+      <CustomizationPrefix>pct</CustomizationPrefix>
+      <CustomizationOptionValuePrefix>89041</CustomizationOptionValuePrefix>
+      <Addresses>
+        <Address>
+          <AddressNumber>1</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true"></City>
+          <County xsi:nil="true"></County>
+          <Country xsi:nil="true"></Country>
+          <Fax xsi:nil="true"></Fax>
+          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
+          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
+          <Latitude xsi:nil="true"></Latitude>
+          <Line1 xsi:nil="true"></Line1>
+          <Line2 xsi:nil="true"></Line2>
+          <Line3 xsi:nil="true"></Line3>
+          <Longitude xsi:nil="true"></Longitude>
+          <Name xsi:nil="true"></Name>
+          <PostalCode xsi:nil="true"></PostalCode>
+          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
+          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true"></StateOrProvince>
+          <Telephone1 xsi:nil="true"></Telephone1>
+          <Telephone2 xsi:nil="true"></Telephone2>
+          <Telephone3 xsi:nil="true"></Telephone3>
+          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
+          <UPSZone xsi:nil="true"></UPSZone>
+          <UTCOffset xsi:nil="true"></UTCOffset>
+          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
+        </Address>
+        <Address>
+          <AddressNumber>2</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true"></City>
+          <County xsi:nil="true"></County>
+          <Country xsi:nil="true"></Country>
+          <Fax xsi:nil="true"></Fax>
+          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
+          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
+          <Latitude xsi:nil="true"></Latitude>
+          <Line1 xsi:nil="true"></Line1>
+          <Line2 xsi:nil="true"></Line2>
+          <Line3 xsi:nil="true"></Line3>
+          <Longitude xsi:nil="true"></Longitude>
+          <Name xsi:nil="true"></Name>
+          <PostalCode xsi:nil="true"></PostalCode>
+          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
+          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true"></StateOrProvince>
+          <Telephone1 xsi:nil="true"></Telephone1>
+          <Telephone2 xsi:nil="true"></Telephone2>
+          <Telephone3 xsi:nil="true"></Telephone3>
+          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
+          <UPSZone xsi:nil="true"></UPSZone>
+          <UTCOffset xsi:nil="true"></UTCOffset>
+          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
+        </Address>
+      </Addresses>
+    </Publisher>
+    <RootComponents>
+      <RootComponent type="61" schemaName="pct_/tools/agentreadiness/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/agentreadiness/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/agentreadiness/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/artifactfinder/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/artifactfinder/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/artifactfinder/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/assignmentmethodcopier/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/assignmentmethodcopier/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/assignmentmethodcopier/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/businessunitbuilder/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/businessunitbuilder/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/businessunitbuilder/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/capacityassignment/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/capacityassignment/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/capacityassignment/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/channelbuilder/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/channelbuilder/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/channelbuilder/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/contactcenter3d/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/contactcenter3d/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/contactcenter3d/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/contextvariablemonitor/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/contextvariablemonitor/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/contextvariablemonitor/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/diagram2d/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/diagram2d/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/diagram2d/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/explorer3d/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/explorer3d/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/explorer3d/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/home/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/home/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/home/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/numberchanger/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/numberchanger/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/numberchanger/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/profilebuilder/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/profilebuilder/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/profilebuilder/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/queuebuilder/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/queuebuilder/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/queuebuilder/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/queuemembership/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/queuemembership/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/queuemembership/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/recordingprovisioner/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/recordingprovisioner/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/recordingprovisioner/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/routetoqueuebuilder/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/routetoqueuebuilder/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/routetoqueuebuilder/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/routingtester/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/routingtester/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/routingtester/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/skillassignment/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/skillassignment/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/skillassignment/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/teambuilder/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/teambuilder/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/teambuilder/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/usersetup/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/usersetup/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/usersetup/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/voicebuilder/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/voicebuilder/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/voicebuilder/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/voicemailbuilder/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/voicemailbuilder/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/voicemailbuilder/style.css" behavior="0" />
+      <RootComponent type="62" schemaName="pct_PrometheanCCaaSToolbox" behavior="0" />
+      <RootComponent type="80" schemaName="pct_PrometheanCCaaSToolbox" behavior="0" />
+    </RootComponents>
+    <MissingDependencies>
+      <MissingDependency>
+        <Required type="61" schemaName="msdyn_/Images/AppModule_Default_Icon.png" displayName="msdyn_/Images/AppModule_Default_Icon.png" solution="AppModuleWebResources (2.5)">
+          <package appName="AppModule Web Resources Package" version="2.5">AppModuleWebResources (2.5)</package>
+        </Required>
+        <Dependent type="80" schemaName="pct_PrometheanCCaaSToolbox" displayName="Promethean CCaaS Toolbox" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="SettingDefinition" displayName="AppChannel" solution="msdyn_AppFrameworkInfraExtensions (1.0.0.27)" id.uniquename="AppChannel">
+          <package appName="PowerAppsAppFramework Package" version="1.0.0.28">PowerAppsAppFramework_Anchor (1.0.0.28)</package>
+        </Required>
+        <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=pct_PrometheanCCaaSToolbox,settingdefinitionid.uniquename=AppChannel" id.parentappmoduleid.uniquename="pct_PrometheanCCaaSToolbox" id.settingdefinitionid.uniquename="AppChannel" />
+      </MissingDependency>
+    </MissingDependencies>
+  </SolutionManifest>
+</ImportExportXml>
