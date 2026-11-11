@@ -38,8 +38,8 @@ const definitions = [
 ];
 
 // Routing-configuration-step type codes, confirmed against a live Contact Center environment.
-const STEP_TYPE_ENRICHMENT = 192350000; // The real "Work classification" stage.
-const STEP_TYPE_QUEUE_IDENTIFICATION = 192350002; // "Route to Queue".
+export const STEP_TYPE_ENRICHMENT = 192350000; // The real "Work classification" stage.
+export const STEP_TYPE_QUEUE_IDENTIFICATION = 192350002; // "Route to Queue".
 const STEP_TYPE_ASSIGNMENT_LIKE = new Set([192350001, 192350003]); // Skill identification, Agent Group identification
 
 async function findDefinition(logicalName: string): Promise<EntityDefinition> {
