@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{6f7df3bc-dcc6-f111-a05c-6045bd0151a5}</WebResourceId>
+  <Name>pct_/tools/assignmentmethodcopier/index.html</Name>
+  <DisplayName>Assignment Method Copier - index.html</DisplayName>
+  <WebResourceType>1</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsassignmentmethodcopierindexhtml6F7DF3BC-DCC6-F111-A05C-6045BD0151A5</FileName>
+</WebResource>

@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{e276bf11-1dbe-f111-a05b-70a8a5b10059}</WebResourceId>
+  <Name>pct_/tools/businessunitbuilder/bundle.js</Name>
+  <DisplayName>Business Unit Builder - bundle.js</DisplayName>
+  <WebResourceType>3</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsbusinessunitbuilderbundlejsE276BF11-1DBE-F111-A05B-70A8A5B10059</FileName>
+</WebResource>

@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{a917911e-57d8-f111-84e9-000d3a5bd34f}</WebResourceId>
+  <Name>pct_/tools/channelbuilder/style.css</Name>
+  <DisplayName>Voice Channel Builder - style.css</DisplayName>
+  <WebResourceType>2</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolschannelbuilderstylecssA917911E-57D8-F111-84E9-000D3A5BD34F</FileName>
+</WebResource>

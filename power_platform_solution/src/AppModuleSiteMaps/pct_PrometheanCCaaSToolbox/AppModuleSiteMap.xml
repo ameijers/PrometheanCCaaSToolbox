@@ -1,0 +1,163 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AppModuleSiteMap xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SiteMapUniqueName>pct_PrometheanCCaaSToolbox</SiteMapUniqueName>
+  <EnableCollapsibleGroups>False</EnableCollapsibleGroups>
+  <ShowHome>True</ShowHome>
+  <ShowPinned>True</ShowPinned>
+  <ShowRecents>True</ShowRecents>
+  <SiteMap IntroducedVersion="7.0.0.0">
+    <Area Id="NewArea_f9647aee" ResourceId="SitemapDesigner.NewArea" ShowGroups="false">
+      <Titles>
+        <Title LCID="1033" Title="CCaaS Toolbox" />
+      </Titles>
+      <Group Id="NewGroup_6ff93c11" ResourceId="SitemapDesigner.NewGroup" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+        <Titles>
+          <Title LCID="1033" Title="Home" />
+        </Titles>
+        <SubArea Id="NewSubArea_24654c4c8" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/home/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Toolbox Home" />
+          </Titles>
+        </SubArea>
+      </Group>
+      <Group Id="NewGroup_e46bd6" ResourceId="SitemapDesigner.NewGroup" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+        <Titles>
+          <Title LCID="1033" Title="Visualization" />
+        </Titles>
+        <SubArea Id="NewSubArea_c7db19b18" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/contactcenter3d/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="3D Contact Center" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_21b59817" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/explorer3d/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="3D Explorer" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_ce5456ee" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/diagram2d/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Environment Diagram" />
+          </Titles>
+        </SubArea>
+      </Group>
+      <Group Id="NewGroup_b8444ab88" ResourceId="SitemapDesigner.NewGroup" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+        <Titles>
+          <Title LCID="1033" Title="Tools" />
+        </Titles>
+        <SubArea Id="NewSubArea_50c9b43b8" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/routingtester/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Visual Routing Tester" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_af06dd59" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/contextvariablemonitor/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Context Variable Monitor" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_42f242778" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/agentreadiness/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Agent Readiness Checker" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_e0617b5" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/artifactfinder/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Environment Artifact Finder" />
+          </Titles>
+        </SubArea>
+      </Group>
+      <Group Id="NewGroup_f15e9511" ResourceId="SitemapDesigner.NewGroup" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+        <Titles>
+          <Title LCID="1033" Title="Provisioning" />
+        </Titles>
+        <SubArea Id="NewSubArea_a04df6418" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/recordingprovisioner/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Recording &amp; Transcription" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_24114bbb" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/queuemembership/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Queue Membership" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_889f94688" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/skillassignment/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Skill Assignment" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_a972f4cd8" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/numberchanger/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Phone Number Changer" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_c04308aa" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/capacityassignment/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Capacity Profile Assignment" />
+          </Titles>
+        </SubArea>
+      </Group>
+      <Group Id="NewGroup_1db3cbdc8" ResourceId="SitemapDesigner.NewGroup" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+        <Titles>
+          <Title LCID="1033" Title="Creation" />
+        </Titles>
+        <SubArea Id="NewSubArea_6297bfd08" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/voicebuilder/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Voice Workstream Builder" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_38c42a2a8" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/channelbuilder/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Voice Channel Builder" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_625d1d9a8" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/queuebuilder/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Queue Builder" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_283eaacf8" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/profilebuilder/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Profile Builder" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_09f051b" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/assignmentmethodcopier/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Queue Assignment Method Copier" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_68b2cc458" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/routetoqueuebuilder/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Route-to-Queue Builder" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_447936798" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/voicemailbuilder/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Voicemail Builder" />
+          </Titles>
+        </SubArea>
+      </Group>
+      <Group Id="NewGroup_935ee018" ResourceId="SitemapDesigner.NewGroup" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+        <Titles>
+          <Title LCID="1033" Title="Security" />
+        </Titles>
+        <SubArea Id="NewSubArea_ec20c09a" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/businessunitbuilder/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Business Units Builder" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_5181d082" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/teambuilder/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Team Builder" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_d81081398" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/usersetup/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="User Setup" />
+          </Titles>
+        </SubArea>
+      </Group>
+    </Area>
+  </SiteMap>
+  <LocalizedNames>
+    <LocalizedName description="Promethean CCaaS Toolbox" languagecode="1033" />
+  </LocalizedNames>
+</AppModuleSiteMap>

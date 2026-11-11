@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{be46a0a4-2ebe-f111-a059-6045bd0151a5}</WebResourceId>
+  <Name>pct_/tools/teambuilder/index.html</Name>
+  <DisplayName>Team Builder - index.html</DisplayName>
+  <WebResourceType>1</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsteambuilderindexhtmlBE46A0A4-2EBE-F111-A059-6045BD0151A5</FileName>
+</WebResource>

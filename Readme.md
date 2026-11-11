@@ -234,9 +234,11 @@ tools/
   voice-recording-provisioner/ # Provisioning
   assignment-method-copier/    # Provisioning (under Creation in the app)
 power_platform_solution/       # Packaged solution zips, unmanaged and managed (see Option A above)
+  src/                         # The unmanaged solution unpacked, to read changes in Git (see Deployment)
 webpack.config.js              # One build entry per tool
 deploy.config.json             # Per-environment / per-tool deploy configuration
 scripts/deploy.ps1             # Deploy script (see below)
+scripts/unpack-solution.ps1    # Unpacks a new solution export into power_platform_solution/src
 ```
 
 Each tool folder follows the same layout: `src/` (code), `tests/`, `webresource/` (`index.tsx` entry and the page's html), `css/`, `images/` (manual screenshots), `README.md`, `IMPLEMENTATION_STATUS.md`, `manual.md`, and for the creation tools `examples/` (the example CSV).
@@ -289,7 +291,7 @@ pwsh ./scripts/deploy.ps1 -Tool <toolkey>
 
 The script builds the project, stages non-webpack files, stamps a fresh cache-busting version automatically, looks up each web resource by name in the target environment (never hardcoding a GUID), updates its content, publishes, and verifies the result by reading the live content back. Requires the Azure CLI (`az`) to be logged in with access to the target environment. Add `-CreateIfMissing` the first time a new tool's web resources don't exist yet in the target environment (this also adds each newly-created web resource to the solution named by `solutionUniqueName`). After a first deploy, add the tool's [Site Map subarea](#site-map-subareas).
 
-The script only deploys the tools' own web resources; it never touches Contact Center configuration, and it doesn't change the Site Map — add a subarea for a tool that's new to an environment (see [Site Map subareas](#site-map-subareas)). To refresh the solution zip in `power_platform_solution/`, export the solution from the environment after deploying.
+The script only deploys the tools' own web resources; it never touches Contact Center configuration, and it doesn't change the Site Map — add a subarea for a tool that's new to an environment (see [Site Map subareas](#site-map-subareas)). To refresh the solution zip in `power_platform_solution/`, export the solution from the environment after deploying (see [Releasing a new solution version](#releasing-a-new-solution-version)).
 
 ```powershell
 # First deploy of a tool into an environment where its web resources don't exist yet:
@@ -298,6 +300,25 @@ pwsh ./scripts/deploy.ps1 -Tool queuebuilder -CreateIfMissing
 # Routine redeploy after that, against a non-default environment:
 pwsh ./scripts/deploy.ps1 -Tool queuebuilder -Environment test
 ```
+
+### Releasing a new solution version
+
+A solution zip is a binary file, so Git can't show what changed inside it. That's why the unmanaged solution is also kept unpacked in [`power_platform_solution/src/`](power_platform_solution/src/), where each change shows as a readable diff:
+
+| File | What it shows |
+| --- | --- |
+| `Other/Solution.xml` | Version, publisher, and the list of components |
+| `AppModuleSiteMaps/…/AppModuleSiteMap.xml` | The Site Map: groups, subareas, titles and order |
+| `AppModules/…/AppModule.xml` | The model-driven app |
+| `WebResources/pct_/tools/<toolkey>/*.data.xml` | Each web resource's name, display name and type |
+
+The built tool files (`bundle.js`, `index.html`, `style.css`) are left out of this folder: they're generated from `tools/*/src`, which is already in Git. The folder is for reading changes. The zips stay the files to import.
+
+After exporting a new version from the environment:
+
+1. Put the unmanaged and managed zips in `power_platform_solution/`.
+2. Run `pwsh ./scripts/unpack-solution.ps1`. It unpacks the unmanaged zip with the highest version (or the one given with `-ZipFile`). It needs the [Power Platform CLI](https://learn.microsoft.com/power-platform/developer/cli/introduction) (`pac`).
+3. Commit the zips together with the changes in `power_platform_solution/src/`.
 
 ### deploy.config.json reference
 

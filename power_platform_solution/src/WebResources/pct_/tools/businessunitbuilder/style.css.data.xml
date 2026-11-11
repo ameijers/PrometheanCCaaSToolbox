@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{1f185b12-1dbe-f111-a05b-6045bd0153e8}</WebResourceId>
+  <Name>pct_/tools/businessunitbuilder/style.css</Name>
+  <DisplayName>Business Unit Builder - style.css</DisplayName>
+  <WebResourceType>2</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsbusinessunitbuilderstylecss1F185B12-1DBE-F111-A05B-6045BD0153E8</FileName>
+</WebResource>

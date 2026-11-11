@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WebResource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <WebResourceId>{f4c3b4cf-cbb5-f111-aaae-6045bd0153e8}</WebResourceId>
+  <Name>pct_/tools/agentreadiness/bundle.js</Name>
+  <DisplayName>Agent Readiness Checker - bundle.js</DisplayName>
+  <WebResourceType>3</WebResourceType>
+  <IntroducedVersion>1.0</IntroducedVersion>
+  <IsEnabledForMobileClient>0</IsEnabledForMobileClient>
+  <IsAvailableForMobileOffline>0</IsAvailableForMobileOffline>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IsHidden>0</IsHidden>
+  <FileName>/WebResources/pct_toolsagentreadinessbundlejsF4C3B4CF-CBB5-F111-AAAE-6045BD0153E8</FileName>
+</WebResource>
