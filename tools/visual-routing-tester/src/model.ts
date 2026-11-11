@@ -28,6 +28,9 @@ export interface Condition {
 export interface EnrichmentRule {
   id: string;
   name: string;
+  // The classification ruleset the rule belongs to. A "first" match ends its own ruleset, and the next
+  // ruleset still runs. Rules without one count as a single ruleset.
+  rulesetId?: string;
   order: number;
   hitPolicy: HitPolicy;
   conditionLogic: "AND" | "OR";

@@ -58,8 +58,8 @@ function tagText(xml: string, tag: string): string | undefined {
  *
  * `hit-policy` matters and varies per ruleset (confirmed against real data: a workstream's
  * classification/enrichment ruleset used "first" while its queue-routing ruleset used "all") —
- * "first" means stop at the first matching rule; "all" means every matching rule applies, in
- * order, with a later match overriding an earlier one for the same output.
+ * "first" means stop at the first matching rule; "all" means every rule is evaluated. What "all" does
+ * with several matches is up to the stage (src/evaluator.ts).
  */
 export function parseDecisionXml(xml: string): ParsedDecision | null {
   if (typeof xml !== "string" || !/<decision\b/i.test(xml)) return null;

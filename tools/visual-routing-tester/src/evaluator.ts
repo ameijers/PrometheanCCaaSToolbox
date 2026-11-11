@@ -66,35 +66,50 @@ function evaluateConditions(conditions: Condition[], logic: "AND" | "OR", values
 
 function push(steps: TraceStep[], step: TraceStep): void { steps.push(step); }
 
-// Real classification/overflow/queue-routing rulesets carry their own hit-policy ("first" stops at
-// the first match; "all" evaluates every rule, with a later match overriding an earlier one for
-// picking a single winner) — confirmed to genuinely differ per ruleset against real data, so this
-// must be read from the rule, not assumed.
+// Real classification/overflow/queue-routing rulesets carry their own hit-policy, which differs per
+// ruleset in real data, so it's read from the rule, never assumed.
+//
+// Work classification (Learn, "Configure work classification rulesets"): the rulesets run in order,
+// and "when one of the rule item conditions matches, the output section of the rule item is run. The
+// system evaluates the rules in the next ruleset". So a "first" match ends its own ruleset only; the
+// next ruleset still runs, and can use the values set before it. With "all", every matching rule
+// sets its values in order.
 function evaluateEnrichment(rules: EnrichmentRule[], values: Record<string, unknown>, variableNames: Record<string, string>, steps: TraceStep[]): Record<string, unknown> {
   const enriched = { ...values };
+  const done = new Set<string>();
   for (const rule of [...rules].sort((a, b) => a.order - b.order)) {
+    const ruleset = rule.rulesetId ?? "";
+    if (done.has(ruleset)) continue;
     const matched = rule.enabled && evaluateConditions(rule.conditions, rule.conditionLogic, enriched);
     const setsSummary = rule.sets.length ? rule.sets.map((s) => `${variableNames[s.attribute] ?? s.attribute} = ${JSON.stringify(s.value)}`).join(", ") : "no attributes";
     push(steps, { id: rule.id, kind: "enrichment", label: rule.name, detail: `${ruleSummary(rule.conditions, variableNames, rule.conditionLogic)}${matched ? ` — matched, sets ${setsSummary}` : " — not matched"}`, status: matched ? "matched" : "skipped" });
     if (matched) {
       rule.sets.forEach((set) => { enriched[set.attribute] = set.value; });
-      if (rule.hitPolicy === "first") break;
+      if (rule.hitPolicy === "first") done.add(ruleset);
     }
   }
   return enriched;
 }
 
-function evaluateQueueRouting(rules: QueueRoutingRule[], values: Record<string, unknown>, variableNames: Record<string, string>, steps: TraceStep[]): QueueRoutingRule | undefined {
-  let lastMatch: QueueRoutingRule | undefined;
+// Route to queues: every matching rule, in order. "first" (Hit-first) stops at the first match;
+// "all" (Hit-all) evaluates every rule, and simulate() then takes the first match whose queue isn't
+// overflowing (Learn, "Configure route-to-queue rules" and "Manage overflow").
+function evaluateQueueRouting(rules: QueueRoutingRule[], values: Record<string, unknown>, variableNames: Record<string, string>, steps: TraceStep[]): QueueRoutingRule[] {
+  const matches: QueueRoutingRule[] = [];
   for (const rule of [...rules].sort((a, b) => a.order - b.order)) {
     const matched = rule.enabled && evaluateConditions(rule.conditions, rule.conditionLogic, values);
     push(steps, { id: rule.id, kind: "queueRouting", label: rule.name, detail: `${ruleSummary(rule.conditions, variableNames, rule.conditionLogic)}${matched ? " — matched" : " — not matched"}`, status: matched ? "matched" : "skipped" });
     if (matched) {
-      lastMatch = rule;
+      matches.push(rule);
       if (rule.hitPolicy === "first") break;
     }
   }
-  return lastMatch;
+  return matches;
+}
+
+// Whether a queue overflows before the call enters it: one of its pre-queue overflow rules fires.
+function overflowsBeforeQueueing(queue: Queue, values: Record<string, unknown>): boolean {
+  return queue.preQueueOverflowRules.some((rule) => evaluateConditions(rule.conditions, rule.conditionLogic, values));
 }
 
 // A matched queue-routing rule may have several targets (a percentage-based weighted distribution
@@ -136,21 +151,44 @@ export function simulate(workstream: Workstream, model: RoutingModel, values: Re
   // Stage 1: Work classification (enrichment) — sets attributes that queue-routing rules below may condition on.
   const enriched = evaluateEnrichment(workstream.classificationRules, values, variableNames, steps);
 
-  // Stage 2: Route to Queue.
-  let queue: Queue | undefined;
-  const routingMatch = evaluateQueueRouting(workstream.queueRoutingRules, enriched, variableNames, steps);
-  if (routingMatch) {
-    const target = pickTarget(routingMatch.targets, steps, routingMatch.name, routingMatch.id);
-    if (!target) {
-      warnings.push(`Queue-routing rule “${routingMatch.name}” matched but has no valid target.`);
-    } else if (target.agentId) {
-      push(steps, { id: `${routingMatch.id}-outcome`, kind: "outcome", label: "Agent", detail: `Assigned directly to an agent by “${routingMatch.name}”, bypassing queue routing.`, status: "matched" });
+  // Stage 2: Route to Queue. Each matching rule, in order, gives a candidate queue (a percentage-based
+  // rule picks its queue first; Learn: "the overflow conditions are evaluated after percentage-based
+  // routing matches a queue").
+  const valuesOf = (q: Queue) => ({ ...enriched, ...(queueValues[q.id] ?? {}) });
+  const candidates: { rule: QueueRoutingRule; queue: Queue }[] = [];
+  for (const rule of evaluateQueueRouting(workstream.queueRoutingRules, enriched, variableNames, steps)) {
+    const target = pickTarget(rule.targets, steps, rule.name, rule.id);
+    if (!target) { warnings.push(`Queue-routing rule “${rule.name}” matched but has no valid target.`); continue; }
+    if (target.agentId) {
+      if (candidates.length) continue;
+      push(steps, { id: `${rule.id}-outcome`, kind: "outcome", label: "Agent", detail: `Assigned directly to an agent by “${rule.name}”, bypassing queue routing.`, status: "matched" });
       return { steps, outcome: "Agent", warnings };
-    } else {
-      queue = model.queues.find((candidate) => candidate.id === target.queueId);
-      if (!queue) warnings.push(`Queue-routing rule “${routingMatch.name}” points to a queue that was not found.`);
     }
+    const found = model.queues.find((candidate) => candidate.id === target.queueId);
+    if (!found) { warnings.push(`Queue-routing rule “${rule.name}” points to a queue that was not found.`); continue; }
+    candidates.push({ rule, queue: found });
   }
+
+  // Learn, "Manage overflow": "If multiple queues match the route-to-queue rules, the system routes the
+  // work item to the first one that's not overflowing." If all of them overflow, the first one that's
+  // within its operating hours gets the call and its overflow action runs. (Simplified: when none is
+  // within its hours, Learn sends the call to the one that opens earliest; here, the first match.)
+  let chosen = candidates[0];
+  if (candidates.length > 1) {
+    const free = candidates.find((c) => !overflowsBeforeQueueing(c.queue, valuesOf(c.queue)));
+    const open = candidates.find((c) => valuesOf(c.queue)["queue_prequeue.iswithinoperatinghour"] !== false);
+    chosen = free ?? open ?? candidates[0];
+    candidates.forEach((c) => {
+      if (c === chosen) return;
+      const overflowing = overflowsBeforeQueueing(c.queue, valuesOf(c.queue));
+      push(steps, { id: `${c.rule.id}-passed`, kind: "queueRouting", label: `${c.rule.name} — not used`, detail: overflowing ? `${c.queue.name} is overflowing, so the call goes to ${chosen.queue.name}.` : `${chosen.queue.name}, from an earlier rule, takes the call.`, status: "skipped" });
+    });
+  }
+
+  // Learn: "If a work item is routed to a fallback queue because of errors or no route-to-queue rule
+  // matches the requirement, the system ignores the overflow settings for the fallback queue".
+  let queue: Queue | undefined = chosen?.queue;
+  const toFallback = !queue;
   if (!queue && workstream.fallbackQueueId) queue = model.queues.find((candidate) => candidate.id === workstream.fallbackQueueId);
   if (!queue) {
     warnings.push("No queue-routing rule matched and no fallback queue is configured.");
@@ -158,17 +196,23 @@ export function simulate(workstream: Workstream, model: RoutingModel, values: Re
     return { steps, warnings };
   }
 
-  push(steps, { id: queue.id, kind: "queue", label: queue.name, detail: `Assignment: ${queue.assignmentMethod}`, status: "matched" });
+  push(steps, { id: queue.id, kind: "queue", label: queue.name, detail: `${toFallback ? "Fallback queue: its overflow settings are ignored. " : ""}Assignment: ${queue.assignmentMethod}`, status: "matched" });
+  if (toFallback) {
+    push(steps, { id: `${queue.id}-outcome`, kind: "outcome", label: "Agent", detail: `${queue.assignmentMethod} assignment from ${queue.name}`, status: "matched" });
+    return { steps, outcome: "Agent", queue, warnings };
+  }
 
   // Stage 3: queue overflow (pre-queue, then in-queue), chaining through Queue Transfer outcomes.
+  // Learn: the pre-queue check happens "once only for each work item before it enters a queue"; a call
+  // an overflow action transfers to another queue gets no further pre-queue overflow checks.
   let currentQueue: Queue = queue;
   let outcome: Outcome | undefined;
   let transfers = 0;
   while (!outcome) {
     // Each queue's simulated wait-time/queue-size/operating-hours values are its own — a call that
     // overflows from one queue into another must not inherit the previous queue's simulated state.
-    const overflowValues = { ...enriched, ...(queueValues[currentQueue.id] ?? {}) };
-    const fired = evaluateOverflowStage(currentQueue.preQueueOverflowRules, "Pre-queue overflow", overflowValues, variableNames, steps)
+    const overflowValues = valuesOf(currentQueue);
+    const fired = (transfers === 0 ? evaluateOverflowStage(currentQueue.preQueueOverflowRules, "Pre-queue overflow", overflowValues, variableNames, steps) : undefined)
       ?? evaluateOverflowStage(currentQueue.inQueueOverflowRules, "In-queue overflow", overflowValues, variableNames, steps);
 
     if (!fired) { outcome = "Agent"; break; }

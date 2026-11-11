@@ -236,6 +236,7 @@ function parseEnrichmentRuleset(ruleset: any, orderOffset: number, warnings: str
   return decision.rules.map((rule: ParsedRule, index: number): EnrichmentRule => ({
     id: rule.id,
     name: rule.name,
+    rulesetId: ruleset?.msdyn_decisionrulesetid,
     order: orderOffset + index,
     hitPolicy: decision.hitPolicy,
     conditionLogic: rule.conditionLogic,

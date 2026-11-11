@@ -81,17 +81,82 @@ describe("simulate", () => {
     expect(result.queue?.id).toBe("first-queue");
   });
 
-  test("hit-policy \"all\" evaluates every rule and the last match wins", () => {
-    const allWorkstream: Workstream = {
-      ...workstream,
-      queueRoutingRules: [
-        { id: "a", name: "A", order: 0, hitPolicy: "all", enabled: true, conditionLogic: "AND", conditions: [{ variableId: "language", operator: "equals", value: "Dutch" }], targets: [{ queueId: "first-queue" }] },
-        { id: "b", name: "B", order: 1, hitPolicy: "all", enabled: true, conditionLogic: "AND", conditions: [{ variableId: "language", operator: "equals", value: "Dutch" }], targets: [{ queueId: "second-queue" }] }
-      ]
-    };
-    const result = simulate(allWorkstream, model(), { language: "Dutch" });
+  // Learn, "Configure route-to-queue rules" and "Manage overflow": with Hit-all, several matching rules
+  // send the call to the first one whose queue isn't overflowing.
+  const both = (hitPolicy: "first" | "all"): Workstream => ({
+    ...workstream,
+    queueRoutingRules: [
+      { id: "a", name: "A", order: 0, hitPolicy, enabled: true, conditionLogic: "AND", conditions: [{ variableId: "language", operator: "equals", value: "Dutch" }], targets: [{ queueId: "first-queue" }] },
+      { id: "b", name: "B", order: 1, hitPolicy, enabled: true, conditionLogic: "AND", conditions: [{ variableId: "language", operator: "equals", value: "Dutch" }], targets: [{ queueId: "second-queue" }] }
+    ]
+  });
+  const full = (id: string, outcome: "End Call" | "Voicemail" = "Voicemail"): Queue => ({
+    ...queue(id),
+    preQueueOverflowRules: [{ id: `${id}-full`, name: `${id} full`, order: 0, hitPolicy: "first", conditionLogic: "AND", trigger: "Queue size", conditions: [{ variableId: "queue_prequeue.currentqueuesize", operator: "greaterOrEqual", value: 10 }], outcome }]
+  });
+
+  test("hit-policy \"all\" evaluates every rule and the first match wins when its queue isn't overflowing", () => {
+    const result = simulate(both("all"), model(), { language: "Dutch" });
     expect(result.steps.find((step) => step.id === "a")?.status).toBe("matched");
     expect(result.steps.find((step) => step.id === "b")?.status).toBe("matched");
+    expect(result.queue?.id).toBe("first-queue");
+  });
+
+  test("hit-policy \"all\" skips a matching rule whose queue is overflowing", () => {
+    const values = { "first-queue": { "queue_prequeue.currentqueuesize": 12 }, "second-queue": { "queue_prequeue.currentqueuesize": 2 } };
+    const result = simulate(both("all"), model([full("first-queue"), full("second-queue"), queue("fallback-queue")]), { language: "Dutch" }, values);
+    expect(result.queue?.id).toBe("second-queue");
+    expect(result.outcome).toBe("Agent");
+    expect(result.steps.find((step) => step.id === "a-passed")?.detail).toContain("overflowing");
+  });
+
+  test("hit-policy \"all\" with every matching queue overflowing: the first one gets the call and its overflow action runs", () => {
+    const values = { "first-queue": { "queue_prequeue.currentqueuesize": 12 }, "second-queue": { "queue_prequeue.currentqueuesize": 15 } };
+    const result = simulate(both("all"), model([full("first-queue", "End Call"), full("second-queue"), queue("fallback-queue")]), { language: "Dutch" }, values);
+    expect(result.queue?.id).toBe("first-queue");
+    expect(result.outcome).toBe("End Call");
+  });
+
+  test("hit-policy \"all\" with every matching queue overflowing prefers one within its operating hours", () => {
+    const values = {
+      "first-queue": { "queue_prequeue.currentqueuesize": 12, "queue_prequeue.iswithinoperatinghour": false },
+      "second-queue": { "queue_prequeue.currentqueuesize": 15, "queue_prequeue.iswithinoperatinghour": true }
+    };
+    const result = simulate(both("all"), model([full("first-queue"), full("second-queue", "End Call"), queue("fallback-queue")]), { language: "Dutch" }, values);
+    expect(result.queue?.id).toBe("second-queue");
+    expect(result.outcome).toBe("End Call");
+  });
+
+  test("hit-policy \"first\" honours the first match even when its queue is overflowing", () => {
+    const values = { "first-queue": { "queue_prequeue.currentqueuesize": 12 }, "second-queue": { "queue_prequeue.currentqueuesize": 2 } };
+    const result = simulate(both("first"), model([full("first-queue", "End Call"), queue("second-queue"), queue("fallback-queue")]), { language: "Dutch" }, values);
+    expect(result.queue?.id).toBe("first-queue");
+    expect(result.outcome).toBe("End Call");
+  });
+
+  test("the fallback queue's overflow settings are ignored", () => {
+    const values = { "fallback-queue": { "queue_prequeue.currentqueuesize": 50 } };
+    const result = simulate(workstream, model([queue("first-queue"), queue("second-queue"), full("fallback-queue", "End Call")]), { language: "French" }, values);
+    expect(result.queue?.id).toBe("fallback-queue");
+    expect(result.outcome).toBe("Agent");
+    expect(result.steps.some((step) => step.id === "fallback-queue-full")).toBe(false);
+  });
+
+  // Learn, "Configure work classification rulesets": the rulesets run in order; a match ends its own
+  // ruleset and the next ruleset runs, using the values set before it.
+  test("work classification: a first match ends its own ruleset, and the next ruleset still runs", () => {
+    const classified: Workstream = {
+      ...workstream,
+      classificationRules: [
+        { id: "vip", name: "VIP", rulesetId: "rs1", order: 0, hitPolicy: "first", enabled: true, conditionLogic: "AND", conditions: [{ variableId: "language", operator: "equals", value: "Dutch" }], sets: [{ attribute: "Priority", value: "High" }] },
+        { id: "never", name: "Never reached", rulesetId: "rs1", order: 1, hitPolicy: "first", enabled: true, conditionLogic: "AND", conditions: [], sets: [{ attribute: "Priority", value: "Low" }] },
+        { id: "severity", name: "Severity", rulesetId: "rs2", order: 2, hitPolicy: "first", enabled: true, conditionLogic: "AND", conditions: [{ variableId: "Priority", operator: "equals", value: "High" }], sets: [{ attribute: "Severity", value: "Critical" }] }
+      ],
+      queueRoutingRules: [{ id: "critical", name: "Critical", order: 0, hitPolicy: "all", enabled: true, conditionLogic: "AND", conditions: [{ variableId: "Severity", operator: "equals", value: "Critical" }], targets: [{ queueId: "second-queue" }] }]
+    };
+    const result = simulate(classified, model(), { language: "Dutch" });
+    expect(result.steps.find((step) => step.id === "never")).toBeUndefined();
+    expect(result.steps.find((step) => step.id === "severity")?.status).toBe("matched");
     expect(result.queue?.id).toBe("second-queue");
   });
 
@@ -150,7 +215,7 @@ describe("simulate", () => {
     };
     const fallbackQueue: Queue = {
       ...queue("fallback-queue"),
-      preQueueOverflowRules: [{ id: "fallback-overflow", name: "Fallback also overflows", order: 0, hitPolicy: "first", conditionLogic: "AND", trigger: "Queue size", conditions: [{ variableId: "queue_prequeue.currentqueuesize", operator: "greaterOrEqual", value: 10 }], outcome: "End Call" }]
+      inQueueOverflowRules: [{ id: "fallback-overflow", name: "Fallback also overflows", order: 0, hitPolicy: "first", conditionLogic: "AND", trigger: "Queue size", conditions: [{ variableId: "queue_prequeue.currentqueuesize", operator: "greaterOrEqual", value: 10 }], outcome: "End Call" }]
     };
     const queueValues = { "first-queue": { "queue_prequeue.currentqueuesize": 20 }, "fallback-queue": { "queue_prequeue.currentqueuesize": 1 } };
     const result = simulate(workstream, model([firstQueue, fallbackQueue]), { language: "Dutch" }, queueValues);
@@ -160,6 +225,15 @@ describe("simulate", () => {
     expect(result.steps.find((step) => step.id === "fallback-overflow")?.status).toBe("skipped");
     expect(result.outcome).toBe("Agent");
     expect(result.queue?.id).toBe("fallback-queue");
+  });
+
+  test("a call an overflow action transfers gets no further pre-queue overflow checks", () => {
+    const firstQueue: Queue = { ...queue("first-queue"), preQueueOverflowRules: [{ id: "transfer", name: "To second", order: 0, hitPolicy: "first", conditionLogic: "AND", trigger: "x", conditions: [], outcome: "Queue Transfer", targetQueueId: "second-queue" }] };
+    const second: Queue = { ...queue("second-queue"), preQueueOverflowRules: [{ id: "second-end", name: "End", order: 0, hitPolicy: "first", conditionLogic: "AND", trigger: "x", conditions: [], outcome: "End Call" }] };
+    const result = simulate(workstream, model([firstQueue, second, queue("fallback-queue")]), { language: "Dutch" });
+    expect(result.queue?.id).toBe("second-queue");
+    expect(result.outcome).toBe("Agent");
+    expect(result.steps.some((step) => step.id === "second-end")).toBe(false);
   });
 
   test("picks a weighted-distribution target using its weightPercent, and records the pick in the trace", () => {
@@ -178,8 +252,8 @@ describe("simulate", () => {
   });
 
   test("stops after too many queue transfers instead of looping forever", () => {
-    const a: Queue = { ...queue("first-queue"), preQueueOverflowRules: [{ id: "a-transfer", name: "To B", order: 0, hitPolicy: "first", conditionLogic: "AND", trigger: "x", conditions: [], outcome: "Queue Transfer", targetQueueId: "second-queue" }] };
-    const b: Queue = { ...queue("second-queue"), preQueueOverflowRules: [{ id: "b-transfer", name: "To A", order: 0, hitPolicy: "first", conditionLogic: "AND", trigger: "x", conditions: [], outcome: "Queue Transfer", targetQueueId: "first-queue" }] };
+    const a: Queue = { ...queue("first-queue"), inQueueOverflowRules: [{ id: "a-transfer", name: "To B", order: 0, hitPolicy: "first", conditionLogic: "AND", trigger: "x", conditions: [], outcome: "Queue Transfer", targetQueueId: "second-queue" }] };
+    const b: Queue = { ...queue("second-queue"), inQueueOverflowRules: [{ id: "b-transfer", name: "To A", order: 0, hitPolicy: "first", conditionLogic: "AND", trigger: "x", conditions: [], outcome: "Queue Transfer", targetQueueId: "first-queue" }] };
     const result = simulate(workstream, model([a, b, queue("fallback-queue")]), { language: "Dutch" });
     expect(result.outcome).toBe("Agent");
     expect(result.warnings.some((warning) => warning.includes("too many queue transfers"))).toBe(true);

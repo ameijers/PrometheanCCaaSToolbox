@@ -409,7 +409,7 @@ function enrichmentDetail(rule: EnrichmentRule, variableNames: Record<string, st
 function queueRoutingDetail(rule: QueueRoutingRule, index: number, variableNames: Record<string, string>): DetailPayload {
   return { kind: "Queue-routing rule", title: rule.name, summary: ruleSummary(rule.conditions, variableNames, rule.conditionLogic), conditions: rule.conditions, fields: [
     { label: "Evaluation order", value: String(index + 1) },
-    { label: "Hit policy", value: rule.hitPolicy === "first" ? "First match wins" : "All matches apply (last match wins)" },
+    { label: "Hit policy", value: rule.hitPolicy === "first" ? "Hit-first: the first match wins, even if its queue is overflowing" : "Hit-all: the first match whose queue isn't overflowing" },
     { label: "Enabled", value: rule.enabled ? "Yes" : "No" },
     { label: "Target", value: rule.targets.length
       ? rule.targets.map((t) => t.agentId ? `Agent ${t.agentId}` : `${t.queueId ?? rule.targetLabel ?? "Not set"}${t.weightPercent !== undefined ? ` (${t.weightPercent}%)` : ""}`).join(", ")
