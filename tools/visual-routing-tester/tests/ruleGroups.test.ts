@@ -64,6 +64,13 @@ describe("writeRuleXml and parseDecisionXml", () => {
     expect(rule.setAttributes).toEqual([{ lhs: "msdyn_ocliveworkitem.msdyn_priorityscore", rhs: "20" }, { lhs: "liveworkitemcontext.Tier", rhs: "Gold" }]);
   });
 
+  test("comparison operators are written as real data has them, operator=\">=\", and read back", () => {
+    const xml = writeRuleXml({ id: "r", name: "Score", conditions: { operator: "AND", items: [{ operator: ">=", lhs: "msdyn_ocliveworkitem.msdyn_priorityscore", rhs: "10" }, { operator: "<", lhs: "x", rhs: "3" }] }, action: { queueId: "q" } });
+    expect(xml).toContain("<condition operator=\">=\">");
+    expect(parseDecisionXml(decision(xml))!.rules[0].conditions.map((c) => c.operator)).toEqual([">=", "<"]);
+    expect(parseDecisionXml(decision("    <rule id=\"r\" name=\"n\"><condition operator=\"&gt;=\"><lhs type=\"attribute\">a</lhs><rhs type=\"staticvalue\">1</rhs></condition></rule>"))!.rules[0].conditions[0].operator).toBe(">=");
+  });
+
   test("withHitPolicy sets Hit-first or Hit-all on the decision", () => {
     expect(parseDecisionXml(withHitPolicy(OR_IN_AND, "first"))!.hitPolicy).toBe("first");
     expect(parseDecisionXml(withHitPolicy(withHitPolicy(OR_IN_AND, "first"), "all"))!.hitPolicy).toBe("all");

@@ -72,7 +72,7 @@ const RHS_TAG = new RegExp(`<rhs\\b(${ATTR_RUN})\\s*>([\\s\\S]*?)<\\/rhs>`);
 function parseCondition(condAttrs: string, condBody: string): ParsedCondition {
   const rhsMatch = condBody.match(RHS_TAG);
   return {
-    operator: attrValue(condAttrs, "operator") ?? "equals",
+    operator: unescapeXml(attrValue(condAttrs, "operator") ?? "equals"),
     lhs: tagText(condBody, "lhs") ?? "",
     rhs: rhsMatch ? unescapeXml(rhsMatch[2].trim()) : undefined,
     unit: rhsMatch ? attrValue(rhsMatch[1], "unit") : undefined
@@ -185,7 +185,8 @@ function groupXml(group: WritableGroup, pad: string): string {
     if (isWritableGroup(item)) return groupXml(item, `${pad}  `);
     const inner = `${pad}  `;
     const rhs = item.rhs === undefined ? "" : `\n${inner}  <rhs type="staticvalue">${escapeXml(item.rhs)}</rhs>`;
-    return `${inner}<condition operator="${escapeXml(item.operator)}">\n${inner}  <lhs type="attribute">${escapeXml(item.lhs)}</lhs>${rhs}\n${inner}</condition>`;
+    // Real data writes operator=">=" as it is, so only quotes and ampersands are escaped here.
+    return `${inner}<condition operator="${item.operator.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}">\n${inner}  <lhs type="attribute">${escapeXml(item.lhs)}</lhs>${rhs}\n${inner}</condition>`;
   });
   return `${pad}<logical operator="${group.operator}">\n${items.join("\n")}\n${pad}</logical>`;
 }
