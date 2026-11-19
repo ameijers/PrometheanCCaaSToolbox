@@ -45,19 +45,30 @@ async function switchTo(copy: QueueCopy, methodId: string, source: CopierSource,
   result.activated = true;
 }
 
+// "Remove all assignment rules first": empties the queue's rulesets before anything else is written.
+async function clearRules(copy: QueueCopy, source: CopierSource, result: CopyResult): Promise<void> {
+  for (const ruleset of copy.cleared) {
+    await source.update(RULESET_TABLE, ruleset.rulesetId, ruleset.columns);
+    result.updated.push({ id: ruleset.rulesetId, name: ruleset.name });
+  }
+}
+
+const UNDO_HINT = " Use Undo changes to put back the rules already removed or rewritten, or check it in the admin center.";
+
 async function copyOne(copy: QueueCopy, source: CopierSource): Promise<CopyResult> {
   const result: CopyResult = { copy, status: "copied", created: [], updated: [], activated: false, at: new Date().toISOString() };
   try {
+    await clearRules(copy, source, result);
     const methodId = await source.create(METHOD_TABLE, copy.method);
     result.methodId = methodId;
     result.created.push({ table: METHOD_TABLE, id: methodId, name: copy.methodName });
     await addSteps(copy, methodId, source, result);
     if (copy.activate) await switchTo(copy, methodId, source, result);
   } catch (error) {
-    result.status = result.created.length ? "partial" : "failed";
+    result.status = result.created.length || result.updated.length ? "partial" : "failed";
     result.error = result.created.length
-      ? `${errorMessage(error)} The unfinished copy "${copy.methodName}" is on the queue; check the queue's assignment method in the admin center and delete the copy there.`
-      : errorMessage(error);
+      ? `${errorMessage(error)} The unfinished copy "${copy.methodName}" is on the queue; check the queue's assignment method in the admin center and delete the copy there.${result.updated.length ? UNDO_HINT : ""}`
+      : result.updated.length ? `${errorMessage(error)} The copy wasn't made and the queue wasn't switched.${UNDO_HINT}` : errorMessage(error);
   }
   return result;
 }
@@ -66,6 +77,7 @@ async function updateOne(copy: QueueCopy, source: CopierSource): Promise<CopyRes
   const existing = copy.existing!;
   const result: CopyResult = { copy, status: "copied", methodId: existing.id, created: [], updated: [], activated: false, at: new Date().toISOString() };
   try {
+    await clearRules(copy, source, result);
     for (const update of existing.updates) {
       await source.update(RULESET_TABLE, update.rulesetId, update.columns);
       result.updated.push({ id: update.rulesetId, name: update.name });
@@ -76,7 +88,7 @@ async function updateOne(copy: QueueCopy, source: CopierSource): Promise<CopyRes
     const changed = result.updated.length + result.created.length;
     result.status = changed ? "partial" : "failed";
     result.error = changed
-      ? `${errorMessage(error)} "${existing.name}" was only partly updated, and the queue wasn't switched. Use Undo changes to put its rules back, or check it in the admin center.`
+      ? `${errorMessage(error)} "${existing.name}" was only partly updated, and the queue wasn't switched.${UNDO_HINT}`
       : errorMessage(error);
   }
   return result;
@@ -118,6 +130,22 @@ export function verifyCopy(result: CopyResult, method: Method | undefined, queue
   return problems;
 }
 
+// The emptied rulesets read back without rules (the matched method's own were read with it already).
+async function verifyCleared(result: CopyResult, source: CopierSource): Promise<string[]> {
+  const problems: string[] = [];
+  const methodIds = [...new Set(result.copy.cleared.map((c) => c.methodId!))];
+  for (const methodId of methodIds) {
+    let method: Method | undefined;
+    try { method = await source.loadMethod(methodId); } catch { method = undefined; }
+    for (const cleared of result.copy.cleared.filter((c) => c.methodId === methodId)) {
+      const read = method?.steps.find((s) => s.ruleset?.id === cleared.rulesetId)?.ruleset;
+      if (!read) problems.push(`the emptied ruleset "${cleared.name}" couldn't be read back`);
+      else if (/<rule\b/.test(read.definition)) problems.push(`the ruleset "${cleared.name}" of "${cleared.methodName}" still has rules`);
+    }
+  }
+  return problems;
+}
+
 export async function applyCopies(copies: QueueCopy[], source: CopierSource, onProgress?: (p: ApplyProgress) => void): Promise<CopyResult[]> {
   const toApply = copies.filter((c) => c.status === "copy" || c.status === "update");
   const results: CopyResult[] = [];
@@ -135,6 +163,7 @@ export async function applyCopies(copies: QueueCopy[], source: CopierSource, onP
     let method: Method | undefined;
     try { method = await source.loadMethod(result.methodId); } catch { method = undefined; }
     const problems = verifyCopy(result, method, queues?.find((q) => q.id === result.copy.queue.id));
+    problems.push(...await verifyCleared(result, source));
     if (problems.length) {
       result.status = "notVerified";
       result.error = `${result.copy.existing ? "Updated" : "Copied"}, but ${problems.join("; ")}. Check the queue in the admin center.`;
@@ -160,7 +189,7 @@ export async function undoChanges(results: CopyResult[], source: CopierSource, o
         result.activated = false;
       }
       for (const done of r.updated) {
-        const update = r.copy.existing?.updates.find((u) => u.rulesetId === done.id);
+        const update = [...(r.copy.existing?.updates ?? []), ...r.copy.cleared].find((u) => u.rulesetId === done.id);
         if (update) await source.update(RULESET_TABLE, update.rulesetId, update.before);
         result.updated = result.updated.filter((u) => u.id !== done.id);
       }

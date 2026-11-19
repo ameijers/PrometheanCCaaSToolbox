@@ -81,6 +81,7 @@ h2, h3, p { margin-top: 0; }
 .preview-change { color: #17766c; font-weight: 700; }
 .preview-change small { font-weight: 400; }
 .preview-blocked { color: #b3402f; font-weight: 700; }
+.preview-change small.preview-warning { color: #9a5b00 !important; font-weight: 700; font-family: inherit !important; }
 .preview-same { display: flex; flex-direction: column; gap: 3px; color: #6e898a; font-weight: 700; }
 .preview-same small { font-weight: 400; }
 .match-options { margin-bottom: 14px; }

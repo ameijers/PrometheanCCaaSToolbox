@@ -220,6 +220,72 @@ describe("a method already on the queue", () => {
   });
 });
 
+describe("remove all assignment rules upfront", () => {
+  async function planClearing(targetNames: string[], activate: boolean, match?: MatchOptions): Promise<QueueCopy[]> {
+    const queues = await demoSource.loadQueues();
+    const from = queues.find((q) => q.name === "Sales – NL")!;
+    const method = await demoSource.loadMethod(from.methods[0].id);
+    const targets = targetNames.map((name) => queues.find((q) => q.name === name)!);
+    const onQueues: Record<string, Method> = {};
+    for (const m of targets.flatMap((q) => q.methods)) onQueues[m.id] = await demoSource.loadMethod(m.id);
+    let n = 0;
+    return planCopies({ queue: from, method }, targets, { activate, match, clearFirst: true }, () => `00000000-0000-4000-b000-${String(++n).padStart(12, "0")}`, onQueues);
+  }
+
+  test("empties the queue's rulesets first, then copies, and the undo puts the rules back", async () => {
+    const before = await demoSource.loadMethod((await queueNamed("Support – Voice")).methods[0].id);
+    const { source, writes } = recording();
+    const [copy] = await planClearing(["Support – Voice"], true);
+    expect(copy.cleared.map((c) => [c.name, c.methodName, c.changes.removed])).toEqual([["Assignment", "Longest idle with capacity", ["Longest idle with capacity"]]]);
+    expect(copy.notes[0]).toBe("Empties assignment ruleset \"Assignment\" of \"Longest idle with capacity\" (1 rule).");
+    const [result] = await applyCopies([copy], source);
+    expect(writes[0]).toMatch(/^update msdyn_decisionruleset msdyn_rulesetdefinition,msdyn_disabledrules=/);
+    expect(writes[1]).toBe("create msdyn_assignmentconfiguration");
+    expect(result).toMatchObject({ status: "copied", activated: true });
+
+    const emptied = await demoSource.loadMethod(before.id);
+    expect(rulesOf(emptied.steps[0].ruleset!.definition)).toEqual([]);
+    expect(emptied.steps[0].ruleset!.definition).toContain("<decision hit-policy=\"first\" version=\"1\">");
+
+    await undoChanges([result], demoSource);
+    expect((await demoSource.loadMethod(before.id)).steps[0].ruleset!.definition).toBe(before.steps[0].ruleset!.definition);
+    expect((await queueNamed("Support – Voice")).methods.find((m) => m.id === before.id)!.active).toBe(true);
+  });
+
+  test("warns when the method in use is emptied and the queue isn't switched", async () => {
+    const [copyOnly] = await planClearing(["Support – Voice"], false);
+    expect(copyOnly.notes).toEqual(expect.arrayContaining([expect.stringMatching(/^Warning: "Longest idle with capacity" is in use on this queue and its rules are removed/)]));
+    const [use] = await planClearing(["Support – Voice"], true);
+    expect(use.notes.some((n) => n.startsWith("Warning:"))).toBe(false);
+  });
+
+  test("a queue without custom methods has nothing to empty", async () => {
+    const [copy] = await planClearing(["Billing"], true);
+    expect(copy).toMatchObject({ status: "copy", cleared: [], notes: [] });
+  });
+
+  test("a matched method's own rulesets are rewritten, not emptied first", async () => {
+    const [copy] = await planClearing(["Sales – BE"], true, BOTH);
+    expect(copy.status).toBe("update");
+    expect(copy.cleared).toEqual([]);
+    expect(copy.existing!.updates.map((u) => u.name)).toEqual(["Assignment"]);
+  });
+
+  test("a rejected emptying is reported part-way, with the undo hint", async () => {
+    const failing: CopierSource = { ...demoSource, create: async () => { throw new Error("No privilege."); } };
+    const [result] = await applyCopies(await planClearing(["Support – Voice"], true), failing);
+    expect(result.status).toBe("partial");
+    expect(result.error).toMatch(/^No privilege\. The copy wasn't made and the queue wasn't switched\. Use Undo changes/);
+  });
+
+  test("the run log says the rules were removed first", async () => {
+    const results = await applyCopies(await planClearing(["Support – Voice"], true), demoSource);
+    const row = runLogCsv(results, { tool: "Assignment Method Copier", mode: "demo", environment: "the sample environment", user: "Sample user", startedAt: "2026-11-19T08:00:00.000Z", finishedAt: "2026-11-19T08:00:05.000Z" }, "Copy", "Skills first (Sales – NL)").trim().split(/\r?\n/)[1];
+    expect(row).toMatch(/Support – Voice,.*,Done,"New copy, rules removed first",Skills first,/);
+    expect(row).toContain("Empties assignment ruleset \"\"Assignment\"\" of \"\"Longest idle with capacity\"\" (1 rule).");
+  });
+});
+
 describe("undoChanges", () => {
   test("puts each queue back on the method it used, and keeps the copy switched off", async () => {
     const supportBefore = await queueNamed("Support – Voice");

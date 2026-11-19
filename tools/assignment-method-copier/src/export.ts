@@ -4,7 +4,7 @@
 import { toCsv } from "../../voice-workstream-builder/src/csv";
 import { RUN_HEADERS, RunInfo, logTime, runColumns } from "../../voice-workstream-builder/src/runLog";
 import { CopyResult } from "./model";
-import { describeUpdate } from "./plan";
+import { describeClearing, describeUpdate } from "./plan";
 import { STRATEGY_LABELS } from "./schema";
 
 // The run log of a copy: which queues got the method or had it updated, what was created and rewritten
@@ -14,8 +14,9 @@ import { STRATEGY_LABELS } from "./schema";
 export const STATUS_LABELS: Record<CopyResult["status"], string> = { copied: "Done", notVerified: "Done, not confirmed", partial: "Stopped part-way", failed: "Failed" };
 
 function change(r: CopyResult): string {
-  if (!r.copy.existing) return "New copy";
-  return `Updated (same ${r.copy.existing.matchedBy === "rules" ? "rules" : "name"})`;
+  const first = r.copy.cleared.length ? ", rules removed first" : "";
+  if (!r.copy.existing) return `New copy${first}`;
+  return `Updated (same ${r.copy.existing.matchedBy === "rules" ? "rules" : "name"})${first}`;
 }
 
 export function runLogCsv(results: CopyResult[], run: RunInfo, action: string, from: string): string {
@@ -25,7 +26,7 @@ export function runLogCsv(results: CopyResult[], run: RunInfo, action: string, f
     STRATEGY_LABELS[r.copy.before.strategy] ?? String(r.copy.before.strategy), r.activated ? "Yes" : "No",
     r.created.map((c) => `${c.table} ${c.id}`).join(" | "),
     r.updated.map((u) => `msdyn_decisionruleset ${u.id}`).join(" | "),
-    r.copy.existing ? describeUpdate(r.copy.existing, r.copy.steps).join(" ") : "",
+    [...describeClearing(r.copy.cleared), ...(r.copy.existing ? describeUpdate(r.copy.existing, r.copy.steps) : [])].join(" "),
     logTime(r.at), r.error ?? ""
   ]);
   return toCsv([...RUN_HEADERS, "Action", "Copied from", "Queue", "Queue id", "Status", "Change", "Method", "Method id", "Method before", "In use on the queue", "Records created", "Rulesets updated", "Rule changes", "Time", "Error"], rows);

@@ -48,6 +48,7 @@ export function App(): React.ReactElement {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activate, setActivate] = useState(true);
   const [match, setMatch] = useState<MatchOptions>({ byName: true, byRules: true });
+  const [clearFirst, setClearFirst] = useState(false);
   // The methods already on the selected queues, read to see whether the source method is among them.
   const [onQueues, setOnQueues] = useState<Record<string, Method>>({});
   const [unreadable, setUnreadable] = useState<Set<string>>(new Set());
@@ -107,7 +108,7 @@ export function App(): React.ReactElement {
   const matching = match.byName || match.byRules;
 
   // Read the methods on the selected queues that haven't been read yet.
-  const toRead = useMemo(() => matching ? selectedRows.flatMap((q) => q.methods.map((m) => m.id)).filter((id) => !onQueues[id] && !unreadable.has(id)) : [], [matching, selectedRows, onQueues, unreadable]);
+  const toRead = useMemo(() => matching || clearFirst ? selectedRows.flatMap((q) => q.methods.map((m) => m.id)).filter((id) => !onQueues[id] && !unreadable.has(id)) : [], [matching, clearFirst, selectedRows, onQueues, unreadable]);
   useEffect(() => {
     if (!toRead.length) return;
     let current = true;
@@ -122,8 +123,9 @@ export function App(): React.ReactElement {
   const checking = toRead.length > 0;
 
   const problems = useMemo(() => fromQueue && method ? sourceProblems({ queue: fromQueue, method }) : [], [fromQueue, method]);
-  const plan = useMemo(() => fromQueue && method && !checking ? planCopies({ queue: fromQueue, method }, selectedRows, { activate, match }, newId, onQueues) : [],
-    [fromQueue, method, selectedRows, activate, match, onQueues, checking]);
+  const plan = useMemo(() => fromQueue && method && !checking ? planCopies({ queue: fromQueue, method }, selectedRows, { activate, match, clearFirst }, newId, onQueues) : [],
+    [fromQueue, method, selectedRows, activate, match, clearFirst, onQueues, checking]);
+  const emptied = plan.filter((p) => p.status !== "blocked").reduce((n, p) => n + p.cleared.length, 0);
   const planById = useMemo(() => new Map(plan.map((p) => [p.queue.id, p])), [plan]);
   const toCopy = plan.filter((p) => p.status === "copy");
   const toUpdate = plan.filter((p) => p.status === "update");
@@ -186,7 +188,7 @@ export function App(): React.ReactElement {
 
     <div className="write-banner" role="note">
       <span className="write-icon" aria-hidden="true">✎</span>
-      <span><strong>This tool changes live queues{source.mode === "live" ? ` in ${environment}` : ""}.</strong> It copies one queue's custom assignment method to the queues you select, or updates the rules of that method where a queue already has it, and only after you confirm. A queue that uses the method assigns new work by its rules straight away. Nothing is deleted: a method the queue already had stays on it, switched off.</span>
+      <span><strong>This tool changes live queues{source.mode === "live" ? ` in ${environment}` : ""}.</strong> It copies one queue's custom assignment method to the queues you select, or updates the rules of that method where a queue already has it, and, if you ask, first removes all assignment rules on those queues. It does this only after you confirm. A queue that uses the method assigns new work by its rules straight away. Nothing is deleted: a method the queue already had stays on it, switched off.</span>
     </div>
 
     {progress && <section className="progress-strip"><div className="progress-bar"><div style={{ width: `${progress.total ? Math.round((progress.done / progress.total) * 100) : 100}%` }} /></div><span>{progress.done}/{progress.total} — {progress.message}</span></section>}
@@ -227,7 +229,7 @@ export function App(): React.ReactElement {
           <button className="button ghost small" onClick={() => setFilter(EMPTY_FILTER)}>Clear filters</button>
           {otherTypes > 0 && <p className="muted small-note">{plural(otherTypes, "queue")} of another type {otherTypes === 1 ? "isn't" : "aren't"} shown: a method is only copied between queues of the same type.</p>}
         </>}
-        <div className="sidebar-footer"><span className="shield">◇</span><span>Creates assignment methods and their rulesets on the queues you select, updates the rules of a method a queue already has, and sets which method those queues use. Never deletes a record.</span></div>
+        <div className="sidebar-footer"><span className="shield">◇</span><span>Creates assignment methods and their rulesets on the queues you select, updates the rules of a method a queue already has, empties a queue's rulesets if you ask, and sets which method those queues use. Never deletes a record.</span></div>
       </aside>
 
       <section className="content">
@@ -277,6 +279,12 @@ export function App(): React.ReactElement {
             : "Every queue gets a new copy. If the name is taken on a queue, the copy is numbered."}</p>
         </div>
 
+        <p className="detail-label">Before copying</p>
+        <div className="match-options">
+          <label className="checkbox-row"><input type="checkbox" checked={clearFirst} onChange={(e) => { setClearFirst(e.target.checked); setConfirming(false); }} disabled={busy} />
+            <span><strong>Remove all assignment rules upfront</strong><small>Every ruleset of every custom method on the selected queues is emptied first, so only the source's rules are left. The methods and rulesets stay; Undo changes puts the rules back.</small></span></label>
+        </div>
+
         <div className="preview">
           <p className="detail-label">Preview</p>
           {!fromQueue ? <p className="muted">Choose the queue to copy from.</p> : !method ? <p className="muted">Reading the method…</p> : problems.length ? <p className="muted">This method can't be copied; see the reason on the left.</p> : !selected.size ? <p className="muted">Select queues in the list to see what would be copied.</p> : checking ? <p className="muted">Checking the methods already on the selected queues…</p> : <>
@@ -286,6 +294,7 @@ export function App(): React.ReactElement {
               {matching && toUpdate.some((p) => !changesRules(p)) && <li><strong>{toUpdate.filter((p) => !changesRules(p)).length}</strong> already have it, to be switched on</li>}
               {matching && <li><strong>{upToDate.length}</strong> already up to date</li>}
               <li><strong>{blocked.length}</strong> can't be copied to</li>
+              {clearFirst && <li><strong>{emptied}</strong> {emptied === 1 ? "ruleset" : "rulesets"} emptied first</li>}
             </ul>
             <p className="muted">The method has {plural(method.steps.length, "ruleset")} with {plural(method.steps.reduce((n, s) => n + (s.ruleset ? rulesOf(s.ruleset.definition).length : 0), 0), "rule")}.</p>
           </>}
@@ -296,7 +305,9 @@ export function App(): React.ReactElement {
           : <div className="confirm-box">
             <p><strong>{confirmTitle(method?.name ?? "", toCopy.length, toUpdate.length)} in {environment}?</strong>{" "}
               {activate ? "Each queue is switched to the method and assigns new work by its rules straight away." : "The queues keep the method they use now."}
-              {toUpdate.some(changesRules) ? " Updated rules take effect straight away on a queue that uses that method." : ""}
+              {emptied ? ` First, ${emptied === 1 ? "1 ruleset is" : `${emptied} rulesets are`} emptied on these queues.` : ""}
+              {toUpdate.some(changesRules) || emptied ? " Updated or removed rules take effect straight away on a queue that uses that method." : ""}
+              {toApply.some((p) => p.notes.some((n) => n.startsWith("Warning:"))) ? " Some queues keep using a method whose rules are removed; see the warnings in the list." : ""}
               {" "}You can undo this afterwards. New copies stay on the queues; this tool doesn't delete them.</p>
             <div><button className="button ghost" onClick={() => setConfirming(false)}>Cancel</button><button className="button danger" onClick={() => void runCopy(toApply)}>Yes, {toCopy.length ? "copy" : "update"}</button></div>
           </div>}
@@ -312,7 +323,7 @@ function applyLabel(copies: number, updates: number): string {
 }
 
 // An update that rewrites or adds rulesets, not only switches the method on.
-const changesRules = (copy: QueueCopy) => !!copy.existing && (copy.existing.updates.length > 0 || copy.steps.length > 0);
+const changesRules = (copy: QueueCopy) => !!copy.existing && (copy.existing.updates.length > 0 || copy.steps.length > 0 || copy.cleared.length > 0);
 
 const sentence = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -347,7 +358,9 @@ function PreviewCell({ copy }: { copy: QueueCopy }): React.ReactElement {
   const title = copy.status === "update"
     ? `${copy.activate || inUse ? "Custom" : "Unchanged"}; "${copy.methodName}" updated${matched}`
     : copy.activate ? `Custom: ${copy.methodName}` : `Unchanged; "${copy.methodName}" added`;
-  return <span className="preview-change">{title}{copy.notes.length > 0 && <small>{copy.notes.join(" ")}</small>}</span>;
+  const warnings = copy.notes.filter((n) => n.startsWith("Warning:"));
+  const notes = copy.notes.filter((n) => !n.startsWith("Warning:"));
+  return <span className="preview-change">{title}{notes.length > 0 && <small>{notes.join(" ")}</small>}{warnings.map((w) => <small key={w} className="preview-warning">{w}</small>)}</span>;
 }
 
 function RunSummary({ run, source, confirmingUndo, onUndo, onCancelUndo, onConfirmUndo, onDismiss }: {
@@ -380,7 +393,7 @@ function RunSummary({ run, source, confirmingUndo, onUndo, onCancelUndo, onConfi
     {confirmingUndo && <div className="confirm-box">
       <p><strong>Undo this run?</strong> {sentence([
         switched ? `${plural(switched, "queue")} go${switched === 1 ? "es" : ""} back to the assignment method ${switched === 1 ? "it" : "they"} used before` : "",
-        rewritten ? `the rules of ${plural(rewritten, "updated method")} are put back as they were` : ""
+        rewritten ? `the rules removed or rewritten on ${plural(rewritten, "queue")} are put back as they were` : ""
       ].filter(Boolean).join(", and "))}. New copies stay on the queues, switched off.</p>
       <div><button className="button ghost" onClick={onCancelUndo}>Cancel</button><button className="button danger" onClick={onConfirmUndo}>Yes, undo</button></div>
     </div>}

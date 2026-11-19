@@ -22,6 +22,8 @@ See the [manual](manual.md) for a walkthrough with screenshots.
    - **A method with the same name**: whatever its rules are now.
 
    With both off, every queue gets a new copy, as before.
+
+   **Before copying**, **Remove all assignment rules upfront** (off by default) empties every ruleset of every custom method on the selected queues first, so only the source's rules are left. See [Removing all rules first](#removing-all-rules-first).
 5. **Preview.** Each selected row shows what its assignment method would become: a new copy, an update (with the rules it adds, changes and removes), already up to date, or why it can't be copied.
 6. **Copy.** After a confirmation naming the environment, each queue gets the method (switched off), then each ruleset and its step, and only then is the queue switched. An update rewrites the existing method's rulesets first. Every result is read back.
 7. **Review, log and undo.** The result shows what was copied, updated and what failed and why. **Download log** saves the run. **Undo changes** puts every switched queue back on the method it used before, and every updated ruleset back to its old rules.
@@ -54,6 +56,17 @@ When nothing differs and the method is in use as asked, the queue is **already u
 
 An update is blocked when the queue has two methods with the source's name, when the method has more than one ruleset of one kind, or when one of its rulesets isn't rule-based, uses another queue's contract or has another output than the source.
 
+## Removing all rules first
+
+With **Remove all assignment rules upfront** ticked, before anything else is written to a queue, every ruleset of every custom method on it loses its rules: the `<rule>` elements are taken out of `msdyn_rulesetdefinition` and `msdyn_disabledrules` is cleared. The methods, rulesets and steps themselves stay (the tool never deletes a record), and **Undo changes** writes the old rules back.
+
+- The rulesets of a matched method that get the source's rules anyway aren't emptied first; they end up exactly like the source's, and keep their rule ids.
+- A ruleset the matched method has and the source lacks **is** emptied, and so is every ruleset of the queue's other methods.
+- A queue whose method in use is emptied and isn't switched (with **Copy only**, or when the copy isn't the one in use) gets a **warning** in the preview and the confirmation: it assigns work without those rules until it's switched to another method.
+- A ruleset that isn't rule-based, or can't be read, blocks the queue.
+
+![Removing all rules first](images/05-remove-rules-first.png)
+
 ## When a queue or method can't be copied
 
 | Situation | What happens |
@@ -63,7 +76,7 @@ An update is blocked when the queue has two methods with the source's name, when
 | The method has no rulesets | Nothing can be copied. Add its rules in the admin center first. |
 | A ruleset is model-based or uses a component | Nothing can be copied; only rule-based rulesets are supported. |
 | A rule refers to the source queue itself | Nothing can be copied; it wouldn't work on another queue as it is. |
-| A method on the queue couldn't be read (with matching on) | Blocked: the tool can't tell whether the method is already there. |
+| A method on the queue couldn't be read (with matching or removing rules first on) | Blocked: the tool can't tell whether the method is already there, or can't remove its rules. |
 
 The platform's own `<CDS System>` queues are never listed.
 
@@ -83,7 +96,7 @@ The platform's own `<CDS System>` queues are never listed.
 The person using it is expected to be a **system administrator** (or have create and write access to the three tables below and write access to `queue`).
 
 - **Creates**: `msdyn_assignmentconfiguration`, `msdyn_assignmentconfigurationstep`, `msdyn_decisionruleset`.
-- **Updates**: `msdyn_isactiveconfiguration` on `msdyn_assignmentconfiguration`, `msdyn_assignmentstrategy` on `queue`, and `msdyn_rulesetdefinition` and `msdyn_disabledrules` on a `msdyn_decisionruleset` of a method that is already on the queue. No other column is written; a ruleset's contracts never change.
+- **Updates**: `msdyn_isactiveconfiguration` on `msdyn_assignmentconfiguration`, `msdyn_assignmentstrategy` on `queue`, and `msdyn_rulesetdefinition` and `msdyn_disabledrules` on a `msdyn_decisionruleset` of a method that is already on the queue (to update it, or to empty it with **Remove all assignment rules upfront**). No other column is written; a ruleset's contracts never change.
 - **Never deletes** a record, and never writes a decision contract. A method a queue already had stays on it, switched off.
 - All writes are in `src/dataverse.ts`, which refuses any table or column outside `CREATE_COLUMNS` and `UPDATE_COLUMNS` in `src/schema.ts`. They go straight to the Web API as POST and PATCH requests, because `Xrm.WebApi.createRecord` refuses these tables. `tests/writeScope.test.ts` pins the column lists and fails if a delete, `execute` or an `Xrm.WebApi` write appears in `src/`, or if the Web API is called from another file.
 - Switching a queue changes how its work is assigned from that moment, and so does updating the rules of a method a queue uses. Copy outside busy hours, or use **Copy only** and switch in the admin center.

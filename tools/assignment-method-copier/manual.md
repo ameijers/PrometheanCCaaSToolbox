@@ -49,6 +49,14 @@ Each row's **After this copy** column shows what happens to that queue:
 
 The **Preview** box on the right counts each kind. A queue that already uses another custom method keeps it, switched off.
 
+### Remove all assignment rules upfront
+
+Under **Before copying**, tick **Remove all assignment rules upfront** to start every selected queue from a clean slate: each ruleset of each custom method on the queue loses its rules first, then the method is copied or updated. Only the source's rules are left on the queue. The methods and rulesets themselves stay, and **Undo changes** puts the rules back.
+
+![Removing all rules first](images/05-remove-rules-first.png)
+
+Each row lists the rulesets it empties. Watch for the orange **Warning**: when a queue's method in use is emptied and the queue isn't switched (for example with **Copy only**), that queue assigns work without those rules until you switch it. Choose **Use it on the queue** to avoid that.
+
 ## 5. Copy
 
 Click the button below the preview (**Copy to N queues**, **Update on N queues**, or both). The confirmation names the environment and the method, and warns when updated rules take effect straight away:
@@ -69,7 +77,7 @@ The summary shows how many queues got the method and how many had it updated, wh
 
 ## 6. Undo
 
-**Undo changes** puts every queue that was switched back on the assignment method it used before, and every updated ruleset back to the rules it had. New copies stay on the queues, switched off; this tool doesn't delete them.
+**Undo changes** puts every queue that was switched back on the assignment method it used before, and every updated or emptied ruleset back to the rules it had. New copies stay on the queues, switched off; this tool doesn't delete them.
 
 ![Undo](images/04-undo.png)
 
