@@ -6,19 +6,19 @@ import { useEffect, useMemo, useState } from "react";
 import { environmentLabel, isDataverseAvailable } from "../../shared/src/xrm";
 import { downloadCsv } from "../../voice-workstream-builder/src/csv";
 import { RunInfo, logFileName } from "../../voice-workstream-builder/src/runLog";
-import { ApplyProgress, applyCopies, switchBack } from "./apply";
+import { ApplyProgress, applyCopies, undoChanges } from "./apply";
 import { CopierSource } from "./dataSource";
 import { dataverseSource } from "./dataverse";
 import { demoSource } from "./demoData";
 import { STATUS_LABELS, runLogCsv } from "./export";
-import { CopyResult, Method, QueueCopy, QueueRow } from "./model";
+import { CopyResult, MatchOptions, Method, QueueCopy, QueueRow } from "./model";
 import { planCopies, rulesOf, sourceProblems, usesContextVariables } from "./plan";
 import { CUSTOM_STRATEGY, QUEUE_TABLE, QUEUE_TYPE_LABELS, STEP_TYPE_LABELS, STRATEGY_LABELS } from "./schema";
 
 interface Filter { search: string; method: string; }
 const EMPTY_FILTER: Filter = { search: "", method: "all" };
 
-interface RunRecord { results: CopyResult[]; info: RunInfo; kind: "copy" | "switch-back"; from: string; }
+interface RunRecord { results: CopyResult[]; info: RunInfo; kind: "copy" | "undo"; from: string; }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -47,13 +47,19 @@ export function App(): React.ReactElement {
   const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activate, setActivate] = useState(true);
+  const [match, setMatch] = useState<MatchOptions>({ byName: true, byRules: true });
+  // The methods already on the selected queues, read to see whether the source method is among them.
+  const [onQueues, setOnQueues] = useState<Record<string, Method>>({});
+  const [unreadable, setUnreadable] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [progress, setProgress] = useState<ApplyProgress | undefined>(undefined);
   const [run, setRun] = useState<RunRecord | undefined>(undefined);
-  const [confirmingSwitchBack, setConfirmingSwitchBack] = useState(false);
+  const [confirmingUndo, setConfirmingUndo] = useState(false);
 
   async function reload() {
     setLoading(true);
+    setOnQueues({});
+    setUnreadable(new Set());
     try {
       const rows = await source.loadQueues();
       setQueues(rows.sort((a, b) => a.name.localeCompare(b.name)));
@@ -98,11 +104,32 @@ export function App(): React.ReactElement {
   }), [candidates, filter]);
 
   const selectedRows = useMemo(() => candidates.filter((q) => selected.has(q.id)), [candidates, selected]);
+  const matching = match.byName || match.byRules;
+
+  // Read the methods on the selected queues that haven't been read yet.
+  const toRead = useMemo(() => matching ? selectedRows.flatMap((q) => q.methods.map((m) => m.id)).filter((id) => !onQueues[id] && !unreadable.has(id)) : [], [matching, selectedRows, onQueues, unreadable]);
+  useEffect(() => {
+    if (!toRead.length) return;
+    let current = true;
+    void Promise.all(toRead.map((id) => source.loadMethod(id).then((m) => ({ id, m }), () => ({ id, m: undefined })))).then((read) => {
+      if (!current) return;
+      setOnQueues((known) => ({ ...known, ...Object.fromEntries(read.filter((r) => r.m).map((r) => [r.id, r.m!])) }));
+      const failed = read.filter((r) => !r.m).map((r) => r.id);
+      if (failed.length) setUnreadable((known) => new Set([...known, ...failed]));
+    });
+    return () => { current = false; };
+  }, [toRead.join(",")]);
+  const checking = toRead.length > 0;
+
   const problems = useMemo(() => fromQueue && method ? sourceProblems({ queue: fromQueue, method }) : [], [fromQueue, method]);
-  const plan = useMemo(() => fromQueue && method ? planCopies({ queue: fromQueue, method }, selectedRows, { activate }, newId) : [], [fromQueue, method, selectedRows, activate]);
+  const plan = useMemo(() => fromQueue && method && !checking ? planCopies({ queue: fromQueue, method }, selectedRows, { activate, match }, newId, onQueues) : [],
+    [fromQueue, method, selectedRows, activate, match, onQueues, checking]);
   const planById = useMemo(() => new Map(plan.map((p) => [p.queue.id, p])), [plan]);
   const toCopy = plan.filter((p) => p.status === "copy");
+  const toUpdate = plan.filter((p) => p.status === "update");
+  const upToDate = plan.filter((p) => p.status === "upToDate");
   const blocked = plan.filter((p) => p.status === "blocked");
+  const toApply = [...toCopy, ...toUpdate];
   const hiddenSelected = selectedRows.filter((q) => !visible.includes(q)).length;
   const allVisibleSelected = visible.length > 0 && visible.every((q) => selected.has(q.id));
 
@@ -135,11 +162,11 @@ export function App(): React.ReactElement {
     await finish(results, "copy", startedAt, `${method.name} (${fromQueue.name})`);
   }
 
-  async function runSwitchBack(previous: RunRecord) {
-    setConfirmingSwitchBack(false);
+  async function runUndo(previous: RunRecord) {
+    setConfirmingUndo(false);
     const startedAt = new Date().toISOString();
-    const results = await switchBack(previous.results, source, setProgress);
-    await finish(results, "switch-back", startedAt, previous.from);
+    const results = await undoChanges(previous.results, source, setProgress);
+    await finish(results, "undo", startedAt, previous.from);
   }
 
   const busy = !!progress;
@@ -159,14 +186,14 @@ export function App(): React.ReactElement {
 
     <div className="write-banner" role="note">
       <span className="write-icon" aria-hidden="true">✎</span>
-      <span><strong>This tool changes live queues{source.mode === "live" ? ` in ${environment}` : ""}.</strong> It copies one queue's custom assignment method to the queues you select, and only after you confirm. A queue that is switched to the copy assigns new work by its rules straight away. Nothing is deleted: a method the queue already had stays on it, switched off.</span>
+      <span><strong>This tool changes live queues{source.mode === "live" ? ` in ${environment}` : ""}.</strong> It copies one queue's custom assignment method to the queues you select, or updates the rules of that method where a queue already has it, and only after you confirm. A queue that uses the method assigns new work by its rules straight away. Nothing is deleted: a method the queue already had stays on it, switched off.</span>
     </div>
 
     {progress && <section className="progress-strip"><div className="progress-bar"><div style={{ width: `${progress.total ? Math.round((progress.done / progress.total) * 100) : 100}%` }} /></div><span>{progress.done}/{progress.total} — {progress.message}</span></section>}
 
-    {run && !progress && <RunSummary run={run} source={source} confirmingSwitchBack={confirmingSwitchBack}
-      onSwitchBack={() => setConfirmingSwitchBack(true)} onCancelSwitchBack={() => setConfirmingSwitchBack(false)}
-      onConfirmSwitchBack={() => void runSwitchBack(run)} onDismiss={() => { setRun(undefined); setConfirmingSwitchBack(false); }} />}
+    {run && !progress && <RunSummary run={run} source={source} confirmingUndo={confirmingUndo}
+      onUndo={() => setConfirmingUndo(true)} onCancelUndo={() => setConfirmingUndo(false)}
+      onConfirmUndo={() => void runUndo(run)} onDismiss={() => { setRun(undefined); setConfirmingUndo(false); }} />}
 
     <section className="workspace">
       <aside className="sidebar">
@@ -200,7 +227,7 @@ export function App(): React.ReactElement {
           <button className="button ghost small" onClick={() => setFilter(EMPTY_FILTER)}>Clear filters</button>
           {otherTypes > 0 && <p className="muted small-note">{plural(otherTypes, "queue")} of another type {otherTypes === 1 ? "isn't" : "aren't"} shown: a method is only copied between queues of the same type.</p>}
         </>}
-        <div className="sidebar-footer"><span className="shield">◇</span><span>Creates assignment methods and their rulesets on the queues you select, and sets which method those queues use. Never deletes anything.</span></div>
+        <div className="sidebar-footer"><span className="shield">◇</span><span>Creates assignment methods and their rulesets on the queues you select, updates the rules of a method a queue already has, and sets which method those queues use. Never deletes a record.</span></div>
       </aside>
 
       <section className="content">
@@ -239,26 +266,60 @@ export function App(): React.ReactElement {
           </label>
         </div>
 
+        <p className="detail-label">Already on the queue</p>
+        <div className="match-options">
+          <label className="checkbox-row"><input type="checkbox" checked={match.byRules} onChange={(e) => { setMatch((m) => ({ ...m, byRules: e.target.checked })); setConfirming(false); }} disabled={busy} />
+            <span><strong>A method with the same rules</strong><small>Rules with the same conditions and actions, whatever the method is called.</small></span></label>
+          <label className="checkbox-row"><input type="checkbox" checked={match.byName} onChange={(e) => { setMatch((m) => ({ ...m, byName: e.target.checked })); setConfirming(false); }} disabled={busy} />
+            <span><strong>A method with the same name</strong><small>"{method?.name ?? "The method"}", whatever its rules are now.</small></span></label>
+          <p className="muted small-note">{matching
+            ? "Such a method is updated instead of copied again: its rulesets get the source's rules, missing rulesets are added. A rule that does the same, or has the same name, keeps its id."
+            : "Every queue gets a new copy. If the name is taken on a queue, the copy is numbered."}</p>
+        </div>
+
         <div className="preview">
           <p className="detail-label">Preview</p>
-          {!fromQueue ? <p className="muted">Choose the queue to copy from.</p> : !method ? <p className="muted">Reading the method…</p> : problems.length ? <p className="muted">This method can't be copied; see the reason on the left.</p> : !selected.size ? <p className="muted">Select queues in the list to see what would be copied.</p> : <>
+          {!fromQueue ? <p className="muted">Choose the queue to copy from.</p> : !method ? <p className="muted">Reading the method…</p> : problems.length ? <p className="muted">This method can't be copied; see the reason on the left.</p> : !selected.size ? <p className="muted">Select queues in the list to see what would be copied.</p> : checking ? <p className="muted">Checking the methods already on the selected queues…</p> : <>
             <ul className="preview-counts">
-              <li><strong>{toCopy.length}</strong> will get the method</li>
+              <li><strong>{toCopy.length}</strong> will get a new copy</li>
+              {matching && <li><strong>{toUpdate.filter(changesRules).length}</strong> already have it, to be updated</li>}
+              {matching && toUpdate.some((p) => !changesRules(p)) && <li><strong>{toUpdate.filter((p) => !changesRules(p)).length}</strong> already have it, to be switched on</li>}
+              {matching && <li><strong>{upToDate.length}</strong> already up to date</li>}
               <li><strong>{blocked.length}</strong> can't be copied to</li>
             </ul>
-            <p className="muted">Per queue: 1 method, {plural(method.steps.length, "ruleset")}, {plural(method.steps.reduce((n, s) => n + (s.ruleset ? rulesOf(s.ruleset.definition).length : 0), 0), "rule")}.</p>
+            <p className="muted">The method has {plural(method.steps.length, "ruleset")} with {plural(method.steps.reduce((n, s) => n + (s.ruleset ? rulesOf(s.ruleset.definition).length : 0), 0), "rule")}.</p>
           </>}
         </div>
 
         {!confirming
-          ? <button className="button primary full" disabled={!ready || !toCopy.length || busy} onClick={() => setConfirming(true)}>Copy to {plural(toCopy.length, "queue")}</button>
+          ? <button className="button primary full" disabled={!ready || checking || !toApply.length || busy} onClick={() => setConfirming(true)}>{applyLabel(toCopy.length, toUpdate.length)}</button>
           : <div className="confirm-box">
-            <p><strong>Copy "{method?.name}" to {plural(toCopy.length, "queue")} in {environment}?</strong> {activate ? "Each queue is switched to the copy and assigns new work by its rules straight away. You can switch the queues back afterwards." : "The queues keep the method they use now."} The copies stay on the queues; this tool doesn't delete them.</p>
-            <div><button className="button ghost" onClick={() => setConfirming(false)}>Cancel</button><button className="button danger" onClick={() => void runCopy(toCopy)}>Yes, copy</button></div>
+            <p><strong>{confirmTitle(method?.name ?? "", toCopy.length, toUpdate.length)} in {environment}?</strong>{" "}
+              {activate ? "Each queue is switched to the method and assigns new work by its rules straight away." : "The queues keep the method they use now."}
+              {toUpdate.some(changesRules) ? " Updated rules take effect straight away on a queue that uses that method." : ""}
+              {" "}You can undo this afterwards. New copies stay on the queues; this tool doesn't delete them.</p>
+            <div><button className="button ghost" onClick={() => setConfirming(false)}>Cancel</button><button className="button danger" onClick={() => void runCopy(toApply)}>Yes, {toCopy.length ? "copy" : "update"}</button></div>
           </div>}
       </aside>
     </section>
   </main>;
+}
+
+function applyLabel(copies: number, updates: number): string {
+  if (copies && updates) return `Copy to ${plural(copies, "queue")}, update ${updates}`;
+  if (updates) return `Update on ${plural(updates, "queue")}`;
+  return `Copy to ${plural(copies, "queue")}`;
+}
+
+// An update that rewrites or adds rulesets, not only switches the method on.
+const changesRules = (copy: QueueCopy) => !!copy.existing && (copy.existing.updates.length > 0 || copy.steps.length > 0);
+
+const sentence = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+function confirmTitle(name: string, copies: number, updates: number): string {
+  const copy = `copy "${name}" to ${plural(copies, "queue")}`;
+  const update = `update "${name}" on ${plural(updates, "queue")}`;
+  return sentence(copies && updates ? `${copy} and ${update.replace(`"${name}" `, "it ")}` : updates ? update : copy);
 }
 
 function MethodDetail({ queue, method, problems }: { queue: QueueRow; method: Method; problems: string[] }): React.ReactElement {
@@ -279,33 +340,49 @@ function MethodDetail({ queue, method, problems }: { queue: QueueRow; method: Me
 
 function PreviewCell({ copy }: { copy: QueueCopy }): React.ReactElement {
   if (copy.status === "blocked") return <span className="preview-blocked">Can't copy<small>{copy.reasons.join(" ")}</small></span>;
-  return <span className="preview-change">{copy.activate ? `Custom: ${copy.methodName}` : `Unchanged; "${copy.methodName}" added`}{copy.notes.length > 0 && <small>{copy.notes.join(" ")}</small>}</span>;
+  const matched = copy.existing ? ` (same ${copy.existing.matchedBy})` : "";
+  if (copy.status === "upToDate") return <span className="preview-same">Already up to date<small>"{copy.methodName}"{matched} matches the source.</small></span>;
+  if (copy.status === "update" && !changesRules(copy)) return <span className="preview-change">Custom: {copy.methodName}<small>{[`Already there${matched}; it's switched on.`, ...copy.notes].join(" ")}</small></span>;
+  const inUse = copy.queue.strategy === CUSTOM_STRATEGY && copy.queue.methods.some((m) => m.active && m.id === copy.existing?.id);
+  const title = copy.status === "update"
+    ? `${copy.activate || inUse ? "Custom" : "Unchanged"}; "${copy.methodName}" updated${matched}`
+    : copy.activate ? `Custom: ${copy.methodName}` : `Unchanged; "${copy.methodName}" added`;
+  return <span className="preview-change">{title}{copy.notes.length > 0 && <small>{copy.notes.join(" ")}</small>}</span>;
 }
 
-function RunSummary({ run, source, confirmingSwitchBack, onSwitchBack, onCancelSwitchBack, onConfirmSwitchBack, onDismiss }: {
-  run: RunRecord; source: CopierSource; confirmingSwitchBack: boolean;
-  onSwitchBack: () => void; onCancelSwitchBack: () => void; onConfirmSwitchBack: () => void; onDismiss: () => void;
+function RunSummary({ run, source, confirmingUndo, onUndo, onCancelUndo, onConfirmUndo, onDismiss }: {
+  run: RunRecord; source: CopierSource; confirmingUndo: boolean;
+  onUndo: () => void; onCancelUndo: () => void; onConfirmUndo: () => void; onDismiss: () => void;
 }): React.ReactElement {
-  const done = run.results.filter((r) => r.status === "copied").length;
+  const done = run.results.filter((r) => r.status === "copied");
   const problems = run.results.filter((r) => r.status !== "copied");
   const switched = run.results.filter((r) => r.activated).length;
+  const rewritten = run.results.filter((r) => r.updated.length).length;
+  const copied = done.filter((r) => !r.copy.existing).length;
+  const updated = done.filter((r) => r.copy.existing).length;
   const isCopy = run.kind === "copy";
+  const headline = isCopy
+    ? [copied || !updated ? `Copied to ${plural(copied, "queue")}` : "", updated ? `${copied ? "updated on" : "Updated on"} ${plural(updated, "queue")}` : ""].filter(Boolean).join(", ")
+    : `${plural(done.length, "queue")} undone`;
   return <section className={`run-summary ${problems.length ? "has-failures" : ""}`}>
     <div className="run-head">
       <div>
-        <p className="eyebrow">{isCopy ? "Method copied" : "Queues switched back"} · {new Date(run.info.finishedAt).toLocaleString()} · {run.info.user}</p>
-        <h2>{isCopy ? `Copied to ${plural(done, "queue")}` : `${plural(done, "queue")} switched back`}{problems.length ? `, ${problems.length} with a problem` : ""}</h2>
-        <p className="muted">{run.from}{isCopy ? ` · ${plural(switched, "queue")} now use it` : " · the copies stay on the queues, switched off"}.</p>
+        <p className="eyebrow">{isCopy ? "Method copied" : "Changes undone"} · {new Date(run.info.finishedAt).toLocaleString()} · {run.info.user}</p>
+        <h2>{headline}{problems.length ? `, ${problems.length} with a problem` : ""}</h2>
+        <p className="muted">{run.from}{isCopy ? ` · ${plural(switched, "queue")} switched to it` : " · new copies stay on the queues, switched off"}.</p>
       </div>
       <div className="run-actions">
-        <button className="button secondary" onClick={() => downloadCsv(logFileName(`assignment-method-${run.kind}`, run.info), runLogCsv(run.results, run.info, isCopy ? "Copy" : "Switch back", run.from))}>⇩ Download log</button>
-        {isCopy && switched > 0 && !confirmingSwitchBack && <button className="button ghost" onClick={onSwitchBack}>Switch queues back</button>}
+        <button className="button secondary" onClick={() => downloadCsv(logFileName(`assignment-method-${run.kind}`, run.info), runLogCsv(run.results, run.info, isCopy ? "Copy" : "Undo", run.from))}>⇩ Download log</button>
+        {isCopy && (switched > 0 || rewritten > 0) && !confirmingUndo && <button className="button ghost" onClick={onUndo}>Undo changes</button>}
         <button className="icon-button" aria-label="Dismiss" onClick={onDismiss}>×</button>
       </div>
     </div>
-    {confirmingSwitchBack && <div className="confirm-box">
-      <p><strong>Put {plural(switched, "queue")} back on the assignment method {switched === 1 ? "it" : "they"} used before?</strong> The copies stay on the queues, switched off.</p>
-      <div><button className="button ghost" onClick={onCancelSwitchBack}>Cancel</button><button className="button danger" onClick={onConfirmSwitchBack}>Yes, switch back</button></div>
+    {confirmingUndo && <div className="confirm-box">
+      <p><strong>Undo this run?</strong> {sentence([
+        switched ? `${plural(switched, "queue")} go${switched === 1 ? "es" : ""} back to the assignment method ${switched === 1 ? "it" : "they"} used before` : "",
+        rewritten ? `the rules of ${plural(rewritten, "updated method")} are put back as they were` : ""
+      ].filter(Boolean).join(", and "))}. New copies stay on the queues, switched off.</p>
+      <div><button className="button ghost" onClick={onCancelUndo}>Cancel</button><button className="button danger" onClick={onConfirmUndo}>Yes, undo</button></div>
     </div>}
     {problems.length > 0 && <ul className="failure-list">{problems.map((r) => {
       const url = source.recordUrl(QUEUE_TABLE, r.copy.queue.id);

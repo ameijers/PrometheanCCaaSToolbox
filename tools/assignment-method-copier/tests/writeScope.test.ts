@@ -6,8 +6,9 @@ import * as path from "path";
 import { CREATE_COLUMNS, ENTITY_SETS, UPDATE_COLUMNS } from "../src/schema";
 
 // The copier may only write from dataverse.ts: it creates rulesets, assignment methods and their
-// steps, and updates a method's active switch and a queue's assignment method. It never deletes, and
-// it never writes a queue's other columns or a decision contract.
+// steps, and updates a method's active switch, a queue's assignment method and a ruleset's rules. It
+// never deletes, and it never writes a queue's other columns, a ruleset's contracts or a decision
+// contract.
 
 const srcDir = path.resolve(__dirname, "../src");
 const files = fs.readdirSync(srcDir).filter((f) => f.endsWith(".ts") || f.endsWith(".tsx"));
@@ -45,7 +46,11 @@ describe("write scope", () => {
     });
   });
 
-  test("the only updates are a method's active switch and a queue's assignment method", () => {
-    expect(UPDATE_COLUMNS).toEqual({ msdyn_assignmentconfiguration: ["msdyn_isactiveconfiguration"], queue: ["msdyn_assignmentstrategy"] });
+  test("the only updates are a method's active switch, a queue's assignment method and a ruleset's rules", () => {
+    expect(UPDATE_COLUMNS).toEqual({
+      msdyn_assignmentconfiguration: ["msdyn_isactiveconfiguration"],
+      queue: ["msdyn_assignmentstrategy"],
+      msdyn_decisionruleset: ["msdyn_rulesetdefinition", "msdyn_disabledrules"]
+    });
   });
 });

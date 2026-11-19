@@ -97,19 +97,23 @@ describe("dataverseSource", () => {
     await expect(dataverseSource.update("queue", Q1, { msdyn_assignmentstrategy: 192350002 })).rejects.toThrow("HTTP 502");
   });
 
-  test("update only switches a method or sets a queue's assignment method, and never creates", async () => {
+  test("update only switches a method, sets a queue's assignment method or rewrites a ruleset's rules, and never creates", async () => {
     const { sent } = installXrm({});
     await dataverseSource.update("msdyn_assignmentconfiguration", M1, { msdyn_isactiveconfiguration: true });
     await dataverseSource.update("queue", Q1, { msdyn_assignmentstrategy: 192350002 });
+    await dataverseSource.update("msdyn_decisionruleset", M1, { msdyn_rulesetdefinition: "<decision />", msdyn_disabledrules: null });
     await dataverseSource.update("queue", Q1, {});
     expect(sent.map((s) => [s.method, s.url, s.body, s.headers["If-Match"]])).toEqual([
       ["PATCH", `${API}/msdyn_assignmentconfigurations(${M1})`, { msdyn_isactiveconfiguration: true }, "*"],
-      ["PATCH", `${API}/queues(${Q1})`, { msdyn_assignmentstrategy: 192350002 }, "*"]
+      ["PATCH", `${API}/queues(${Q1})`, { msdyn_assignmentstrategy: 192350002 }, "*"],
+      ["PATCH", `${API}/msdyn_decisionrulesets(${M1})`, { msdyn_rulesetdefinition: "<decision />", msdyn_disabledrules: null }, "*"]
     ]);
     await expect(dataverseSource.update("queue", Q1, { name: "Renamed" })).rejects.toThrow(/doesn't write name on queue/);
     await expect(dataverseSource.update("msdyn_assignmentconfiguration", M1, { msdyn_name: "Renamed" })).rejects.toThrow(/doesn't write msdyn_name/);
-    await expect(dataverseSource.update("msdyn_decisionruleset", M1, { msdyn_rulesetdefinition: "<decision />" })).rejects.toThrow(/doesn't update msdyn_decisionruleset records/);
+    await expect(dataverseSource.update("msdyn_decisionruleset", M1, { msdyn_name: "Renamed" })).rejects.toThrow(/doesn't write msdyn_name on msdyn_decisionruleset/);
+    await expect(dataverseSource.update("msdyn_decisionruleset", M1, { "msdyn_inputcontractid@odata.bind": "/msdyn_decisioncontracts(x)" })).rejects.toThrow(/doesn't write msdyn_inputcontractid/);
+    await expect(dataverseSource.update("msdyn_assignmentconfigurationstep", M1, { msdyn_steporder: 1 })).rejects.toThrow(/doesn't update msdyn_assignmentconfigurationstep records/);
     await expect(dataverseSource.update("queue", "queues(x)/name", { msdyn_assignmentstrategy: 192350002 })).rejects.toThrow(/Invalid record id/);
-    expect(sent).toHaveLength(2);
+    expect(sent).toHaveLength(3);
   });
 });

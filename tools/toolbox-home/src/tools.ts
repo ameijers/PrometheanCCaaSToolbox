@@ -40,7 +40,7 @@ export const TOOLS: ToolCard[] = [
   { key: "channelbuilder", name: "Voice Channel Builder", group: "creation", writes: true, isNew: true, description: "Add voice channels to existing workstreams from a CSV, with or without a phone number." },
   { key: "queuebuilder", name: "Queue Builder", group: "creation", writes: true, description: "Create advanced queues from a CSV: type, assignment method, priority, operating hours and members." },
   { key: "profilebuilder", name: "Profile Builder", group: "creation", writes: true, description: "Create outbound profiles from a CSV: phone number, outbound queue, caller ID and behaviors." },
-  { key: "assignmentmethodcopier", name: "Queue Assignment Method Copier", group: "creation", writes: true, description: "Copy one queue's custom assignment method to other queues, with a preview and a switch back." },
+  { key: "assignmentmethodcopier", name: "Queue Assignment Method Copier", group: "creation", writes: true, description: "Copy one queue's custom assignment method to other queues, or update it where they already have it, with a preview and an undo." },
   { key: "routetoqueuebuilder", name: "Route-to-Queue Builder", group: "creation", writes: true, description: "Add route-to-queue rules to workstreams from a CSV, for example one per IVR menu choice." },
   { key: "voicemailbuilder", name: "Voicemail Builder", group: "creation", writes: true, description: "Set up voicemail for many voice queues: overflow, voicemail queue, workstream and intake rule." },
 

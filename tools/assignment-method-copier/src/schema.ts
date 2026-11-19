@@ -44,7 +44,10 @@ export const CREATE_COLUMNS: Record<string, string[]> = {
   [METHOD_TABLE]: ["msdyn_name", "msdyn_uniquename", "msdyn_description", "msdyn_isactiveconfiguration", "msdyn_queueid@odata.bind"],
   [STEP_TABLE]: ["msdyn_name", "msdyn_uniquename", "msdyn_type", "msdyn_steporder", "msdyn_isdefaultruleset", "msdyn_assignmentconfigurationid@odata.bind", "msdyn_rulesetid@odata.bind"]
 };
+// A ruleset's rules are rewritten only when a method already on the queue is brought in line with the
+// source; the admin center updates the same row when rules are saved (see IMPLEMENTATION_STATUS.md).
 export const UPDATE_COLUMNS: Record<string, string[]> = {
   [METHOD_TABLE]: ["msdyn_isactiveconfiguration"],
-  [QUEUE_TABLE]: ["msdyn_assignmentstrategy"]
+  [QUEUE_TABLE]: ["msdyn_assignmentstrategy"],
+  [RULESET_TABLE]: ["msdyn_rulesetdefinition", "msdyn_disabledrules"]
 };
