@@ -1,8 +1,8 @@
 # Assignment Method Copier — manual
 
-Copy one queue's custom assignment method to many other queues at once.
+Copy one queue's custom assignment method to many other queues at once, or bring the method up to date on queues that already have it.
 
-Before you start: build the custom assignment method on one queue in the admin center, with its prioritization and assignment rules. That queue is the one you copy from.
+Before you start: build the custom assignment method on one queue in the admin center, with its prioritization and assignment rules. That queue is the one you copy from. To change the method on many queues later, change it on that queue and run the tool again.
 
 ## 1. Choose the method to copy
 
@@ -23,41 +23,61 @@ The list shows every other queue of the same type (voice, messaging or record), 
 
 ## 3. Choose what happens after copying
 
-On the right:
+On the right, under **After copying**:
 
-- **Use it on the queue**: the copy becomes the queue's assignment method, and new work is assigned by its rules straight away.
+- **Use it on the queue**: the method becomes the queue's assignment method, and new work is assigned by its rules straight away.
 - **Copy only**: the copy is added to the queue but not used. Select it in the admin center when you're ready.
 
-Each row's **After this copy** column shows what the queue's method would become. **Can't copy** gives the reason, and that queue is left alone. A queue that already uses a custom method keeps it, switched off.
+## 4. Choose how a method already on the queue is recognised
 
-## 4. Copy
+Under **Already on the queue**, tick one or both:
 
-Click **Copy to N queues**. The confirmation names the environment and the method:
+- **A method with the same rules**: the queue has a method whose rules do the same (the same conditions and actions), whatever it's called.
+- **A method with the same name**: the queue has a method with the source method's name, whatever its rules are now.
+
+Such a method is **updated** instead of copied again: its rulesets get the source's rules, and a ruleset it lacks is added. A rule that does the same as one already there, or has the same name, keeps its id. Rules the source doesn't have are removed from those rulesets. With both boxes off, every queue gets a new copy (numbered if the name is taken).
+
+Each row's **After this copy** column shows what happens to that queue:
+
+| It says | What it means |
+| --- | --- |
+| **Custom: Name** | A new copy, switched on (or **Unchanged; "Name" added** with **Copy only**). |
+| **Custom; "Name" updated (same name)** | The method on the queue is updated. The small text lists, per ruleset, the rules it adds, changes and removes. |
+| **Custom: Name**, *Already there (same rules); it's switched on* | Nothing is rewritten; the method is only switched on. |
+| **Already up to date** | The queue already has the method, as asked. Nothing is written. |
+| **Can't copy** | The reason is shown, and the queue is left alone. |
+
+The **Preview** box on the right counts each kind. A queue that already uses another custom method keeps it, switched off.
+
+## 5. Copy
+
+Click the button below the preview (**Copy to N queues**, **Update on N queues**, or both). The confirmation names the environment and the method, and warns when updated rules take effect straight away:
 
 ![Confirmation](images/02-confirm.png)
 
-Click **Yes, copy**. Each queue gets the method and its rulesets, is switched if you chose that, and is then read back to confirm.
+Click **Yes**. Each queue gets the method and its rulesets, or has its method updated, is switched if you chose that, and is then read back to confirm.
 
-![Result with one failure](images/03-copied.png)
+![Result](images/03-copied.png)
 
-The summary shows how many queues got the method, when, and by whom. Queues with a problem are listed with the reason:
+The summary shows how many queues got the method and how many had it updated, when, and by whom. Queues with a problem are listed with the reason:
 
-- **Failed**: nothing was created on the queue.
-- **Stopped part-way**: the queue wasn't switched. An unfinished copy of the method is on the queue, switched off; delete it in the admin center.
-- **Done, not confirmed**: the copy saved but reads back differently. Check the queue in the admin center.
+- **Failed**: nothing was created or changed on the queue.
+- **Stopped part-way**: the queue wasn't switched. For a copy, an unfinished method is on the queue, switched off; delete it in the admin center. For an update, use **Undo changes** to put back the rules already rewritten.
+- **Done, not confirmed**: it saved but reads back differently. Check the queue in the admin center.
 
-**Download log** saves a CSV of the run, with every record created.
+**Download log** saves a CSV of the run, with every record created, every ruleset updated and the rule changes.
 
-## 5. Switch back
+## 6. Undo
 
-**Switch queues back** puts every queue that was switched back on the assignment method it used before. The copies stay on the queues, switched off; this tool doesn't delete them.
+**Undo changes** puts every queue that was switched back on the assignment method it used before, and every updated ruleset back to the rules it had. New copies stay on the queues, switched off; this tool doesn't delete them.
 
-![After switching back](images/04-switched-back.png)
+![Undo](images/04-undo.png)
 
-The button is only there right after a copy, while the tool still knows what each queue used before. Later, change a queue's assignment method in the admin center.
+The button is only there right after a run, while the tool still knows what each queue and ruleset had before. Later, change a queue's assignment method or rules in the admin center. The run log keeps a record of what changed.
 
 ## Good to know
 
-- Copying again adds another copy, named "Name (2)". To change a method on many queues, change it on the source queue and copy it again, then delete the old copies in the admin center.
+- To change a method on many queues: change it on the source queue, then copy it again with **A method with the same name** on. The copies on the other queues are updated in place.
+- Updating the rules of a method a queue uses changes how its work is assigned straight away.
 - Rules that use a context variable only match work from the workstream that variable belongs to.
 - Outside the app the tool can't reach Dataverse and shows a sample environment instead; nothing is written there.

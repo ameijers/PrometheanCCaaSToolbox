@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { Method, QueueRow, Ruleset } from "../src/model";
-import { planCopies, rulesOf, sourceProblems, usesContextVariables } from "../src/plan";
+import { planCopies, rulesOf, sourceProblems, syncRules, usesContextVariables } from "../src/plan";
 
 const VOICE = 192350002, MESSAGING = 192350000, LEAST_ACTIVE = 192350003, CUSTOM = 192350002;
 const OUTPUT = "f799a4fd-dd4a-44c9-aa40-5b663a52321f";
@@ -130,6 +130,123 @@ describe("planCopies", () => {
   test("a plain copy has no notes", () => {
     const [copy] = planCopies({ queue: from, method: method() }, [queue(2)], { activate: true }, ids());
     expect(copy.notes).toEqual([]);
+  });
+});
+
+describe("syncRules", () => {
+  const rule = (id: string, name: string, body: string) => `<rule id="${id}" name="${name}">${body}</rule>`;
+  const decision = (...rules: string[]) => `<decision hit-policy="first" version="1"><rules>${rules.join("")}</rules></decision>`;
+  const SKILLS = "<logical operator=\"AND\"><condition operator=\"exact_match\"><lhs type=\"attribute\">agent.bookableresourcecharacteristic</lhs></condition></logical>";
+  const IDLE = "<action><orderby type=\"attribute\">agent.lastSessionReleasedOn</orderby></action>";
+  const CAPACITY = "<logical operator=\"AND\"><condition operator=\"&gt;\"><lhs type=\"attribute\">agent.availableCapacity</lhs></condition></logical>";
+
+  test("a rule that does the same keeps its id, then a rule with the same name; others are new or removed", () => {
+    const source = ruleset("A", decision(rule("s1", "Skills", SKILLS), rule("s2", "Idle first", IDLE), rule("s3", "Capacity", CAPACITY), rule("s4", "Brand new", "<logical />")), OUTPUT);
+    const target = ruleset("A", decision(rule("t1", "Skills", SKILLS), rule("t2", "Oldest first", IDLE), rule("t3", "Capacity", SKILLS.replace("exact_match", "contains")), rule("t4", "Gone", "<x />")), OUTPUT);
+    const synced = syncRules(source, target, ids());
+    expect(rulesOf(synced.definition)).toEqual([
+      { id: "t1", name: "Skills" },        // same rule
+      { id: "t2", name: "Idle first" },    // does the same, renamed
+      { id: "t3", name: "Capacity" },      // same name, other conditions
+      { id: "new-rule-1", name: "Brand new" }
+    ]);
+    expect(synced.changes).toEqual({ added: ["Brand new"], changed: ["Idle first", "Capacity"], removed: ["Gone"] });
+    expect(synced.unchanged).toBe(false);
+  });
+
+  test("the same rules, laid out differently, are unchanged", () => {
+    const source = ruleset("A", decision(rule("s1", "Skills", SKILLS)), OUTPUT);
+    const target = ruleset("A", decision(rule("t1", "Skills", SKILLS)).replace(/></g, ">\r\n  <"), OUTPUT);
+    expect(syncRules(source, target, ids())).toMatchObject({ unchanged: true, changes: { added: [], changed: [], removed: [] } });
+  });
+
+  test("disabled rules follow the kept ids, and clearing them is a change", () => {
+    const source = ruleset("A", decision(rule("s1", "Skills", SKILLS), rule("s2", "Idle", IDLE)), OUTPUT, { disabledRules: "s2" });
+    const target = ruleset("A", decision(rule("t1", "Skills", SKILLS), rule("t2", "Idle", IDLE)), OUTPUT);
+    expect(syncRules(source, target, ids())).toMatchObject({ disabledRules: "t2", unchanged: false });
+    const cleared = syncRules({ ...source, disabledRules: undefined }, { ...target, disabledRules: "t2" }, ids());
+    expect(cleared).toMatchObject({ disabledRules: null, unchanged: false });
+  });
+});
+
+describe("planCopies with a method already on the queue", () => {
+  // The target queue's version of the method, with its own ids and contract.
+  function onTarget(extra: Partial<Method> = {}, definitions: [string, string] = [PRIORITIZATION, ASSIGNMENT]): Method {
+    const own = (d: string) => d.replace(/id="([0-9a-f]{8})/g, "id=\"t$1");
+    return {
+      id: "existing", name: "Skills first", active: true, queueId: "q2",
+      steps: [
+        { id: "ts1", name: "New ruleset", type: 192350000, order: 1, isDefault: true, ruleset: ruleset("New ruleset", own(definitions[0]), "contract-2", { id: "trs1", inputContractId: "contract-2" }) },
+        { id: "ts2", name: "Ruleset assignment", type: 192350002, order: 2, isDefault: true, ruleset: ruleset("Ruleset assignment", own(definitions[1]), OUTPUT, { id: "trs2", inputContractId: "contract-2" }) }
+      ],
+      ...extra
+    };
+  }
+  const target = (m: Method, extra: Partial<QueueRow> = {}) => queue(2, { strategy: CUSTOM, methods: [{ id: m.id, name: m.name, active: m.active }], ...extra });
+  const both = { activate: true, match: { byName: true, byRules: true } };
+
+  test("the same rules, in use: already up to date", () => {
+    const m = onTarget();
+    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], both, ids(), { existing: m });
+    expect(copy).toMatchObject({ status: "upToDate", activate: false, steps: [], existing: { matchedBy: "rules", updates: [] } });
+  });
+
+  test("the same rules, not in use: switched on, nothing rewritten", () => {
+    const m = onTarget({ active: false, name: "Other name" });
+    const [copy] = planCopies({ queue: from, method: method() }, [target(m, { strategy: LEAST_ACTIVE })], both, ids(), { existing: m });
+    expect(copy).toMatchObject({ status: "update", activate: true, methodName: "Other name", existing: { matchedBy: "rules", updates: [] } });
+    const [copyOnly] = planCopies({ queue: from, method: method() }, [target(m, { strategy: LEAST_ACTIVE })], { ...both, activate: false }, ids(), { existing: m });
+    expect(copyOnly.status).toBe("upToDate");
+  });
+
+  test("the same name with other rules: those rulesets are rewritten, keeping rule ids where they match", () => {
+    const changed = ASSIGNMENT.replace("exact_match", "contains");
+    const m = onTarget({}, [PRIORITIZATION, changed]);
+    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], both, ids(), { existing: m });
+    expect(copy.status).toBe("update");
+    expect(copy.existing!.matchedBy).toBe("name");
+    expect(copy.existing!.unchanged).toEqual(["New ruleset"]);
+    const [update] = copy.existing!.updates;
+    expect(update).toMatchObject({ rulesetId: "trs2", name: "Ruleset assignment", changes: { added: [], changed: ["Assignment rule 1"], removed: [] } });
+    expect(rulesOf(String(update.columns.msdyn_rulesetdefinition)).map((r) => r.id)).toEqual(["t85e6eff4-92a2-4215-ad53-ee2a6d78c430", "t26873219-2093-41dc-bbe0-7ab65436df92"]);
+    expect(update.before).toEqual({ msdyn_rulesetdefinition: m.steps[1].ruleset!.definition, msdyn_disabledrules: null });
+    expect(copy.notes[0]).toBe("Assignment ruleset \"Ruleset assignment\": changes \"Assignment rule 1\".");
+  });
+
+  test("only matched by the chosen check", () => {
+    const renamed = onTarget({ name: "Other name" });
+    const byName = { activate: true, match: { byName: true, byRules: false } };
+    expect(planCopies({ queue: from, method: method() }, [target(renamed)], byName, ids(), { existing: renamed })[0].status).toBe("copy");
+    const otherRules = onTarget({}, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
+    const byRules = { activate: true, match: { byName: false, byRules: true } };
+    const [copy] = planCopies({ queue: from, method: method() }, [target(otherRules)], byRules, ids(), { existing: otherRules });
+    expect([copy.status, copy.methodName]).toEqual(["copy", "Skills first (2)"]);
+  });
+
+  test("a missing ruleset is added to the method, and one the source lacks stays", () => {
+    const m = onTarget();
+    m.steps = [m.steps[1], { id: "ts3", name: "Selection", type: 192350001, order: 3, isDefault: true, ruleset: ruleset("Selection", "<decision />", OUTPUT, { inputContractId: "contract-2" }) }];
+    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], both, ids(), { existing: m });
+    expect(copy.status).toBe("update");
+    expect(copy.steps.map((s) => [s.step.msdyn_type, s.ruleset["msdyn_inputcontractid@odata.bind"], s.ruleset["msdyn_outputcontractid@odata.bind"]]))
+      .toEqual([[192350000, "/msdyn_decisioncontracts(contract-2)", "/msdyn_decisioncontracts(contract-2)"]]);
+    expect(copy.existing!.extra).toEqual(["Selection"]);
+    expect(copy.notes).toEqual(["Adds the prioritization ruleset \"New ruleset\".", "\"Selection\" isn't in the source and stays as it is."]);
+  });
+
+  test("blocks what it can't tell apart or read, and rulesets it doesn't expect", () => {
+    const m = onTarget();
+    const twice = queue(2, { methods: [{ id: "existing", name: "Skills first", active: false }, { id: "x", name: "skills first", active: false }] });
+    const other = onTarget({ id: "x", name: "skills first" }, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
+    const changed = onTarget({}, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
+    expect(planCopies({ queue: from, method: method() }, [twice], both, ids(), { existing: changed, x: other })[0].reasons[0]).toMatch(/2 methods named "Skills first"/);
+    expect(planCopies({ queue: from, method: method() }, [target(m)], both, ids(), {})[0].reasons[0]).toMatch(/couldn't be read, so it can't be checked/);
+    const foreign = onTarget({}, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
+    foreign.steps[1].ruleset!.inputContractId = "another";
+    expect(planCopies({ queue: from, method: method() }, [target(foreign)], both, ids(), { existing: foreign })[0].reasons[0]).toMatch(/doesn't use this queue's assignment contract/);
+    const doubled = onTarget({}, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
+    doubled.steps.push({ ...doubled.steps[1], id: "ts9" });
+    expect(planCopies({ queue: from, method: method() }, [target(doubled)], both, ids(), { existing: doubled })[0].reasons[0]).toMatch(/more than one Assignment ruleset/);
   });
 });
 

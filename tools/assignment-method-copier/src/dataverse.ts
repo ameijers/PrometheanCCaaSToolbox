@@ -8,7 +8,8 @@ import { Method, QueueRow, Ruleset } from "./model";
 import { CREATE_COLUMNS, ENTITY_SETS, METHOD_TABLE, QUEUE_TABLE, RULESET_TABLE, STEP_TABLE, UPDATE_COLUMNS } from "./schema";
 
 // The only file that writes to Dataverse. It creates rulesets, assignment methods and their steps, and
-// updates two things: a method's active switch and a queue's assignment method. Tables and columns
+// updates three things: a method's active switch, a queue's assignment method, and a ruleset's rules
+// (only those of a method already on the queue that is brought in line with the source). Tables and columns
 // are limited to CREATE_COLUMNS and UPDATE_COLUMNS — checked here at runtime and statically by
 // tests/writeScope.test.ts. It never deletes.
 //

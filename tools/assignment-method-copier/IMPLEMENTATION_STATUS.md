@@ -2,7 +2,7 @@
 
 Part of the [Promethean CCaaS Toolbox](../../Readme.md); see [README.md](README.md) for the tool overview.
 
-**Status: deployed to `academyexperiment` and tested live there on 2026-10-13: copy only, copy and use, switch back, and editing a copy in the admin center.** Routing a conversation through a copied method has not been tested live. See [Live findings](#live-findings-2026-10-13).
+**Status: deployed to `academyexperiment` and tested live there on 2026-10-13: copy only, copy and use, switch back, and editing a copy in the admin center.** Routing a conversation through a copied method has not been tested live. See [Live findings](#live-findings-2026-10-13). **Updating a method already on a queue** (added 2026-11-19) has been tested against the sample environment only; see [Update a method already on the queue](#update-a-method-already-on-the-queue-2026-11-19).
 
 ## Step 0 — schema discovery (2026-10-13)
 
@@ -58,7 +58,7 @@ So a copy replaces the source queue's contract with the target queue's wherever 
 | A copy whose name is taken on the queue is numbered: "Name (2)" | Re-running must not fail or overwrite, and two methods with one name can't be told apart in the admin center. |
 | Source and target must be the same queue type | Rules are written against work-item attributes that differ per type. Queues of another type aren't listed. |
 | Only rule-based (declarative) rulesets | Model-based and component rulesets depend on other records that weren't studied. |
-| **Switch queues back** restores the method and the active switches; the copies stay | The tool never deletes. The previous state is known exactly, so the undo is precise. |
+| **Undo changes** (was **Switch queues back**) restores the method and the active switches, and rewritten rules; the copies stay | The tool never deletes. The previous state is known exactly, so the undo is precise. |
 | The platform's `<CDS System>` queues are never listed | They are the platform's own (voicemail and the like). |
 | Every copy is read back: steps, rules, and for a switch the queue's method and its single active method | "Saved" isn't the same as "in effect"; plug-ins run on every one of these tables. |
 | Writes go straight to the Web API (`fetch`, POST and PATCH only), limited by `CREATE_COLUMNS` / `UPDATE_COLUMNS`; reads use `Xrm.WebApi` | `Xrm.WebApi.createRecord` refused these tables in the browser (see Live findings). The write scope is still fixed, checked at runtime and by `tests/writeScope.test.ts`. A PATCH carries `If-Match: *`, so an update can never create a record. |
@@ -82,15 +82,46 @@ Tested in `academyexperiment` from the deployed tool, with *Contoso Flags Retail
 
 ## Complete
 
-- Copy planning (contracts, new rule ids, naming, blocked queues and sources), apply with per-queue isolation, read-back verification, switch back, and a run log CSV per copy and per switch back.
-- UI: source queue and method with its rulesets and rules, filters (search, current method), select-all-shown with selection kept across filters, per-row preview, the two after-copy options, and confirmations.
-- Demo mode: 12 queues, two source methods, a queue of another type, a queue without a contract, and a queue whose rulesets are rejected.
-- Tests: 45 — `plan`, `apply` (write order, copy only, switch off not remove, part-way failure, blocked queues never written, read-back mismatches, switch back, run log), `dataverse` (mocked `Xrm.WebApi` reads and Web API writes, table and column limits, error reporting), `writeScope`. Also driven end to end in headless Chrome against the demo build: choose a source, select all, preview, copy with one part-way failure, switch back, and no horizontal scroll at 390px.
+- Copy planning (contracts, new rule ids, naming, blocked queues and sources), apply with per-queue isolation, read-back verification, undo, and a run log CSV per copy and per undo.
+- Recognising a method already on the queue (same rules, same name), updating its rulesets with kept rule ids, adding missing rulesets, and undoing that.
+- UI: source queue and method with its rulesets and rules, filters (search, current method), select-all-shown with selection kept across filters, per-row preview (new copy, update with its rule changes, already up to date, blocked), the two after-copy options, the two matching options, and confirmations.
+- Demo mode: 14 queues, two source methods, a queue of another type, a queue without a contract, a queue whose rulesets are rejected, a queue with an older version of "Skills first" (Sales – BE) and one with the same rules under another name (Sales – FR).
+- Tests: 61 — `plan` (incl. rule matching and the matching options), `apply` (write order, copy only, switch off not remove, part-way failure, blocked queues never written, read-back mismatches, updates, undo, run log), `dataverse` (mocked `Xrm.WebApi` reads and Web API writes, table and column limits, error reporting), `writeScope`. Also driven end to end in headless Chrome against the demo build: choose a source, select all, preview, copy with one part-way failure, switch back, and no horizontal scroll at 390px; and on 2026-11-19 in headless Edge: a new copy, an update and a switch-on in one run, the confirmation, the result and the undo, with no horizontal scroll at 540px (the narrowest headless Edge window).
 
+## Update a method already on the queue (2026-11-19)
+
+Product owner request: when the method is already on a target queue, recognised by its rules or its name, the admin decides per run how it's recognised, and the method's rulesets are **updated to be like the source's**, not copied again or skipped.
+
+### Read-only check (academyexperiment, 2026-11-19)
+
+Read with GETs only: every `msdyn_assignmentconfiguration`, its steps and rulesets, with created and modified times.
+
+- **The admin center updates a ruleset in place.** The rulesets of the copy on *Contoso Flags Service* (created 2026-10-13 08:55 by this tool) were edited in the admin center at 09:00–09:01 (Live findings above): same ruleset ids, `modifiedon` later than `createdon`. The source method's rulesets, too, were created first and modified when their rules were saved. So rewriting `msdyn_rulesetdefinition` on the existing row is what the admin center does; the same plug-ins run (`PostOperationUpdateDecisionRuleSet`, synchronous; the contract plug-in, asynchronous).
+- The environment has "Contoso Flags Retail Custom Assignment" on three queues (Retail, Service, Technical), all switched off: a good first live test of the update by name.
+
+### Decisions
+
+| Decision | Why |
+| --- | --- |
+| Two checks, chosen per run: **same rules** and **same name**, both on by default | Product owner choice. With both off the tool works as before (a numbered copy). |
+| Same rules is checked first | A method with the same rules is the one that is already there; a same-named one may be an old version. |
+| Same rules = the same kinds of ruleset, each with rules that do the same in the same order | Rule ids differ per queue by design, and a rule's name doesn't change what it does. |
+| A matched method's rulesets are rewritten to the source's rules; missing rulesets are added; extra rulesets stay | "Updated and similar to the source". The tool still never deletes a record. |
+| A rule keeps its id when one on the target does the same, else when one has the same name | The platform links rules by id (`msdyn_rulesetdependencymapping`, Step 0); keeping ids keeps those links for rules that stay. |
+| Only `msdyn_rulesetdefinition` and `msdyn_disabledrules` are written on an existing ruleset | The contracts, name and settings stay as the admin center made them. A ruleset whose contracts don't fit the target queue blocks the update instead. |
+| Blocked when two methods have the source's name, or a method has two rulesets of one kind | The tool can't tell which one is meant. |
+| **Undo changes** writes back the old rules | The previous definition is in the plan, so the undo is exact. |
+
+### Still to test live
+
+1. Update by name on *Contoso Flags Service* after changing the source's rules: the rulesets keep their ids, the admin center shows the new rules, and the dependency mapping of the context variable rule is kept.
+2. Undo of that update.
+3. A ruleset added to an existing method: that the platform orders prioritization before assignment when two steps share a step order.
 ## Site Map subarea
 
 Included in the packaged solution from **1.0.0.9** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_23.zip`): **Creation → Queue Assignment Method Copier**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/assignmentmethodcopier/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
 
 ## Not done
 
-- No overwrite or update of an existing copy: copying again adds another, numbered method.
+- A ruleset the method on the queue has and the source lacks is left as it is (never removed).
+- Step order isn't changed: a ruleset added to an existing method gets the source's step order, even if another step on that method already has it.

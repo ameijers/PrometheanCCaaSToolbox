@@ -7,9 +7,11 @@ import { CREATE_COLUMNS, METHOD_TABLE, QUEUE_TABLE, RULESET_TABLE, UPDATE_COLUMN
 
 // An in-memory sample environment: two queues that hold a custom method (one with a prioritization and
 // an assignment ruleset, one with assignment only), voice queues on built-in methods, a messaging
-// queue (blocked: other type), a queue without an assignment contract (blocked) and one whose rulesets
-// can't be created — so the demo shows the preview, blocked queues, a part-way failure and the switch
-// back. Writes go through the same table and column limits as the live source.
+// queue (blocked: other type), a queue without an assignment contract (blocked), one whose rulesets
+// can't be created, one with an older "Skills first" (updated when matching by name) and one with the
+// same rules under another name (already there when matching by rules) — so the demo shows the
+// preview, blocked queues, updates, a part-way failure and the undo. Writes go through the same table
+// and column limits as the live source.
 
 const VOICE = 192350002, MESSAGING = 192350000;
 const LEAST_ACTIVE = 192350003, HIGHEST_CAPACITY = 192350000, ROUND_ROBIN = 192350001, CUSTOM = 192350002;
@@ -92,6 +94,36 @@ const SIMPLE_RULES = `<decision hit-policy="first" version="1">
   </rules>
 </decision>`;
 
+// An older version of "Skills first" on Sales – BE: one rule the same, one rule since dropped from the
+// source, and no prioritization ruleset yet.
+const OLDER_ASSIGNMENT_RULES = `<decision hit-policy="first" version="1">
+  <rules>
+    <rule id="3b0f6f0e-2a51-4c8e-9a49-1d7f3c5b2e10" name="Exact skill match">
+      <logical operator="AND">
+        <condition operator="exact_match">
+          <lhs type="attribute">agent.bookableresourcecharacteristic</lhs>
+          <rhs type="attribute">msdyn_ocliveworkitemcharacteristic</rhs>
+        </condition>
+        <condition operator="&gt;">
+          <lhs type="attribute">agent.availableCapacity</lhs>
+          <rhs type="attribute">msdyn_ocliveworkitem.msdyn_liveworkstreamid_msdyn_ocliveworkitem.msdyn_capacityrequired</rhs>
+        </condition>
+      </logical>
+      <action>
+        <orderby type="attribute" descending="false">agent.lastSessionAssignedOn</orderby>
+      </action>
+    </rule>
+    <rule id="9c4d2a77-61b8-4f0e-8d3a-5e2b7c1f0a44" name="Any available agent">
+      <logical operator="AND">
+        <condition operator="&gt;">
+          <lhs type="attribute">agent.availableCapacity</lhs>
+          <rhs type="staticvalue">0</rhs>
+        </condition>
+      </logical>
+    </rule>
+  </rules>
+</decision>`;
+
 // The queue whose rulesets can't be created, to show how a part-way failure is reported.
 const LOCKED = "Legacy callbacks";
 
@@ -108,21 +140,32 @@ function initialState(): DemoState {
       queue(1, "Sales – NL", VOICE, CUSTOM), queue(2, "Sales – EN", VOICE, LEAST_ACTIVE), queue(3, "Sales – DE", VOICE, LEAST_ACTIVE),
       queue(4, "Sales – Priority customers", VOICE, HIGHEST_CAPACITY), queue(5, "Support – Voice", VOICE, CUSTOM), queue(6, "Support – Overflow", VOICE, ROUND_ROBIN),
       queue(7, "Billing", VOICE, LEAST_ACTIVE), queue(8, "Claims", VOICE, LEAST_ACTIVE), queue(9, "Claims – after hours", VOICE, LEAST_ACTIVE),
-      queue(10, LOCKED, VOICE, LEAST_ACTIVE), queue(11, "Imported voice queue", VOICE, LEAST_ACTIVE, false), queue(12, "Support – Chat", MESSAGING, HIGHEST_CAPACITY)
+      queue(10, LOCKED, VOICE, LEAST_ACTIVE), queue(11, "Imported voice queue", VOICE, LEAST_ACTIVE, false), queue(12, "Support – Chat", MESSAGING, HIGHEST_CAPACITY),
+      // An older "Skills first" in use (same name, other rules), and the same rules under another name.
+      queue(13, "Sales – BE", VOICE, CUSTOM), queue(14, "Sales – FR", VOICE, LEAST_ACTIVE)
     ],
     methods: [
       { id: guid("8200", 1), name: "Skills first", description: "Identified customers first, then the best skill match.", active: true, queueId: queueId(1) },
-      { id: guid("8200", 2), name: "Longest idle with capacity", active: true, queueId: queueId(5) }
+      { id: guid("8200", 2), name: "Longest idle with capacity", active: true, queueId: queueId(5) },
+      { id: guid("8200", 3), name: "Skills first", active: true, queueId: queueId(13) },
+      { id: guid("8200", 4), name: "Sales routing", active: false, queueId: queueId(14) }
     ],
     steps: [
       { id: guid("8400", 1), name: "Prioritization", type: PRIORITIZATION, order: 1, isDefault: true, methodId: guid("8200", 1), rulesetId: guid("8300", 1) },
       { id: guid("8400", 2), name: "Assignment", type: ASSIGNMENT, order: 2, isDefault: true, methodId: guid("8200", 1), rulesetId: guid("8300", 2) },
-      { id: guid("8400", 3), name: "Assignment", type: ASSIGNMENT, order: 1, isDefault: true, methodId: guid("8200", 2), rulesetId: guid("8300", 3) }
+      { id: guid("8400", 3), name: "Assignment", type: ASSIGNMENT, order: 1, isDefault: true, methodId: guid("8200", 2), rulesetId: guid("8300", 3) },
+      { id: guid("8400", 4), name: "Assignment", type: ASSIGNMENT, order: 1, isDefault: true, methodId: guid("8200", 3), rulesetId: guid("8300", 4) },
+      { id: guid("8400", 5), name: "Prioritization", type: PRIORITIZATION, order: 1, isDefault: true, methodId: guid("8200", 4), rulesetId: guid("8300", 5) },
+      { id: guid("8400", 6), name: "Assignment", type: ASSIGNMENT, order: 2, isDefault: true, methodId: guid("8200", 4), rulesetId: guid("8300", 6) }
     ],
     rulesets: [
       ruleset(1, "Prioritization", PRIORITIZATION_RULES, contractId(1), contractId(1)),
       ruleset(2, "Assignment", ASSIGNMENT_RULES, contractId(1), ASSIGNMENT_OUTPUT_CONTRACT),
-      ruleset(3, "Assignment", SIMPLE_RULES, contractId(5), ASSIGNMENT_OUTPUT_CONTRACT)
+      ruleset(3, "Assignment", SIMPLE_RULES, contractId(5), ASSIGNMENT_OUTPUT_CONTRACT),
+      ruleset(4, "Assignment", OLDER_ASSIGNMENT_RULES, contractId(13), ASSIGNMENT_OUTPUT_CONTRACT),
+      // The same rules as "Skills first", with their own rule ids.
+      ruleset(5, "Prioritization", PRIORITIZATION_RULES.replace(/id="52fe09f7/, "id=\"ab1c0001"), contractId(14), contractId(14)),
+      ruleset(6, "Assignment", ASSIGNMENT_RULES.replace(/id="85e6eff4/, "id=\"ab1c0002").replace(/id="26873219/, "id=\"ab1c0003"), contractId(14), ASSIGNMENT_OUTPUT_CONTRACT)
     ],
     next: 100
   };
@@ -191,6 +234,11 @@ export const demoSource: CopierSource = {
       const method = state.methods.find((m) => m.id === id);
       if (!method) throw new Error("Record not found.");
       method.active = columns.msdyn_isactiveconfiguration === true;
+    } else if (table === RULESET_TABLE) {
+      const ruleset = state.rulesets.find((r) => r.id === id);
+      if (!ruleset) throw new Error("Record not found.");
+      if ("msdyn_rulesetdefinition" in columns) ruleset.definition = String(columns.msdyn_rulesetdefinition);
+      if ("msdyn_disabledrules" in columns) ruleset.disabledRules = (columns.msdyn_disabledrules as string | null) ?? undefined;
     }
   },
   recordUrl() {
