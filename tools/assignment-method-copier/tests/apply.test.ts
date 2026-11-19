@@ -5,7 +5,7 @@ import { applyCopies, undoChanges } from "../src/apply";
 import { CopierSource } from "../src/dataSource";
 import { demoSource, resetDemo } from "../src/demoData";
 import { runLogCsv } from "../src/export";
-import { MatchOptions, Method, QueueCopy, QueueRow } from "../src/model";
+import { MatchBy, Method, QueueCopy, QueueRow } from "../src/model";
 import { planCopies, rulesOf } from "../src/plan";
 
 const LEAST_ACTIVE = 192350003, CUSTOM = 192350002;
@@ -22,7 +22,7 @@ function recording(): { source: CopierSource; writes: string[] } {
   return { source, writes };
 }
 
-async function plan(targetNames: string[], activate: boolean, match?: MatchOptions): Promise<QueueCopy[]> {
+async function plan(targetNames: string[], activate: boolean, matchBy?: MatchBy): Promise<QueueCopy[]> {
   const queues = await demoSource.loadQueues();
   const from = queues.find((q) => q.name === "Sales – NL")!;
   const method = await demoSource.loadMethod(from.methods[0].id);
@@ -30,10 +30,9 @@ async function plan(targetNames: string[], activate: boolean, match?: MatchOptio
   const onQueues: Record<string, Method> = {};
   for (const m of targets.flatMap((q) => q.methods)) onQueues[m.id] = await demoSource.loadMethod(m.id);
   let n = 0;
-  return planCopies({ queue: from, method }, targets, { activate, match }, () => `00000000-0000-4000-a000-${String(++n).padStart(12, "0")}`, onQueues);
+  return planCopies({ queue: from, method }, targets, { activate, matchBy }, () => `00000000-0000-4000-a000-${String(++n).padStart(12, "0")}`, onQueues);
 }
 
-const BOTH: MatchOptions = { byName: true, byRules: true };
 
 async function queueNamed(name: string): Promise<QueueRow> {
   return (await demoSource.loadQueues()).find((q) => q.name === name)!;
@@ -140,7 +139,7 @@ describe("applyCopies", () => {
 describe("a method already on the queue", () => {
   test("with the same name: its rules are rewritten, the missing ruleset added, and the queue left on it", async () => {
     const { source, writes } = recording();
-    const [copy] = await plan(["Sales – BE"], true, BOTH);
+    const [copy] = await plan(["Sales – BE"], true, "name");
     expect(copy.status).toBe("update");
     const [result] = await applyCopies([copy], source);
     // Already in use, so no switch; nothing new except the prioritization ruleset it lacked.
@@ -164,11 +163,11 @@ describe("a method already on the queue", () => {
 
   test("with the same rules under another name: nothing is copied, and it's switched on if asked", async () => {
     const { source, writes } = recording();
-    const [copyOnly] = await plan(["Sales – FR"], false, BOTH);
+    const [copyOnly] = await plan(["Sales – FR"], false, "rules");
     expect(copyOnly.status).toBe("upToDate");
     expect(await applyCopies([copyOnly], source)).toEqual([]);
 
-    const [use] = await plan(["Sales – FR"], true, BOTH);
+    const [use] = await plan(["Sales – FR"], true, "rules");
     expect(use).toMatchObject({ status: "update", activate: true, steps: [] });
     expect(use.existing).toMatchObject({ name: "Sales routing", matchedBy: "rules", updates: [] });
     const [result] = await applyCopies([use], source);
@@ -184,7 +183,7 @@ describe("a method already on the queue", () => {
 
   test("undo puts the rules back and the queue on the method it used", async () => {
     const before = await demoSource.loadMethod((await queueNamed("Sales – BE")).methods[0].id);
-    const results = await applyCopies([...await plan(["Sales – BE"], true, BOTH), ...await plan(["Sales – FR"], true, BOTH)], demoSource);
+    const results = await applyCopies([...await plan(["Sales – BE"], true, "name"), ...await plan(["Sales – FR"], true, "rules")], demoSource);
     const undone = await undoChanges(results, demoSource);
     expect(undone.map((r) => [r.status, r.activated, r.updated.length])).toEqual([["copied", false, 0], ["copied", false, 0]]);
 
@@ -197,7 +196,7 @@ describe("a method already on the queue", () => {
 
   test("a failure part-way through an update says what to do, and never switches the queue", async () => {
     const failing: CopierSource = { ...demoSource, create: async () => { throw new Error("No privilege."); } };
-    const [result] = await applyCopies(await plan(["Sales – BE"], true, BOTH), failing);
+    const [result] = await applyCopies(await plan(["Sales – BE"], true, "name"), failing);
     expect(result.status).toBe("partial");
     expect(result.updated).toHaveLength(1);
     expect(result.error).toMatch(/^No privilege\. "Skills first" was only partly updated.*Undo changes/);
@@ -205,13 +204,13 @@ describe("a method already on the queue", () => {
 
   test("an update that reads back differently is reported", async () => {
     const tampered: CopierSource = { ...demoSource, loadMethod: async (id) => { const m = await demoSource.loadMethod(id); m.steps.forEach((s) => { if (s.ruleset) s.ruleset.definition = "<decision />"; }); return m; } };
-    const [result] = await applyCopies(await plan(["Sales – BE"], true, BOTH), tampered);
+    const [result] = await applyCopies(await plan(["Sales – BE"], true, "name"), tampered);
     expect(result.status).toBe("notVerified");
     expect(result.error).toMatch(/^Updated, but the rules of "Assignment" read back differently; the ruleset "Prioritization" isn't there as planned/);
   });
 
   test("the run log says what was updated and how", async () => {
-    const results = await applyCopies(await plan(["Sales – BE"], true, BOTH), demoSource);
+    const results = await applyCopies(await plan(["Sales – BE"], true, "name"), demoSource);
     const csv = runLogCsv(results, { tool: "Assignment Method Copier", mode: "demo", environment: "the sample environment", user: "Sample user", startedAt: "2026-11-19T08:00:00.000Z", finishedAt: "2026-11-19T08:00:05.000Z" }, "Copy", "Skills first (Sales – NL)");
     const row = csv.trim().split(/\r?\n/)[1];
     expect(row).toMatch(/Sales – BE,.*,Done,Updated \(same name\),Skills first,/);
@@ -221,7 +220,7 @@ describe("a method already on the queue", () => {
 });
 
 describe("remove all assignment rules upfront", () => {
-  async function planClearing(targetNames: string[], activate: boolean, match?: MatchOptions): Promise<QueueCopy[]> {
+  async function planClearing(targetNames: string[], activate: boolean, matchBy?: MatchBy): Promise<QueueCopy[]> {
     const queues = await demoSource.loadQueues();
     const from = queues.find((q) => q.name === "Sales – NL")!;
     const method = await demoSource.loadMethod(from.methods[0].id);
@@ -229,7 +228,7 @@ describe("remove all assignment rules upfront", () => {
     const onQueues: Record<string, Method> = {};
     for (const m of targets.flatMap((q) => q.methods)) onQueues[m.id] = await demoSource.loadMethod(m.id);
     let n = 0;
-    return planCopies({ queue: from, method }, targets, { activate, match, clearFirst: true }, () => `00000000-0000-4000-b000-${String(++n).padStart(12, "0")}`, onQueues);
+    return planCopies({ queue: from, method }, targets, { activate, matchBy, clearFirst: true }, () => `00000000-0000-4000-b000-${String(++n).padStart(12, "0")}`, onQueues);
   }
 
   test("empties the queue's rulesets first, then copies, and the undo puts the rules back", async () => {
@@ -265,7 +264,7 @@ describe("remove all assignment rules upfront", () => {
   });
 
   test("a matched method's own rulesets are rewritten, not emptied first", async () => {
-    const [copy] = await planClearing(["Sales – BE"], true, BOTH);
+    const [copy] = await planClearing(["Sales – BE"], true, "name");
     expect(copy.status).toBe("update");
     expect(copy.cleared).toEqual([]);
     expect(copy.existing!.updates.map((u) => u.name)).toEqual(["Assignment"]);
