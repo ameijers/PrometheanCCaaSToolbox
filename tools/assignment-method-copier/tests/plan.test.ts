@@ -183,26 +183,27 @@ describe("planCopies with a method already on the queue", () => {
     };
   }
   const target = (m: Method, extra: Partial<QueueRow> = {}) => queue(2, { strategy: CUSTOM, methods: [{ id: m.id, name: m.name, active: m.active }], ...extra });
-  const both = { activate: true, match: { byName: true, byRules: true } };
+  const byName = { activate: true, matchBy: "name" as const };
+  const byRules = { activate: true, matchBy: "rules" as const };
 
   test("the same rules, in use: already up to date", () => {
     const m = onTarget();
-    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], both, ids(), { existing: m });
+    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], byRules, ids(), { existing: m });
     expect(copy).toMatchObject({ status: "upToDate", activate: false, steps: [], existing: { matchedBy: "rules", updates: [] } });
   });
 
   test("the same rules, not in use: switched on, nothing rewritten", () => {
     const m = onTarget({ active: false, name: "Other name" });
-    const [copy] = planCopies({ queue: from, method: method() }, [target(m, { strategy: LEAST_ACTIVE })], both, ids(), { existing: m });
+    const [copy] = planCopies({ queue: from, method: method() }, [target(m, { strategy: LEAST_ACTIVE })], byRules, ids(), { existing: m });
     expect(copy).toMatchObject({ status: "update", activate: true, methodName: "Other name", existing: { matchedBy: "rules", updates: [] } });
-    const [copyOnly] = planCopies({ queue: from, method: method() }, [target(m, { strategy: LEAST_ACTIVE })], { ...both, activate: false }, ids(), { existing: m });
+    const [copyOnly] = planCopies({ queue: from, method: method() }, [target(m, { strategy: LEAST_ACTIVE })], { ...byRules, activate: false }, ids(), { existing: m });
     expect(copyOnly.status).toBe("upToDate");
   });
 
   test("the same name with other rules: those rulesets are rewritten, keeping rule ids where they match", () => {
     const changed = ASSIGNMENT.replace("exact_match", "contains");
     const m = onTarget({}, [PRIORITIZATION, changed]);
-    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], both, ids(), { existing: m });
+    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], byName, ids(), { existing: m });
     expect(copy.status).toBe("update");
     expect(copy.existing!.matchedBy).toBe("name");
     expect(copy.existing!.unchanged).toEqual(["New ruleset"]);
@@ -215,18 +216,28 @@ describe("planCopies with a method already on the queue", () => {
 
   test("only matched by the chosen check", () => {
     const renamed = onTarget({ name: "Other name" });
-    const byName = { activate: true, match: { byName: true, byRules: false } };
     expect(planCopies({ queue: from, method: method() }, [target(renamed)], byName, ids(), { existing: renamed })[0].status).toBe("copy");
     const otherRules = onTarget({}, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
-    const byRules = { activate: true, match: { byName: false, byRules: true } };
     const [copy] = planCopies({ queue: from, method: method() }, [target(otherRules)], byRules, ids(), { existing: otherRules });
     expect([copy.status, copy.methodName]).toEqual(["copy", "Skills first (2)"]);
+    expect(planCopies({ queue: from, method: method() }, [target(renamed)], { activate: true }, ids(), { existing: renamed })[0].status).toBe("copy");
+  });
+
+  test("by name, the same-named method is updated even when another method already has the same rules", () => {
+    const sameRules = onTarget({ id: "renamed", name: "Other name", active: false });
+    sameRules.steps.forEach((s) => { s.ruleset!.id = `renamed-${s.ruleset!.id}`; });
+    const older = onTarget({}, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
+    const q = queue(2, { strategy: CUSTOM, methods: [{ id: "renamed", name: "Other name", active: false }, { id: "existing", name: "Skills first", active: true }] });
+    const [byNameCopy] = planCopies({ queue: from, method: method() }, [q], byName, ids(), { renamed: sameRules, existing: older });
+    expect(byNameCopy).toMatchObject({ status: "update", methodName: "Skills first", existing: { matchedBy: "name" } });
+    const [byRulesCopy] = planCopies({ queue: from, method: method() }, [q], byRules, ids(), { renamed: sameRules, existing: older });
+    expect(byRulesCopy).toMatchObject({ methodName: "Other name", existing: { matchedBy: "rules", updates: [] } });
   });
 
   test("a missing ruleset is added to the method, and one the source lacks stays", () => {
     const m = onTarget();
     m.steps = [m.steps[1], { id: "ts3", name: "Selection", type: 192350001, order: 3, isDefault: true, ruleset: ruleset("Selection", "<decision />", OUTPUT, { inputContractId: "contract-2" }) }];
-    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], both, ids(), { existing: m });
+    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], byName, ids(), { existing: m });
     expect(copy.status).toBe("update");
     expect(copy.steps.map((s) => [s.step.msdyn_type, s.ruleset["msdyn_inputcontractid@odata.bind"], s.ruleset["msdyn_outputcontractid@odata.bind"]]))
       .toEqual([[192350000, "/msdyn_decisioncontracts(contract-2)", "/msdyn_decisioncontracts(contract-2)"]]);
@@ -240,7 +251,7 @@ describe("planCopies with a method already on the queue", () => {
     const old = onTarget({ id: "old", name: "Old method", active: false }, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
     old.steps.forEach((s) => { s.ruleset!.id = `old-${s.ruleset!.id}`; });
     const q = queue(2, { strategy: CUSTOM, methods: [{ id: "existing", name: "Skills first", active: true }, { id: "old", name: "Old method", active: false }] });
-    const [copy] = planCopies({ queue: from, method: method() }, [q], { ...both, clearFirst: true }, ids(), { existing: m, old });
+    const [copy] = planCopies({ queue: from, method: method() }, [q], { ...byName, clearFirst: true }, ids(), { existing: m, old });
     expect(copy.status).toBe("update");
     expect(copy.cleared.map((c) => [c.methodName, c.name])).toEqual([["Skills first", "Selection"], ["Old method", "New ruleset"], ["Old method", "Ruleset assignment"]]);
     const selection = copy.cleared[0];
@@ -253,7 +264,7 @@ describe("planCopies with a method already on the queue", () => {
 
   test("with nothing else on the queue and the method up to date, removing first changes nothing", () => {
     const m = onTarget();
-    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], { ...both, clearFirst: true }, ids(), { existing: m });
+    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], { ...byName, clearFirst: true }, ids(), { existing: m });
     expect(copy).toMatchObject({ status: "upToDate", cleared: [] });
   });
 
@@ -262,14 +273,14 @@ describe("planCopies with a method already on the queue", () => {
     const twice = queue(2, { methods: [{ id: "existing", name: "Skills first", active: false }, { id: "x", name: "skills first", active: false }] });
     const other = onTarget({ id: "x", name: "skills first" }, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
     const changed = onTarget({}, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
-    expect(planCopies({ queue: from, method: method() }, [twice], both, ids(), { existing: changed, x: other })[0].reasons[0]).toMatch(/2 methods named "Skills first"/);
-    expect(planCopies({ queue: from, method: method() }, [target(m)], both, ids(), {})[0].reasons[0]).toMatch(/couldn't be read, so it can't be checked/);
+    expect(planCopies({ queue: from, method: method() }, [twice], byName, ids(), { existing: changed, x: other })[0].reasons[0]).toMatch(/2 methods named "Skills first"/);
+    expect(planCopies({ queue: from, method: method() }, [target(m)], byName, ids(), {})[0].reasons[0]).toMatch(/couldn't be read, so it can't be checked/);
     const foreign = onTarget({}, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
     foreign.steps[1].ruleset!.inputContractId = "another";
-    expect(planCopies({ queue: from, method: method() }, [target(foreign)], both, ids(), { existing: foreign })[0].reasons[0]).toMatch(/doesn't use this queue's assignment contract/);
+    expect(planCopies({ queue: from, method: method() }, [target(foreign)], byName, ids(), { existing: foreign })[0].reasons[0]).toMatch(/doesn't use this queue's assignment contract/);
     const doubled = onTarget({}, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
     doubled.steps.push({ ...doubled.steps[1], id: "ts9" });
-    expect(planCopies({ queue: from, method: method() }, [target(doubled)], both, ids(), { existing: doubled })[0].reasons[0]).toMatch(/more than one Assignment ruleset/);
+    expect(planCopies({ queue: from, method: method() }, [target(doubled)], byName, ids(), { existing: doubled })[0].reasons[0]).toMatch(/more than one Assignment ruleset/);
   });
 });
 

@@ -84,7 +84,7 @@ Tested in `academyexperiment` from the deployed tool, with *Contoso Flags Retail
 
 - Copy planning (contracts, new rule ids, naming, blocked queues and sources), apply with per-queue isolation, read-back verification, undo, and a run log CSV per copy and per undo.
 - Recognising a method already on the queue (same rules, same name), updating its rulesets with kept rule ids, adding missing rulesets, and undoing that.
-- UI: source queue and method with its rulesets and rules, filters (search, current method), select-all-shown with selection kept across filters, per-row preview (new copy, update with its rule changes, already up to date, blocked), the two after-copy options, the two matching options, and confirmations.
+- UI: source queue and method with its rulesets and rules, filters (search, current method), select-all-shown with selection kept across filters, per-row preview (new copy, update with its rule changes, already up to date, blocked), the two after-copy options, the matching choice (name, rules or none), and confirmations.
 - Demo mode: 14 queues, two source methods, a queue of another type, a queue without a contract, a queue whose rulesets are rejected, a queue with an older version of "Skills first" (Sales – BE) and one with the same rules under another name (Sales – FR).
 - Tests: 69 — `plan` (incl. rule matching, the matching options and removing rules first), `apply` (write order, copy only, switch off not remove, part-way failure, blocked queues never written, read-back mismatches, updates, emptying first, undo, run log), `dataverse` (mocked `Xrm.WebApi` reads and Web API writes, table and column limits, error reporting), `writeScope`. Also driven end to end in headless Chrome against the demo build: choose a source, select all, preview, copy with one part-way failure, switch back, and no horizontal scroll at 390px; and on 2026-11-19 in headless Edge: a new copy, an update and a switch-on in one run, the confirmation, the result and the undo, with no horizontal scroll at 540px (the narrowest headless Edge window).
 
@@ -103,8 +103,8 @@ Read with GETs only: every `msdyn_assignmentconfiguration`, its steps and rulese
 
 | Decision | Why |
 | --- | --- |
-| Two checks, chosen per run: **same rules** and **same name**, both on by default | Product owner choice. With both off the tool works as before (a numbered copy). |
-| Same rules is checked first | A method with the same rules is the one that is already there; a same-named one may be an old version. |
+| One choice per run: recognise by **name** (default), by **rules**, or **not at all** | Product owner choice. First built as two checkboxes (same rules checked first), changed the same day: with both on, a method with the same rules under another name won over the same-named one, while the same-named one was expected to be updated. One choice means one check can't overrule the other. **Remove all assignment rules upfront** stays a separate checkbox because it combines with each choice. |
+| Not at all = a new copy, as before | The behaviour the tool had before updates were added. |
 | Same rules = the same kinds of ruleset, each with rules that do the same in the same order | Rule ids differ per queue by design, and a rule's name doesn't change what it does. |
 | A matched method's rulesets are rewritten to the source's rules; missing rulesets are added; extra rulesets stay | "Updated and similar to the source". The tool still never deletes a record. |
 | A rule keeps its id when one on the target does the same, else when one has the same name | The platform links rules by id (`msdyn_rulesetdependencymapping`, Step 0); keeping ids keeps those links for rules that stay. |

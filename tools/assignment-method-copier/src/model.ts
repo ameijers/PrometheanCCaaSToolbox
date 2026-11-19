@@ -64,11 +64,9 @@ export interface StepCopy {
 // source. upToDate: a method already on the queue matches the source and is in use as asked.
 export type CopyStatus = "copy" | "update" | "upToDate" | "blocked";
 
-// How a method already on the target queue is recognised as "the same method".
-export interface MatchOptions {
-  byName: boolean;   // a method with the same name
-  byRules: boolean;  // a method with the same rules (conditions and actions; rule ids and names aside)
-}
+// How a method already on the target queue is recognised as "the same method": by its name, or by
+// having the same rules (conditions and actions; rule ids and names aside).
+export type MatchBy = "name" | "rules";
 
 // What happens to the rules of one ruleset, by rule name.
 export interface RuleChanges {
@@ -92,7 +90,7 @@ export interface RulesetUpdate {
 export interface ExistingMethod {
   id: string;
   name: string;
-  matchedBy: "name" | "rules";
+  matchedBy: MatchBy;
   updates: RulesetUpdate[];
   unchanged: string[];   // rulesets that already match
   extra: string[];       // rulesets the source doesn't have; left as they are

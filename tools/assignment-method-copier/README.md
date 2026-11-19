@@ -17,11 +17,10 @@ See the [manual](manual.md) for a walkthrough with screenshots.
 3. **Choose what happens after copying.**
    - **Use it on the queue**: the method becomes the queue's assignment method. New work is assigned by its rules straight away.
    - **Copy only**: the copy is added to the queue but not used, to select in the admin center later.
-4. **Choose how a method already on the queue is recognised** (**Already on the queue**, both on by default):
-   - **A method with the same rules**: rules with the same conditions and actions, whatever the method is called.
-   - **A method with the same name**: whatever its rules are now.
-
-   With both off, every queue gets a new copy, as before.
+4. **Choose how a method already on the queue is recognised** (**Already on the queue? Recognise it by**, one choice):
+   - **Its name** (default): a method with the source's name is updated, whatever its rules are now.
+   - **Its rules**: a method with the same conditions and actions, whatever it's called, counts as already there.
+   - **Don't, always add a new copy**: as before the update was added.
 
    **Before copying**, **Remove all assignment rules upfront** (off by default) empties every ruleset of every custom method on the selected queues first, so only the source's rules are left. See [Removing all rules first](#removing-all-rules-first).
 5. **Preview.** Each selected row shows what its assignment method would become: a new copy, an update (with the rules it adds, changes and removes), already up to date, or why it can't be copied.
@@ -32,7 +31,7 @@ See the [manual](manual.md) for a walkthrough with screenshots.
 
 | Record | Copied as |
 | --- | --- |
-| The method (`msdyn_assignmentconfiguration`) | Same name and description, on the target queue. If the queue already has a method with that name (and **same name** is off), the copy is named "Name (2)". |
+| The method (`msdyn_assignmentconfiguration`) | Same name and description, on the target queue. If the queue already has a method with that name (and methods aren't recognised by name), the copy is named "Name (2)". |
 | Each ruleset (`msdyn_decisionruleset`) | Same name, rules and settings. Its contracts point at the **target** queue's assignment contract where the source pointed at its own queue's. Every rule gets a new id. |
 | Each step (`msdyn_assignmentconfigurationstep`) | Same kind (prioritization or assignment) and order. |
 
@@ -43,7 +42,7 @@ Rules are copied as they are. Conditions on skills, presence, capacity, schedule
 
 ## When the queue already has the method
 
-A method on the target queue counts as the source method when it has **the same rules** (checked first) or **the same name**, as chosen in step 4. It is then updated instead of copied again:
+A method on the target queue counts as the source method when it has **the same name** or **the same rules**, whichever is chosen in step 4. It's one choice, so one check can't overrule the other. The method is then updated instead of copied again:
 
 | Part | What happens |
 | --- | --- |
@@ -64,6 +63,14 @@ With **Remove all assignment rules upfront** ticked, before anything else is wri
 - A ruleset the matched method has and the source lacks **is** emptied, and so is every ruleset of the queue's other methods.
 - A queue whose method in use is emptied and isn't switched (with **Copy only**, or when the copy isn't the one in use) gets a **warning** in the preview and the confirmation: it assigns work without those rules until it's switched to another method.
 - A ruleset that isn't rule-based, or can't be read, blocks the queue.
+
+It combines with each way of recognising a method already on the queue, which is why it's a separate checkbox:
+
+| Recognised by | Result on the queue with all rules removed first |
+| --- | --- |
+| Its name | The same-named method is rewritten to the source's rules; everything else on the queue is emptied. |
+| Its rules | The method that already has the source's rules is kept as it is; everything else is emptied. |
+| Don't | Everything is emptied, and a new copy is added. |
 
 ![Removing all rules first](images/05-remove-rules-first.png)
 

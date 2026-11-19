@@ -30,12 +30,13 @@ On the right, under **After copying**:
 
 ## 4. Choose how a method already on the queue is recognised
 
-Under **Already on the queue**, tick one or both:
+Under **Already on the queue? Recognise it by**, choose one:
 
-- **A method with the same rules**: the queue has a method whose rules do the same (the same conditions and actions), whatever it's called.
-- **A method with the same name**: the queue has a method with the source method's name, whatever its rules are now.
+- **Its name** (default): the queue has a method with the source method's name, whatever its rules are now.
+- **Its rules**: the queue has a method whose rules do the same (the same conditions and actions), whatever it's called.
+- **Don't, always add a new copy**: every queue gets a new copy (numbered if the name is taken).
 
-Such a method is **updated** instead of copied again: its rulesets get the source's rules, and a ruleset it lacks is added. A rule that does the same as one already there, or has the same name, keeps its id. Rules the source doesn't have are removed from those rulesets. With both boxes off, every queue gets a new copy (numbered if the name is taken).
+A recognised method is **updated** instead of copied again: its rulesets get the source's rules, and a ruleset it lacks is added. A rule that does the same as one already there, or has the same name, keeps its id. Rules the source doesn't have are removed from those rulesets.
 
 Each row's **After this copy** column shows what happens to that queue:
 
@@ -85,7 +86,7 @@ The button is only there right after a run, while the tool still knows what each
 
 ## Good to know
 
-- To change a method on many queues: change it on the source queue, then copy it again with **A method with the same name** on. The copies on the other queues are updated in place.
+- To change a method on many queues: change it on the source queue, then copy it again, recognising it by **Its name**. The copies on the other queues are updated in place.
 - Updating the rules of a method a queue uses changes how its work is assigned straight away.
 - Rules that use a context variable only match work from the workstream that variable belongs to.
 - Outside the app the tool can't reach Dataverse and shows a sample environment instead; nothing is written there.

@@ -1,14 +1,14 @@
 // Copyright (c) 2026 Alexander Meijers
 // SPDX-License-Identifier: MIT
 
-import { ExistingMethod, MatchOptions, Method, MethodStep, QueueCopy, QueueRow, RuleChanges, Ruleset, RulesetUpdate, StepCopy } from "./model";
+import { ExistingMethod, MatchBy, Method, MethodStep, QueueCopy, QueueRow, RuleChanges, Ruleset, RulesetUpdate, StepCopy } from "./model";
 import { CONTRACT_SET, CUSTOM_STRATEGY, DECLARATIVE_RULESET, QUEUE_SET, QUEUE_TYPE_LABELS, STEP_TYPE_LABELS } from "./schema";
 
 // Works out, for every selected queue, exactly what a copy of the source method would write. Pure: it
 // reads nothing and writes nothing.
 //
 // With matching on, a method already on the target queue can count as "the same method": one with the
-// same name, or one with the same rules. That method is then brought in line with the source instead
+// same name, or one with the same rules (one or the other, chosen per run). That method is then brought in line with the source instead
 // of a second copy being added: each of its rulesets is rewritten to the source's rules, rulesets it
 // lacks are added, and nothing is removed from it except rules the source doesn't have.
 
@@ -20,8 +20,8 @@ export interface CopySource {
 export interface CopyOptions {
   // Make the copy the queue's assignment method. Off: the copy is added to the queue but not used.
   activate: boolean;
-  // Recognise a method already on the queue. Off (the default): every queue gets a new copy.
-  match?: MatchOptions;
+  // Recognise a method already on the queue by its name or its rules. Not set: every queue gets a new copy.
+  matchBy?: MatchBy;
   // Remove all assignment rules on the queue first: every ruleset of every custom method on it is
   // emptied (the records stay). The rulesets a matched method has in common with the source are
   // rewritten to the source's rules anyway, so they keep their rule ids.
@@ -207,26 +207,19 @@ function sameRules(source: Method, candidate: Method): boolean {
   });
 }
 
-// The method already on the queue that counts as the source method, if any. A method with the same
-// rules wins over one with the same name: it's the one that is already there.
-function findExisting(source: Method, queue: QueueRow, match: MatchOptions, methods: Record<string, Method>): { method?: Method; matchedBy?: "name" | "rules"; reason?: string } {
+// The method already on the queue that counts as the source method, if any.
+function findExisting(source: Method, queue: QueueRow, matchBy: MatchBy, methods: Record<string, Method>): { method?: Method; reason?: string } {
   const onQueue = queue.methods.map((m) => methods[m.id]);
   const unread = queue.methods.filter((m) => !methods[m.id]);
   if (unread.length) return { reason: `Its method "${unread[0].name}" couldn't be read, so it can't be checked whether the method is already there.` };
-  if (match.byRules) {
-    const found = onQueue.find((m) => sameRules(source, m));
-    if (found) return { method: found, matchedBy: "rules" };
-  }
-  if (match.byName) {
-    const named = onQueue.filter((m) => sameName(m.name, source.name));
-    if (named.length > 1) return { reason: `It has ${named.length} methods named "${source.name}", so it isn't clear which one to update. Rename or remove one in the admin center.` };
-    if (named.length === 1) return { method: named[0], matchedBy: "name" };
-  }
-  return {};
+  if (matchBy === "rules") return { method: onQueue.find((m) => sameRules(source, m)) };
+  const named = onQueue.filter((m) => sameName(m.name, source.name));
+  if (named.length > 1) return { reason: `It has ${named.length} methods named "${source.name}", so it isn't clear which one to update. Rename or remove one in the admin center.` };
+  return { method: named[0] };
 }
 
 // What it takes to bring an existing method in line with the source, or why it can't be.
-function planUpdate(source: CopySource, queue: QueueRow, target: Method, matchedBy: "name" | "rules", newId: () => string): { existing: ExistingMethod; steps: StepCopy[]; reasons: string[] } {
+function planUpdate(source: CopySource, queue: QueueRow, target: Method, matchedBy: MatchBy, newId: () => string): { existing: ExistingMethod; steps: StepCopy[]; reasons: string[] } {
   const reasons: string[] = [];
   const existing: ExistingMethod = { id: target.id, name: target.name, matchedBy, updates: [], unchanged: [], extra: [] };
   const steps: StepCopy[] = [];
@@ -308,7 +301,7 @@ export function planCopies(source: CopySource, targets: QueueRow[], options: Cop
   const { queue: from, method } = source;
   const steps = [...method.steps].sort((a, b) => a.order - b.order);
   const sorted: CopySource = { queue: from, method: { ...method, steps } };
-  const matching = !!options.match && (options.match.byName || options.match.byRules);
+  const matchBy = options.matchBy;
 
   return targets.map((queue) => {
     const reasons = [...blockers];
@@ -320,9 +313,9 @@ export function planCopies(source: CopySource, targets: QueueRow[], options: Cop
     const before = { strategy: queue.strategy, activeMethodIds: activeNow.map((m) => m.id) };
 
     // A method already on the queue that counts as this one.
-    const found = matching && !reasons.length ? findExisting(method, queue, options.match!, methods) : {};
+    const found = matchBy && !reasons.length ? findExisting(method, queue, matchBy, methods) : {};
     if (found.reason) reasons.push(found.reason);
-    const update = found.method && !reasons.length ? planUpdate(sorted, queue, found.method, found.matchedBy!, newId) : undefined;
+    const update = found.method && !reasons.length ? planUpdate(sorted, queue, found.method, matchBy!, newId) : undefined;
     if (update) reasons.push(...update.reasons);
 
     // Remove all assignment rules on the queue first. The matched method's rulesets that get the

@@ -11,7 +11,7 @@ import { CopierSource } from "./dataSource";
 import { dataverseSource } from "./dataverse";
 import { demoSource } from "./demoData";
 import { STATUS_LABELS, runLogCsv } from "./export";
-import { CopyResult, MatchOptions, Method, QueueCopy, QueueRow } from "./model";
+import { CopyResult, MatchBy, Method, QueueCopy, QueueRow } from "./model";
 import { planCopies, rulesOf, sourceProblems, usesContextVariables } from "./plan";
 import { CUSTOM_STRATEGY, QUEUE_TABLE, QUEUE_TYPE_LABELS, STEP_TYPE_LABELS, STRATEGY_LABELS } from "./schema";
 
@@ -19,6 +19,13 @@ interface Filter { search: string; method: string; }
 const EMPTY_FILTER: Filter = { search: "", method: "all" };
 
 interface RunRecord { results: CopyResult[]; info: RunInfo; kind: "copy" | "undo"; from: string; }
+
+// How a method already on the target queue is recognised: one choice, so one can't overrule another.
+const MATCH_CHOICES: { value: MatchBy | "none"; label: string; help: (name: string) => string }[] = [
+  { value: "name", label: "Its name", help: (name) => `A method named "${name}" is updated to the source's rules, whatever its rules are now.` },
+  { value: "rules", label: "Its rules", help: () => "A method with the same conditions and actions, whatever it's called, counts as already there." },
+  { value: "none", label: "Don't, always add a new copy", help: () => "Methods already on the queue are left as they are." }
+];
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -47,7 +54,7 @@ export function App(): React.ReactElement {
   const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activate, setActivate] = useState(true);
-  const [match, setMatch] = useState<MatchOptions>({ byName: true, byRules: true });
+  const [matchBy, setMatchBy] = useState<MatchBy | "none">("name");
   const [clearFirst, setClearFirst] = useState(false);
   // The methods already on the selected queues, read to see whether the source method is among them.
   const [onQueues, setOnQueues] = useState<Record<string, Method>>({});
@@ -105,7 +112,7 @@ export function App(): React.ReactElement {
   }), [candidates, filter]);
 
   const selectedRows = useMemo(() => candidates.filter((q) => selected.has(q.id)), [candidates, selected]);
-  const matching = match.byName || match.byRules;
+  const matching = matchBy !== "none";
 
   // Read the methods on the selected queues that haven't been read yet.
   const toRead = useMemo(() => matching || clearFirst ? selectedRows.flatMap((q) => q.methods.map((m) => m.id)).filter((id) => !onQueues[id] && !unreadable.has(id)) : [], [matching, clearFirst, selectedRows, onQueues, unreadable]);
@@ -123,8 +130,8 @@ export function App(): React.ReactElement {
   const checking = toRead.length > 0;
 
   const problems = useMemo(() => fromQueue && method ? sourceProblems({ queue: fromQueue, method }) : [], [fromQueue, method]);
-  const plan = useMemo(() => fromQueue && method && !checking ? planCopies({ queue: fromQueue, method }, selectedRows, { activate, match, clearFirst }, newId, onQueues) : [],
-    [fromQueue, method, selectedRows, activate, match, clearFirst, onQueues, checking]);
+  const plan = useMemo(() => fromQueue && method && !checking ? planCopies({ queue: fromQueue, method }, selectedRows, { activate, matchBy: matching ? matchBy as MatchBy : undefined, clearFirst }, newId, onQueues) : [],
+    [fromQueue, method, selectedRows, activate, matchBy, clearFirst, onQueues, checking]);
   const emptied = plan.filter((p) => p.status !== "blocked").reduce((n, p) => n + p.cleared.length, 0);
   const planById = useMemo(() => new Map(plan.map((p) => [p.queue.id, p])), [plan]);
   const toCopy = plan.filter((p) => p.status === "copy");
@@ -268,12 +275,12 @@ export function App(): React.ReactElement {
           </label>
         </div>
 
-        <p className="detail-label">Already on the queue</p>
-        <div className="match-options">
-          <label className="checkbox-row"><input type="checkbox" checked={match.byRules} onChange={(e) => { setMatch((m) => ({ ...m, byRules: e.target.checked })); setConfirming(false); }} disabled={busy} />
-            <span><strong>A method with the same rules</strong><small>Rules with the same conditions and actions, whatever the method is called.</small></span></label>
-          <label className="checkbox-row"><input type="checkbox" checked={match.byName} onChange={(e) => { setMatch((m) => ({ ...m, byName: e.target.checked })); setConfirming(false); }} disabled={busy} />
-            <span><strong>A method with the same name</strong><small>"{method?.name ?? "The method"}", whatever its rules are now.</small></span></label>
+        <p className="detail-label">Already on the queue? Recognise it by</p>
+        <div className="match-options" role="radiogroup" aria-label="Recognise a method already on the queue by">
+          {MATCH_CHOICES.map((choice) => <label className="checkbox-row" key={choice.value}>
+            <input type="radio" name="matchBy" checked={matchBy === choice.value} onChange={() => { setMatchBy(choice.value); setConfirming(false); }} disabled={busy} />
+            <span><strong>{choice.label}</strong><small>{choice.help(method?.name ?? "the method")}</small></span>
+          </label>)}
           <p className="muted small-note">{matching
             ? "Such a method is updated instead of copied again: its rulesets get the source's rules, missing rulesets are added. A rule that does the same, or has the same name, keeps its id."
             : "Every queue gets a new copy. If the name is taken on a queue, the copy is numbered."}</p>
