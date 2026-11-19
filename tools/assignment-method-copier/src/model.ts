@@ -77,11 +77,13 @@ export interface RuleChanges {
   removed: string[];
 }
 
-// One existing ruleset rewritten to match the source.
+// One existing ruleset rewritten to match the source, or emptied before the copy.
 export interface RulesetUpdate {
   rulesetId: string;
   name: string;
   stepType: number;
+  methodId?: string;     // set when it's emptied: the method it belongs to
+  methodName?: string;
   columns: Record<string, unknown>;  // msdyn_rulesetdefinition and msdyn_disabledrules
   before: Record<string, unknown>;   // the same columns as they were, written back by an undo
   changes: RuleChanges;
@@ -106,6 +108,8 @@ export interface QueueCopy {
   // For a copy: every ruleset with its step. For an update: the rulesets the existing method lacks.
   steps: StepCopy[];
   existing?: ExistingMethod;
+  // Rulesets on the queue emptied before the copy ("remove all assignment rules first").
+  cleared: RulesetUpdate[];
   // The queue is switched to the method (the copy, or the existing one when it isn't in use yet).
   activate: boolean;
   // Restored by an undo: the method the queue used before.

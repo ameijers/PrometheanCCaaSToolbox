@@ -22,6 +22,10 @@ export interface CopyOptions {
   activate: boolean;
   // Recognise a method already on the queue. Off (the default): every queue gets a new copy.
   match?: MatchOptions;
+  // Remove all assignment rules on the queue first: every ruleset of every custom method on it is
+  // emptied (the records stay). The rulesets a matched method has in common with the source are
+  // rewritten to the source's rules anyway, so they keep their rule ids.
+  clearFirst?: boolean;
 }
 
 const same = (a?: string, b?: string) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
@@ -252,6 +256,37 @@ function planUpdate(source: CopySource, queue: QueueRow, target: Method, matched
   return { existing, steps: withUniqueNames(steps, newId), reasons };
 }
 
+// Every ruleset on the queue's methods that still has rules, except those `keep` names (rewritten
+// anyway), emptied: its rule elements removed, nothing else changed.
+function planClearing(queue: QueueRow, methods: Record<string, Method>, keep: Set<string>): { cleared: RulesetUpdate[]; reasons: string[] } {
+  const cleared: RulesetUpdate[] = [];
+  const reasons: string[] = [];
+  for (const summary of queue.methods) {
+    const method = methods[summary.id];
+    if (!method) { reasons.push(`Its method "${summary.name}" couldn't be read, so its rules can't be removed.`); continue; }
+    for (const step of method.steps) {
+      const ruleset = step.ruleset;
+      if (!ruleset) { reasons.push(`The ruleset "${step.name}" of its method "${method.name}" couldn't be read, so its rules can't be removed.`); continue; }
+      if (keep.has(ruleset.id)) continue;
+      const rules = parseRules(ruleset.definition);
+      if (!rules.length && !ruleset.disabledRules) continue;
+      if (ruleset.rulesetType !== DECLARATIVE_RULESET) { reasons.push(`The ruleset "${ruleset.name}" of its method "${method.name}" isn't rule-based, so its rules can't be removed.`); continue; }
+      cleared.push({
+        rulesetId: ruleset.id, name: ruleset.name, stepType: step.type, methodId: method.id, methodName: method.name,
+        columns: { msdyn_rulesetdefinition: ruleset.definition.replace(RULE_ELEMENT, ""), msdyn_disabledrules: null },
+        before: { msdyn_rulesetdefinition: ruleset.definition, msdyn_disabledrules: ruleset.disabledRules ?? null },
+        changes: { added: [], changed: [], removed: rules.map((r) => r.name || "(unnamed rule)") }
+      });
+    }
+  }
+  return { cleared, reasons };
+}
+
+// A short description of what emptying rulesets removes.
+export function describeClearing(cleared: RulesetUpdate[]): string[] {
+  return cleared.map((c) => `Empties ${stepLabel(c.stepType).toLowerCase()} ruleset "${c.name}" of "${c.methodName}" (${c.changes.removed.length} rule${c.changes.removed.length === 1 ? "" : "s"}).`);
+}
+
 // A short description of what an update changes, for the preview and the log.
 export function describeUpdate(existing: ExistingMethod, newRulesets: StepCopy[]): string[] {
   const parts: string[] = [];
@@ -287,31 +322,49 @@ export function planCopies(source: CopySource, targets: QueueRow[], options: Cop
     // A method already on the queue that counts as this one.
     const found = matching && !reasons.length ? findExisting(method, queue, options.match!, methods) : {};
     if (found.reason) reasons.push(found.reason);
-    if (found.method) {
-      const update = reasons.length ? undefined : planUpdate(sorted, queue, found.method, found.matchedBy!, newId);
-      if (update) reasons.push(...update.reasons);
+    const update = found.method && !reasons.length ? planUpdate(sorted, queue, found.method, found.matchedBy!, newId) : undefined;
+    if (update) reasons.push(...update.reasons);
+
+    // Remove all assignment rules on the queue first. The matched method's rulesets that get the
+    // source's rules are left to that rewrite.
+    const rewritten = new Set(found.method && update ? found.method.steps.filter((s) => steps.some((t) => t.type === s.type)).map((s) => s.ruleset?.id ?? "") : []);
+    const clearing = options.clearFirst && !reasons.length ? planClearing(queue, methods, rewritten) : { cleared: [], reasons: [] };
+    reasons.push(...clearing.reasons);
+    const cleared = reasons.length ? [] : clearing.cleared;
+    // A method in use that is emptied and not replaced: the queue would assign work without rules.
+    const emptiedInUse = (switching: boolean, switchTo?: string) => {
+      if (switching || queue.strategy !== CUSTOM_STRATEGY) return;
+      const left = activeNow.filter((m) => m.id !== switchTo && cleared.some((c) => c.methodId === m.id));
+      if (left.length) notes.push(`Warning: "${left.map((m) => m.name).join("\", \"")}" is in use on this queue and its rules are removed, so the queue assigns work without those rules until you switch it to another method.`);
+    };
+
+    if (found.method && update) {
       const inUse = queue.strategy === CUSTOM_STRATEGY && activeNow.length === 1 && activeNow[0].id === found.method.id;
       const activate = options.activate && !inUse;
-      if (update && !reasons.length) {
-        notes.push(...describeUpdate(update.existing, update.steps));
-        if (update.existing.extra.length) notes.push(`${update.existing.extra.map((n) => `"${n}"`).join(", ")} isn't in the source and stays as it is.`);
-        if (activate && activeNow.length) notes.push(`Its current method "${activeNow.map((m) => m.name).join("\", \"")}" stays on the queue, switched off.`);
+      if (!reasons.length) {
+        notes.push(...describeClearing(cleared), ...describeUpdate(update.existing, update.steps));
+        const extra = update.existing.extra.filter((name) => !cleared.some((c) => c.methodId === found.method!.id && c.name === name));
+        if (extra.length) notes.push(`${extra.map((n) => `"${n}"`).join(", ")} isn't in the source and stays as it is.`);
+        if (activate && activeNow.some((m) => m.id !== found.method!.id)) notes.push(`Its current method "${activeNow.filter((m) => m.id !== found.method!.id).map((m) => m.name).join("\", \"")}" stays on the queue, switched off.`);
+        emptiedInUse(activate || inUse, found.method.id);
       }
-      const nothingToDo = !!update && !update.existing.updates.length && !update.steps.length && !activate;
+      const nothingToDo = !update.existing.updates.length && !update.steps.length && !activate && !cleared.length;
       return {
         queue, status: reasons.length ? "blocked" : nothingToDo ? "upToDate" : "update", reasons, notes, methodName: found.method.name, method: {},
-        steps: reasons.length ? [] : update!.steps, existing: update?.existing, activate, before
+        steps: reasons.length ? [] : update.steps, existing: update.existing, cleared, activate, before
       };
     }
 
     const methodName = freeName(method.name, queue.methods.map((m) => m.name));
     if (methodName !== method.name) notes.push(`Already has a method named "${method.name}"; the copy is named "${methodName}".`);
+    notes.push(...describeClearing(cleared));
     if (options.activate && queue.strategy === CUSTOM_STRATEGY && activeNow.length) notes.push(`Its current method "${activeNow.map((m) => m.name).join("\", \"")}" stays on the queue, switched off.`);
+    if (!reasons.length) emptiedInUse(options.activate);
 
     const stepCopies: StepCopy[] = reasons.length ? [] : withUniqueNames(steps.map((step) => stepCopy(step, from, queue, newId)), newId);
     const methodPayload: Record<string, unknown> = { msdyn_name: methodName, msdyn_uniquename: `msdyn_uniquename_${newId()}`, msdyn_isactiveconfiguration: false, "msdyn_queueid@odata.bind": `/${QUEUE_SET}(${queue.id})` };
     if (method.description) methodPayload.msdyn_description = method.description;
 
-    return { queue, status: reasons.length ? "blocked" : "copy", reasons, notes, methodName, method: methodPayload, steps: stepCopies, activate: options.activate, before };
+    return { queue, status: reasons.length ? "blocked" : "copy", reasons, notes, methodName, method: methodPayload, steps: stepCopies, cleared, activate: options.activate, before };
   });
 }

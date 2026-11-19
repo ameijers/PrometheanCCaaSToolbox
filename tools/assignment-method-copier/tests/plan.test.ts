@@ -234,6 +234,29 @@ describe("planCopies with a method already on the queue", () => {
     expect(copy.notes).toEqual(["Adds the prioritization ruleset \"New ruleset\".", "\"Selection\" isn't in the source and stays as it is."]);
   });
 
+  test("removing all rules first empties a ruleset the source lacks, and other methods, but not rulesets it rewrites", () => {
+    const m = onTarget();
+    m.steps.push({ id: "ts3", name: "Selection", type: 192350001, order: 3, isDefault: true, ruleset: ruleset("Selection", ASSIGNMENT, OUTPUT, { id: "trs3", inputContractId: "contract-2", disabledRules: "26873219-2093-41dc-bbe0-7ab65436df92" }) });
+    const old = onTarget({ id: "old", name: "Old method", active: false }, [PRIORITIZATION, ASSIGNMENT.replace("exact_match", "contains")]);
+    old.steps.forEach((s) => { s.ruleset!.id = `old-${s.ruleset!.id}`; });
+    const q = queue(2, { strategy: CUSTOM, methods: [{ id: "existing", name: "Skills first", active: true }, { id: "old", name: "Old method", active: false }] });
+    const [copy] = planCopies({ queue: from, method: method() }, [q], { ...both, clearFirst: true }, ids(), { existing: m, old });
+    expect(copy.status).toBe("update");
+    expect(copy.cleared.map((c) => [c.methodName, c.name])).toEqual([["Skills first", "Selection"], ["Old method", "New ruleset"], ["Old method", "Ruleset assignment"]]);
+    const selection = copy.cleared[0];
+    expect(rulesOf(String(selection.columns.msdyn_rulesetdefinition))).toEqual([]);
+    expect(selection.columns.msdyn_disabledrules).toBeNull();
+    expect(selection.before).toEqual({ msdyn_rulesetdefinition: ASSIGNMENT, msdyn_disabledrules: "26873219-2093-41dc-bbe0-7ab65436df92" });
+    // The emptied ruleset isn't also reported as staying as it is.
+    expect(copy.notes.some((n) => /stays as it is/.test(n))).toBe(false);
+  });
+
+  test("with nothing else on the queue and the method up to date, removing first changes nothing", () => {
+    const m = onTarget();
+    const [copy] = planCopies({ queue: from, method: method() }, [target(m)], { ...both, clearFirst: true }, ids(), { existing: m });
+    expect(copy).toMatchObject({ status: "upToDate", cleared: [] });
+  });
+
   test("blocks what it can't tell apart or read, and rulesets it doesn't expect", () => {
     const m = onTarget();
     const twice = queue(2, { methods: [{ id: "existing", name: "Skills first", active: false }, { id: "x", name: "skills first", active: false }] });

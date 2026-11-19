@@ -86,7 +86,7 @@ Tested in `academyexperiment` from the deployed tool, with *Contoso Flags Retail
 - Recognising a method already on the queue (same rules, same name), updating its rulesets with kept rule ids, adding missing rulesets, and undoing that.
 - UI: source queue and method with its rulesets and rules, filters (search, current method), select-all-shown with selection kept across filters, per-row preview (new copy, update with its rule changes, already up to date, blocked), the two after-copy options, the two matching options, and confirmations.
 - Demo mode: 14 queues, two source methods, a queue of another type, a queue without a contract, a queue whose rulesets are rejected, a queue with an older version of "Skills first" (Sales – BE) and one with the same rules under another name (Sales – FR).
-- Tests: 61 — `plan` (incl. rule matching and the matching options), `apply` (write order, copy only, switch off not remove, part-way failure, blocked queues never written, read-back mismatches, updates, undo, run log), `dataverse` (mocked `Xrm.WebApi` reads and Web API writes, table and column limits, error reporting), `writeScope`. Also driven end to end in headless Chrome against the demo build: choose a source, select all, preview, copy with one part-way failure, switch back, and no horizontal scroll at 390px; and on 2026-11-19 in headless Edge: a new copy, an update and a switch-on in one run, the confirmation, the result and the undo, with no horizontal scroll at 540px (the narrowest headless Edge window).
+- Tests: 69 — `plan` (incl. rule matching, the matching options and removing rules first), `apply` (write order, copy only, switch off not remove, part-way failure, blocked queues never written, read-back mismatches, updates, emptying first, undo, run log), `dataverse` (mocked `Xrm.WebApi` reads and Web API writes, table and column limits, error reporting), `writeScope`. Also driven end to end in headless Chrome against the demo build: choose a source, select all, preview, copy with one part-way failure, switch back, and no horizontal scroll at 390px; and on 2026-11-19 in headless Edge: a new copy, an update and a switch-on in one run, the confirmation, the result and the undo, with no horizontal scroll at 540px (the narrowest headless Edge window).
 
 ## Update a method already on the queue (2026-11-19)
 
@@ -112,11 +112,26 @@ Read with GETs only: every `msdyn_assignmentconfiguration`, its steps and rulese
 | Blocked when two methods have the source's name, or a method has two rulesets of one kind | The tool can't tell which one is meant. |
 | **Undo changes** writes back the old rules | The previous definition is in the plan, so the undo is exact. |
 
+### Remove all assignment rules upfront (2026-11-19)
+
+Product owner request: a checkbox to remove all assignment rules on the destination before the copy.
+
+| Decision | Why |
+| --- | --- |
+| "Remove" empties each ruleset (its `<rule>` elements out of `msdyn_rulesetdefinition`, `msdyn_disabledrules` cleared); no record is deleted | The tool never deletes, and the undo can write the old rules back exactly. The result for routing is the same: only the source's rules are left. |
+| Every ruleset of every custom method on the queue, except those of a matched method that get the source's rules anyway | Those end up exactly like the source's; rewriting them in place keeps their rule ids. |
+| Off by default, emptied first, recorded with the run | It's the most far-reaching option; doing it first matches "upfront", and the run log and undo cover it. |
+| A warning, not a block, when the method in use is emptied and the queue isn't switched | It may be intended (switching in the admin center later), but the queue then assigns work without those rules. |
+| Emptied rulesets are read back | As every other write. |
+
+Not verified live: that the platform accepts a rule-based ruleset with no rules (`<decision …><rules></rules></decision>`). The admin center creates rulesets before their rules are added (Step 0: created, then modified when rules were saved), which suggests it does.
+
 ### Still to test live
 
 1. Update by name on *Contoso Flags Service* after changing the source's rules: the rulesets keep their ids, the admin center shows the new rules, and the dependency mapping of the context variable rule is kept.
 2. Undo of that update.
 3. A ruleset added to an existing method: that the platform orders prioritization before assignment when two steps share a step order.
+4. **Remove all assignment rules upfront** on a test queue: the emptied rulesets save, the admin center shows them without rules, and **Undo changes** brings the rules back.
 ## Site Map subarea
 
 Included in the packaged solution from **1.0.0.9** onward (current: `power_platform_solution/PrometheanCCaaSToolbox_1_0_0_23.zip`): **Creation → Queue Assignment Method Copier**. The deploy script doesn't change the Site Map, so only for an environment on an older solution version add it by hand: Type Web Resource, `pct_/tools/assignmentmethodcopier/index.html`. See the [toolbox README](../../Readme.md#site-map-subareas).
