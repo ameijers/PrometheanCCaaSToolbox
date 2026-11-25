@@ -2,7 +2,7 @@
 
 Part of the [Promethean CCaaS Toolbox](../../Readme.md); see [README.md](README.md). Built 2026-11-25 as a new tool, the next step after [Environment Snapshot](../environment-snapshot/README.md), whose snapshot model, reader, rule wording and sample environment it reuses by importing them.
 
-**Status:** built and tested against two sample environments. Not deployed yet, not in the packaged solution. Its card is on Toolbox Home (Tools group, marked new), which Home's test requires for every deployable tool.
+**Status:** built and tested against two sample environments; deployed to `academyexperiment` (2026-11-25) and in the packaged solution from **1.0.0.28** (Site Map: **Tools → Environment Compare**). Its card is on Toolbox Home (Tools group, marked new), which Home's test requires for every deployable tool.
 
 ## Decisions
 
@@ -23,7 +23,7 @@ Part of the [Promethean CCaaS Toolbox](../../Readme.md); see [README.md](README.
 ## Not done
 
 - A PDF or Excel report of the differences.
-- A live comparison between two real environments: the sample pair covers the cases, and the snapshot code has been run on academyexperiment, but two real environments haven't been compared yet.
+- A live comparison between two real environments (dev, sit, uat, prd): the sample pair covers the cases, and the snapshot code has been run on academyexperiment, but two real environments haven't been compared yet.
 - Bringing differences over (for example as CSV files for the creation tools).
 
 ## Tests

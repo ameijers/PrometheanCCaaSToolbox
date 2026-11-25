@@ -84,4 +84,4 @@ pwsh ./scripts/deploy.ps1 -Tool snapshot -CreateIfMissing   # first time
 pwsh ./scripts/deploy.ps1 -Tool snapshot                    # afterwards
 ```
 
-Web resources: `pct_/tools/snapshot/{index.html,style.css,bundle.js}`. Site Map subarea: Type Web Resource, `pct_/tools/snapshot/index.html`. Not in the packaged solution yet; see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
+Web resources: `pct_/tools/snapshot/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.28** (Site Map: **Tools → Environment Snapshot**). For an environment on an older solution version, add a subarea for `pct_/tools/snapshot/index.html` by hand (see the [toolbox README](../../Readme.md#site-map-subareas)).

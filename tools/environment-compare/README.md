@@ -43,4 +43,4 @@ pwsh ./scripts/deploy.ps1 -Tool compare -CreateIfMissing   # first time
 pwsh ./scripts/deploy.ps1 -Tool compare                    # afterwards
 ```
 
-Web resources: `pct_/tools/compare/{index.html,style.css,bundle.js}`. Site Map subarea: Type Web Resource, `pct_/tools/compare/index.html`. Not in the packaged solution yet; see [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
+Web resources: `pct_/tools/compare/{index.html,style.css,bundle.js}`. In the packaged solution from **1.0.0.28** (Site Map: **Tools → Environment Compare**). For an environment on an older solution version, add a subarea for `pct_/tools/compare/index.html` by hand (see the [toolbox README](../../Readme.md#site-map-subareas)).

@@ -19,7 +19,7 @@
 
 .EXAMPLE
     pwsh ./scripts/unpack-solution.ps1
-    pwsh ./scripts/unpack-solution.ps1 -ZipFile power_platform_solution/PrometheanCCaaSToolbox_1_0_0_25.zip
+    pwsh ./scripts/unpack-solution.ps1 -ZipFile power_platform_solution/PrometheanCCaaSToolbox_1_0_0_27.zip
 #>
 param(
     [string]$ZipFile

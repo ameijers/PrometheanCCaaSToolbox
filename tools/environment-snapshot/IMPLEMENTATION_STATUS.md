@@ -2,7 +2,7 @@
 
 Part of the [Promethean CCaaS Toolbox](../../Readme.md); see [README.md](README.md). Built 2026-11-25 as a new, separate tool: it reuses other tools' code by importing it (Visual Routing Tester's rule parser, the shared read helpers) and changes none of them. The one change outside the tool is its card on Toolbox Home (product owner's choice), which Home's own test requires for every deployable tool.
 
-**Status:** built and tested against the sample environment, and its snapshot code run against `academyexperiment` with read-only requests (see [Live check](#live-check-2026-11-25)). Not deployed yet and not in the packaged solution. Its card is on Toolbox Home (Tools group, marked new).
+**Status:** built and tested against the sample environment, and its snapshot code run against `academyexperiment` with read-only requests (see [Live check](#live-check-2026-11-25)). Deployed to `academyexperiment` (2026-11-25) and in the packaged solution from **1.0.0.28** (Site Map: **Tools → Environment Snapshot**). Its card is on Toolbox Home (Tools group, marked new). Still to do: running it in other environments (dev, sit, uat, prd).
 
 ## Step 0 — what's read (academyexperiment, 2026-11-25, read-only)
 
@@ -46,7 +46,6 @@ The snapshot, document and workbook code (`snapshot.ts`, `document.ts`, `excel.t
 - Comparing snapshots is done by [Environment Compare](../environment-compare/README.md), from the snapshot file this tool saves (*Download snapshot file*, added 2026-11-25; format in `src/snapshotFile.ts`).
 - Operating hours are named, not shown as times (the calendar rules aren't read).
 - Messaging channels' settings are in the workbook; the document names only voice channels per workstream.
-- Not deployed, no Site Map subarea, not in the solution.
 
 ## Tests
 

@@ -36,8 +36,8 @@ The app opens best on **[Toolbox Home](tools/toolbox-home/README.md)**: a landin
 | [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. A health overlay marks problems (an empty queue that is routed to, a rule to a deleted queue, a workstream that routes nowhere) in the picture. Also: a health overlay for structural problems, follow-the-call rides, live presence and queue load, bots, overflow and operating hours, tabs, a layer distance slider, full screen and a guided tour. In the Site Map as **Visualization → 3D Explorer** (**3D** before 1.0.0.19); current version in solution 1.0.0.17 and later. ▶ [Video of the guided tour](tools/environment-3d-explorer/video/environment-3d-explorer-tour.mp4). **Tried live in `academyexperiment`; live activity still to be seen with real traffic.** |
 | [3D Contact Center](tools/contact-center-3d/README.md) | The same environment from a business perspective: each customer center is an open-roofed building on a floating platform, drawn like an architect's model in deep blue with lines of light, with entrance doors (voice channels and their numbers), an automated reception (bot), lobbies (workstreams), signposts (routing rules), rooms (queues) with a desk per agent, and overflow at the room doors. Create customer centers and move workstreams into them (remembered); one front desk per center and a wing per kind of work (phone, chat, email). Live callers, follow a call, health, skills, sample data inside the app, and a guided tour. In the Site Map as **Visualization → 3D Contact Center** (**3D** before 1.0.0.19), from solution 1.0.0.15. **Tried live in `academyexperiment`.** |
 | [Environment Diagram](tools/environment-diagram/README.md) | The same environment as a **Visio-style diagram**, left to right the way a call travels: swimlanes for numbers, channels, workstreams, queues and overflow; workstreams as containers with their bot and routing rules in order, queues as containers with their agents (skills, capacity profiles, teams and business units as tags); customer centers (shared with 3D Contact Center) as containers around their workstreams. Select to light up a chain, follow the call, live activity, health, saved views, a guided tour, and **download as SVG (opens in Visio) or PNG**. In the Site Map as **Visualization → Environment Diagram**, from solution 1.0.0.19. **Tried live in `academyexperiment`.** |
-| [Environment Snapshot](tools/environment-snapshot/README.md) | Reads the **whole contact center configuration** once and saves it as a **designed PDF document** (cover, overview, workstreams with their channels and routing rules in plain language, queues with assignment, overflow and members, agents, numbers, capacity and skills) and an **Excel workbook** with every column of every table. Secrets (keys, passwords, tokens) are never included. For sign-off, handover, audit, or a record of the configuration before changing it, and a **snapshot file** to compare. **New (2026-11-25): on Toolbox Home; not in the solution yet.** |
-| [Environment Compare](tools/environment-compare/README.md) | Compares two environments (dev and test, test and production) or one environment at two moments, from Environment Snapshot's snapshot files or a fresh snapshot of the environment it runs in. Matches records **by name or by ID**; shows what's only in one side and every setting that differs, with routing rules compared as worded rules; ids, dates and owners are never compared, and what differs per environment by nature (numbers, users, memberships) is marked and hidden by default. **New (2026-11-25): on Toolbox Home; not in the solution yet.** |
+| [Environment Snapshot](tools/environment-snapshot/README.md) | Reads the **whole contact center configuration** once and saves it as a **designed PDF document** (cover, overview, workstreams with their channels and routing rules in plain language, queues with assignment, overflow and members, agents, numbers, capacity and skills) and an **Excel workbook** with every column of every table. Secrets (keys, passwords, tokens) are never included. For sign-off, handover, audit, or a record of the configuration before changing it, and a **snapshot file** to compare. In the Site Map as **Tools → Environment Snapshot**, from solution 1.0.0.28. **New (2026-11-25).** |
+| [Environment Compare](tools/environment-compare/README.md) | Compares two environments (dev and test, test and production) or one environment at two moments, from Environment Snapshot's snapshot files or a fresh snapshot of the environment it runs in. Matches records **by name or by ID**; shows what's only in one side and every setting that differs, with routing rules compared as worded rules; ids, dates and owners are never compared, and what differs per environment by nature (numbers, users, memberships) is marked and hidden by default. In the Site Map as **Tools → Environment Compare**, from solution 1.0.0.28. **New (2026-11-25).** |
 
 ### Creation and provisioning tools
 
@@ -120,7 +120,7 @@ The toolbox is packaged as one Dataverse solution that bundles the tools' web re
 
 | | Unmanaged | Managed |
 | --- | --- | --- |
-| Zip | [`PrometheanCCaaSToolbox_1_0_0_25.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_25.zip) | [`PrometheanCCaaSToolbox_1_0_0_26_managed.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_26_managed.zip) |
+| Zip | [`PrometheanCCaaSToolbox_1_0_0_27.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_27.zip) | [`PrometheanCCaaSToolbox_1_0_0_28_managed.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_28_managed.zip) |
 | For | Development and test environments | **Production** environments |
 | After import | Every component stays editable, and `deploy.ps1` (Option B) can update single tools | Components are locked and can be removed cleanly by deleting the solution; update by importing a newer managed version |
 
@@ -128,9 +128,9 @@ Pick one per environment and keep to it: don't import the managed solution into 
 
 ### Option A — Import the packaged solution (fastest, no build tooling required)
 
-> 📦 Solution zips: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_25.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_25.zip) (unmanaged) and [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_26_managed.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_26_managed.zip) (managed, for production)
+> 📦 Solution zips: [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_27.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_27.zip) (unmanaged) and [`power_platform_solution/PrometheanCCaaSToolbox_1_0_0_28_managed.zip`](power_platform_solution/PrometheanCCaaSToolbox_1_0_0_28_managed.zip) (managed, for production)
 >
-> **Both contain all twenty-two tools and Toolbox Home** (unmanaged 1.0.0.25, managed 1.0.0.26), already in the app's Site Map in six groups: **Home** (Toolbox Home, the landing page with every tool as a card), **Visualization** (3D Contact Center, 3D Explorer, Environment Diagram), **Tools** (the four diagnostic tools), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment, Phone Number Changer, Capacity Profile Assignment), **Creation** (Voice Workstream Builder, Voice Channel Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
+> **Both contain all twenty-four tools and Toolbox Home** (both version 1.0.0.28; the unmanaged file is named `_1_0_0_27`), already in the app's Site Map in six groups: **Home** (Toolbox Home, the landing page with every tool as a card), **Visualization** (3D Contact Center, 3D Explorer, Environment Diagram), **Tools** (the four diagnostic tools, Environment Snapshot and Environment Compare), **Provisioning** (Recording & Transcription, Queue Membership, Skill Assignment, Phone Number Changer, Capacity Profile Assignment), **Creation** (Voice Workstream Builder, Voice Channel Builder, Queue Builder, Profile Builder, Queue Assignment Method Copier, Route-to-Queue Builder, Voicemail Builder) and **Security** (Business Units Builder, Team Builder, User Setup). See [Site Map subareas](#site-map-subareas).
 
 Via the Power Platform maker portal:
 1. Go to [make.powerapps.com](https://make.powerapps.com) and switch to the target environment.
@@ -141,9 +141,9 @@ Via the `pac` CLI:
 ```powershell
 pac auth create --url https://your-org.crm.dynamics.com
 # development or test (unmanaged)
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_25.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_27.zip --publish-changes
 # production (managed)
-pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_26_managed.zip --publish-changes
+pac solution import --path power_platform_solution/PrometheanCCaaSToolbox_1_0_0_28_managed.zip --publish-changes
 ```
 
 After import, the solution's unique name in that environment is `PrometheanCCaaSToolbox` (publisher prefix `pct_`, the names baked into the zip's `solution.xml`). In an environment with the **unmanaged** solution, this is also the name to put in `deploy.config.json` as `solutionUniqueName` if you plan to push code changes into it later with `deploy.ps1` — see [deploy.config.json reference](#deployconfigjson-reference) below. Don't use `deploy.ps1` on an environment with the managed solution: update it by importing a newer managed zip.
@@ -162,7 +162,7 @@ Importing the solution (either option) does **not** make the toolbox usable on i
 
 ### Site Map subareas
 
-Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Both solution zips (1.0.0.25 unmanaged, 1.0.0.26 managed) already have all of them, in the app's **CCaaS Toolbox** area:
+Each tool is a Site Map subarea of **Type: Web Resource** that points at the tool's `index.html` (the page loads its own `style.css` and `bundle.js`). In the Site Map designer, pick the web resource by name; in the Site Map XML it's stored as `$webresource:<name>`. Both solution zips (version 1.0.0.28) already have all of them, in the app's **CCaaS Toolbox** area:
 
 | Group | Subarea title | Web resource |
 | --- | --- | --- |
@@ -171,6 +171,8 @@ Each tool is a Site Map subarea of **Type: Web Resource** that points at the too
 | Tools | Context Variable Monitor | `pct_/tools/contextvariablemonitor/index.html` |
 | Tools | Agent Readiness Checker | `pct_/tools/agentreadiness/index.html` |
 | Tools | Environment Artifact Finder | `pct_/tools/artifactfinder/index.html` |
+| Tools | Environment Snapshot | `pct_/tools/snapshot/index.html` |
+| Tools | Environment Compare | `pct_/tools/compare/index.html` |
 | Visualization | 3D Contact Center | `pct_/tools/contactcenter3d/index.html` |
 | Visualization | 3D Explorer | `pct_/tools/explorer3d/index.html` |
 | Visualization | Environment Diagram | `pct_/tools/diagram2d/index.html` |
