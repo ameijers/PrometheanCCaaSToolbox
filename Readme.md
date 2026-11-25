@@ -36,6 +36,8 @@ The app opens best on **[Toolbox Home](tools/toolbox-home/README.md)**: a landin
 | [Environment 3D Explorer](tools/environment-3d-explorer/README.md) | Shows the whole contact center as a 3D cloud you can rotate, zoom into and walk through: phone numbers in front, then voice channels, workstreams, routing rules, queues, agents and skills at the back. Click a record to fly to it and light up everything in front of it and behind it. A health overlay marks problems (an empty queue that is routed to, a rule to a deleted queue, a workstream that routes nowhere) in the picture. Also: a health overlay for structural problems, follow-the-call rides, live presence and queue load, bots, overflow and operating hours, tabs, a layer distance slider, full screen and a guided tour. In the Site Map as **Visualization → 3D Explorer** (**3D** before 1.0.0.19); current version in solution 1.0.0.17 and later. ▶ [Video of the guided tour](tools/environment-3d-explorer/video/environment-3d-explorer-tour.mp4). **Tried live in `academyexperiment`; live activity still to be seen with real traffic.** |
 | [3D Contact Center](tools/contact-center-3d/README.md) | The same environment from a business perspective: each customer center is an open-roofed building on a floating platform, drawn like an architect's model in deep blue with lines of light, with entrance doors (voice channels and their numbers), an automated reception (bot), lobbies (workstreams), signposts (routing rules), rooms (queues) with a desk per agent, and overflow at the room doors. Create customer centers and move workstreams into them (remembered); one front desk per center and a wing per kind of work (phone, chat, email). Live callers, follow a call, health, skills, sample data inside the app, and a guided tour. In the Site Map as **Visualization → 3D Contact Center** (**3D** before 1.0.0.19), from solution 1.0.0.15. **Tried live in `academyexperiment`.** |
 | [Environment Diagram](tools/environment-diagram/README.md) | The same environment as a **Visio-style diagram**, left to right the way a call travels: swimlanes for numbers, channels, workstreams, queues and overflow; workstreams as containers with their bot and routing rules in order, queues as containers with their agents (skills, capacity profiles, teams and business units as tags); customer centers (shared with 3D Contact Center) as containers around their workstreams. Select to light up a chain, follow the call, live activity, health, saved views, a guided tour, and **download as SVG (opens in Visio) or PNG**. In the Site Map as **Visualization → Environment Diagram**, from solution 1.0.0.19. **Tried live in `academyexperiment`.** |
+| [Environment Snapshot](tools/environment-snapshot/README.md) | Reads the **whole contact center configuration** once and saves it as a **designed PDF document** (cover, overview, workstreams with their channels and routing rules in plain language, queues with assignment, overflow and members, agents, numbers, capacity and skills) and an **Excel workbook** with every column of every table. Secrets (keys, passwords, tokens) are never included. For sign-off, handover, audit, or a record of the configuration before changing it, and a **snapshot file** to compare. **New (2026-11-25): on Toolbox Home; not in the solution yet.** |
+| [Environment Compare](tools/environment-compare/README.md) | Compares two environments (dev and test, test and production) or one environment at two moments, from Environment Snapshot's snapshot files or a fresh snapshot of the environment it runs in. Matches records **by name or by ID**; shows what's only in one side and every setting that differs, with routing rules compared as worded rules; ids, dates and owners are never compared, and what differs per environment by nature (numbers, users, memberships) is marked and hidden by default. **New (2026-11-25): on Toolbox Home; not in the solution yet.** |
 
 ### Creation and provisioning tools
 
@@ -219,6 +221,8 @@ tools/
   environment-artifact-finder/ # Diagnostic
   environment-3d-explorer/     # Diagnostic (3D view, Three.js)
   contact-center-3d/           # Diagnostic (3D business view, built on the explorer)
+  environment-snapshot/        # Diagnostic (configuration snapshot as PDF, Excel and snapshot file)
+  environment-compare/         # Diagnostic (compares two snapshots)
   voice-workstream-builder/    # Creation — also holds the shared CSV, log and recording code
   voice-channel-builder/       # Creation (voice channels on existing workstreams)
   queue-builder/               # Creation
@@ -280,6 +284,8 @@ Each tool can be run locally in its offline demo mode:
 | Toolbox Home | `home` | `npm run demo:home` → http://localhost:5452/home/index.html |
 | Environment Diagram | `diagram2d` | `npm run demo:diagram2d` → http://localhost:5453/index.html |
 | Voice Channel Builder | `channelbuilder` | `npm run demo:channelbuilder` → http://localhost:5454/index.html |
+| Environment Snapshot | `snapshot` | `npm run demo:snapshot` → http://localhost:5455/index.html |
+| Environment Compare | `compare` | `npm run demo:compare` → http://localhost:5456/index.html |
 
 ## Deployment
 
