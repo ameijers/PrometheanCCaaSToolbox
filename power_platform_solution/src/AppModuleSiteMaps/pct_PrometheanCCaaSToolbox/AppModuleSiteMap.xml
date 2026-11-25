@@ -64,6 +64,16 @@
             <Title LCID="1033" Title="Environment Artifact Finder" />
           </Titles>
         </SubArea>
+        <SubArea Id="NewSubArea_ba5f42b1" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/snapshot/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Environment Snapshot" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="NewSubArea_4e6997918" ResourceId="SitemapDesigner.NewSubArea" Url="$webresource:pct_/tools/compare/index.html" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA">
+          <Titles>
+            <Title LCID="1033" Title="Environment Compare" />
+          </Titles>
+        </SubArea>
       </Group>
       <Group Id="NewGroup_f15e9511" ResourceId="SitemapDesigner.NewGroup" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
         <Titles>

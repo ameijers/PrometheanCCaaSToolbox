@@ -30,7 +30,9 @@ module.exports = {
     numberchanger: "./tools/phone-number-changer/webresource/index.tsx",
     capacityassignment: "./tools/capacity-profile-assignment/webresource/index.tsx",
     home: "./tools/toolbox-home/webresource/index.tsx",
-    diagram2d: "./tools/environment-diagram/webresource/index.tsx"
+    diagram2d: "./tools/environment-diagram/webresource/index.tsx",
+    snapshot: "./tools/environment-snapshot/webresource/index.tsx",
+    compare: "./tools/environment-compare/webresource/index.tsx"
   },
   output: {
     path: path.resolve(__dirname, "dist/webresource"),

@@ -31,6 +31,8 @@ export const TOOLS: ToolCard[] = [
   { key: "contextvariablemonitor", name: "Context Variable Monitor", group: "tools", writes: false, description: "Watch the context variables a real call captures, live, as it moves through the IVR and routing." },
   { key: "agentreadiness", name: "Agent Readiness Checker", group: "tools", writes: false, description: "Why isn't this agent getting calls? Checks every prerequisite, with plain-language evidence and fixes." },
   { key: "artifactfinder", name: "Environment Artifact Finder", group: "tools", writes: false, description: "Find configuration you can clean up: unused records, broken references and things that can never work." },
+  { key: "snapshot", name: "Environment Snapshot", group: "tools", writes: false, isNew: true, description: "The whole contact center configuration as a designed PDF document and an Excel workbook with every column." },
+  { key: "compare", name: "Environment Compare", group: "tools", writes: false, isNew: true, description: "Compare two environments, or one over time, from snapshots: what's only in one, and every setting that differs." },
 
   { key: "contactcenter3d", name: "3D Contact Center", group: "3d", writes: false, description: "Your environment as a campus of buildings: doors, lobbies, rooms and desks, with live callers and a guided tour." },
   { key: "diagram2d", name: "Environment Diagram", group: "3d", writes: false, isNew: true, description: "Your whole contact center as a Visio-style diagram: containers, routing rules and agents, with live activity. Download it for Visio." },

@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ImportExportXml version="9.2.26112.137" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26112.137" OrganizationSchemaType="Full" CRMServerServiceabilityVersion="9.2.26112.00139">
+<ImportExportXml version="9.2.26113.135" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26113.135" OrganizationSchemaType="Full" CRMServerServiceabilityVersion="9.2.26113.00135">
   <SolutionManifest>
     <UniqueName>PrometheanCCaaSToolbox</UniqueName>
     <LocalizedNames>
       <LocalizedName description="Promethean CCaaS Toolbox" languagecode="1033" />
     </LocalizedNames>
     <Descriptions />
-    <Version>1.0.0.25</Version>
+    <Version>1.0.0.28</Version>
     <Managed>0</Managed>
     <Publisher>
       <UniqueName>PrometheanCCaaSToolboxProvider</UniqueName>
@@ -96,6 +96,9 @@
       <RootComponent type="61" schemaName="pct_/tools/channelbuilder/bundle.js" behavior="0" />
       <RootComponent type="61" schemaName="pct_/tools/channelbuilder/index.html" behavior="0" />
       <RootComponent type="61" schemaName="pct_/tools/channelbuilder/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/compare/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/compare/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/compare/style.css" behavior="0" />
       <RootComponent type="61" schemaName="pct_/tools/contactcenter3d/bundle.js" behavior="0" />
       <RootComponent type="61" schemaName="pct_/tools/contactcenter3d/index.html" behavior="0" />
       <RootComponent type="61" schemaName="pct_/tools/contactcenter3d/style.css" behavior="0" />
@@ -135,6 +138,9 @@
       <RootComponent type="61" schemaName="pct_/tools/skillassignment/bundle.js" behavior="0" />
       <RootComponent type="61" schemaName="pct_/tools/skillassignment/index.html" behavior="0" />
       <RootComponent type="61" schemaName="pct_/tools/skillassignment/style.css" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/snapshot/bundle.js" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/snapshot/index.html" behavior="0" />
+      <RootComponent type="61" schemaName="pct_/tools/snapshot/style.css" behavior="0" />
       <RootComponent type="61" schemaName="pct_/tools/teambuilder/bundle.js" behavior="0" />
       <RootComponent type="61" schemaName="pct_/tools/teambuilder/index.html" behavior="0" />
       <RootComponent type="61" schemaName="pct_/tools/teambuilder/style.css" behavior="0" />

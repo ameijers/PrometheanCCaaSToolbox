@@ -139,6 +139,30 @@
         { "name": "pct_/tools/channelbuilder/bundle.js", "path": "dist/webresource/channelbuilder/bundle.js", "type": 3, "displayName": "Voice Channel Builder - bundle.js" }
       ]
     },
+    "snapshot": {
+      "displayName": "Environment Snapshot",
+      "stage": [
+        { "from": "tools/environment-snapshot/webresource/snapshot.html", "to": "dist/webresource/snapshot/index.html" },
+        { "from": "tools/environment-snapshot/css/environmentSnapshot.css", "to": "dist/webresource/snapshot/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/snapshot/index.html", "path": "dist/webresource/snapshot/index.html", "type": 1, "displayName": "Environment Snapshot - index.html", "cacheBust": true },
+        { "name": "pct_/tools/snapshot/style.css", "path": "dist/webresource/snapshot/style.css", "type": 2, "displayName": "Environment Snapshot - style.css" },
+        { "name": "pct_/tools/snapshot/bundle.js", "path": "dist/webresource/snapshot/bundle.js", "type": 3, "displayName": "Environment Snapshot - bundle.js" }
+      ]
+    },
+    "compare": {
+      "displayName": "Environment Compare",
+      "stage": [
+        { "from": "tools/environment-compare/webresource/compare.html", "to": "dist/webresource/compare/index.html" },
+        { "from": "tools/environment-compare/css/environmentCompare.css", "to": "dist/webresource/compare/style.css" }
+      ],
+      "webResources": [
+        { "name": "pct_/tools/compare/index.html", "path": "dist/webresource/compare/index.html", "type": 1, "displayName": "Environment Compare - index.html", "cacheBust": true },
+        { "name": "pct_/tools/compare/style.css", "path": "dist/webresource/compare/style.css", "type": 2, "displayName": "Environment Compare - style.css" },
+        { "name": "pct_/tools/compare/bundle.js", "path": "dist/webresource/compare/bundle.js", "type": 3, "displayName": "Environment Compare - bundle.js" }
+      ]
+    },
     "businessunitbuilder": {
       "displayName": "Business Unit Builder",
       "stage": [
